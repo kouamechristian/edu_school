@@ -1,0 +1,112 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Groupes d'Établissements{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-sitemap me-2"></i> Gestion des Groupes d'Établissements
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ path('admin_school_group_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Nouveau Groupe
+            </a>
+        </div>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Liste des Groupes d'Établissements</h5>
+        </div>
+        <div class="card-body">
+            {% if school_groups is empty %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Aucun groupe enregistré. Cliquez sur "Nouveau Groupe" pour commencer.
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Nom</th>
+                                <th>Description</th>
+                                <th>Établissements</th>
+                                <th>Statut</th>
+                                <th width="200">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for group in school_groups %}
+                            <tr>
+                                <td><strong>{{ group.code }}</strong></td>
+                                <td>{{ group.name }}</td>
+                                <td>
+                                    {% if group.description %}
+                                        {{ group.description|length > 50 ? group.description|slice(0, 50) ~ '...' : group.description }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ group.schools|length }} établissement(s)
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if group.isActive %}
+                                        <span class="badge bg-success">Actif</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactif</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ path('admin_school_group_show', {'id': group.id}) }}" 
+                                           class="btn btn-info" title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ path('admin_school_group_edit', {'id': group.id}) }}" 
+                                           class="btn btn-warning" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post" action="{{ path('admin_school_group_toggle', {'id': group.id}) }}" 
+                                              style="display:inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ group.id) }}">
+                                            <button type="submit" class="btn btn-secondary" 
+                                                    title="{{ group.isActive ? 'Désactiver' : 'Activer' }}">
+                                                <i class="fas fa-{{ group.isActive ? 'ban' : 'check' }}"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ path('admin_school_group_delete', {'id': group.id}) }}" 
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?');"
+                                              style="display:inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ group.id) }}">
+                                            <button type="submit" class="btn btn-danger" title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

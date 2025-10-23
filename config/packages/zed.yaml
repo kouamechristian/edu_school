@@ -1,0 +1,10 @@
+parameters:
+    zed.app_name: 'EDU-SCHOOL'
+    zed.app_code: 'EDU'
+    zed.app_short_name: 'EDU'
+    zed.app_devise: 'Excellence et Innovation'
+    zed.app_phone_number: '+33 1 23 45 67 89'
+    zed.app_location: "123 Rue de l'Éducation, 75001 Paris"
+    zed.app_email: 'contact@edu-school.fr'
+    zed.host_url: 'http://localhost'
+    zed.app_directory: '/edu-school'

@@ -1,0 +1,228 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Frais{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                        <li class="breadcrumb-item"><a href="{{ path('admin_fee_index') }}">Frais</a></li>
+                        <li class="breadcrumb-item active">Nouveau</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">Nouveau Frais</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="mdi mdi-currency-usd me-2"></i>
+                        Créer un nouveau frais
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.name, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.name) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.code, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.code, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.code) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.school, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.school, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.school) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.level, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.level, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.level) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form_label(form.amount, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.amount, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.amount) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form_label(form.type, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.type, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.type) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form_label(form.frequency, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.frequency, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.frequency) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form_label(form.startDate, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.startDate, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.startDate) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form_label(form.endDate, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.endDate, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.endDate) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form_label(form.dueDate, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.dueDate, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.dueDate) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.discountPercentage, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.discountPercentage, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.discountPercentage) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.discountAmount, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.discountAmount, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.discountAmount) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    {{ form_label(form.description, null, {'label_attr': {'class': 'form-label'}}) }}
+                                    {{ form_widget(form.description, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.description) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ path('admin_fee_index') }}" class="btn btn-secondary">
+                                        <i class="mdi mdi-arrow-left me-1"></i>
+                                        Retour
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="mdi mdi-check me-1"></i>
+                                        Créer le Frais
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Validation côté client
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Auto-calcul du montant final
+document.addEventListener('DOMContentLoaded', function() {
+    const amountInput = document.querySelector('#fee_amount');
+    const discountPercentageInput = document.querySelector('#fee_discountPercentage');
+    const discountAmountInput = document.querySelector('#fee_discountAmount');
+    
+    function calculateFinalAmount() {
+        const amount = parseFloat(amountInput.value) || 0;
+        const discountPercentage = parseFloat(discountPercentageInput.value) || 0;
+        const discountAmount = parseFloat(discountAmountInput.value) || 0;
+        
+        let finalAmount = amount;
+        
+        if (discountPercentage > 0) {
+            finalAmount -= (amount * discountPercentage / 100);
+        }
+        
+        if (discountAmount > 0) {
+            finalAmount -= discountAmount;
+        }
+        
+        finalAmount = Math.max(0, finalAmount);
+        
+        // Afficher le montant final (optionnel)
+        let finalAmountDisplay = document.getElementById('finalAmountDisplay');
+        if (!finalAmountDisplay) {
+            finalAmountDisplay = document.createElement('div');
+            finalAmountDisplay.id = 'finalAmountDisplay';
+            finalAmountDisplay.className = 'mt-2 p-2 bg-light rounded';
+            amountInput.parentNode.appendChild(finalAmountDisplay);
+        }
+        
+        if (discountPercentage > 0 || discountAmount > 0) {
+            finalAmountDisplay.innerHTML = `<strong>Montant final: ${finalAmount.toLocaleString()} FCFA</strong>`;
+            finalAmountDisplay.style.display = 'block';
+        } else {
+            finalAmountDisplay.style.display = 'none';
+        }
+    }
+    
+    if (amountInput && discountPercentageInput && discountAmountInput) {
+        [amountInput, discountPercentageInput, discountAmountInput].forEach(input => {
+            input.addEventListener('input', calculateFinalAmount);
+        });
+    }
+});
+</script>
+{% endblock %}

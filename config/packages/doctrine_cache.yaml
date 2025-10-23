@@ -1,0 +1,46 @@
+# Configuration du cache pour le framework
+framework:
+    cache:
+        # Configuration des pools de cache
+        pools:
+            # Pool pour le cache des requêtes Doctrine
+            doctrine.result_cache_pool:
+                adapter: cache.app
+                default_lifetime: 3600  # 1h
+                
+            # Pool pour le cache des métadonnées Doctrine
+            doctrine.system_cache_pool:
+                adapter: cache.adapter.system
+                default_lifetime: 0  # Pas d'expiration
+
+# Configuration du cache Doctrine
+doctrine:
+    orm:
+        # Activation du cache de requêtes
+        query_cache_driver:
+            type: pool
+            pool: doctrine.system_cache_pool
+            
+        # Activation du cache de résultats
+        result_cache_driver:
+            type: pool
+            pool: doctrine.result_cache_pool
+            
+        # Activation du cache des métadonnées
+        metadata_cache_driver:
+            type: pool
+            pool: doctrine.system_cache_pool
+
+# Configuration des services de cache
+services:
+    # Service de cache pour les résultats Doctrine
+    doctrine.result_cache_pool:
+        parent: cache.app
+        tags: [cache.pool]
+        public: true
+
+    # Service de cache système pour Doctrine
+    doctrine.system_cache_pool:
+        parent: cache.system
+        tags: [cache.pool]
+        public: true

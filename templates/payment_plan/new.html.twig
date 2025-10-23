@@ -1,0 +1,102 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Plan de Paiement{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-calendar-check me-2"></i>Nouveau Plan de Paiement
+        </h1>
+        <a href="{{ path('admin_payment_plan_index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Créer un nouveau plan de paiement</h6>
+        </div>
+        <div class="card-body">
+            {{ form_start(form) }}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.name, 'Nom du plan') }}
+                            {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.name) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.totalAmount, 'Montant total') }}
+                            {{ form_widget(form.totalAmount, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.totalAmount) }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.installmentCount, 'Nombre d\'échéances') }}
+                            {{ form_widget(form.installmentCount, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.installmentCount) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.installmentAmount, 'Montant par échéance') }}
+                            {{ form_widget(form.installmentAmount, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.installmentAmount) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.startDate, 'Date de début') }}
+                            {{ form_widget(form.startDate, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.startDate) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.endDate, 'Date de fin') }}
+                            {{ form_widget(form.endDate, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.endDate) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.description, 'Description') }}
+                            {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 3}}) }}
+                            {{ form_errors(form.description) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.isActive, 'Plan actif') }}
+                            {{ form_widget(form.isActive, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.isActive) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Enregistrer
+                    </button>
+                    <a href="{{ path('admin_payment_plan_index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Annuler
+                    </a>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Justifier une absence{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                        <li class="breadcrumb-item"><a href="{{ path('admin_absence_index') }}">Absences</a></li>
+                        <li class="breadcrumb-item"><a href="{{ path('admin_absence_show', {'id': absence.id}) }}">Détails</a></li>
+                        <li class="breadcrumb-item active">Justifier</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">Justifier une absence</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Justification de l'absence</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Élève</label>
+                                <input type="text" class="form-control" value="{{ absence.student.fullName }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date de l'absence</label>
+                                <input type="text" class="form-control" value="{{ absence.date|date('d/m/Y') }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Type d'absence</label>
+                                <input type="text" class="form-control" value="{{ absence.absenceType.name }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Statut actuel</label>
+                                {% set statusClass = match(absence.justificationStatus) {
+                                    'justified': 'success',
+                                    'unjustified': 'danger',
+                                    'pending': 'warning',
+                                    default: 'secondary'
+                                } %}
+                                <span class="badge bg-{{ statusClass }} form-control">{{ absence.justificationStatusLabel }}</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="justification_status" class="form-label">Statut de justification <span class="text-danger">*</span></label>
+                            <select name="justification_status" id="justification_status" class="form-select" required>
+                                <option value="">Sélectionner un statut</option>
+                                <option value="justified" {{ absence.justificationStatus == 'justified' ? 'selected' : '' }}>Justifiée</option>
+                                <option value="unjustified" {{ absence.justificationStatus == 'unjustified' ? 'selected' : '' }}>Non justifiée</option>
+                                <option value="pending" {{ absence.justificationStatus == 'pending' ? 'selected' : '' }}>En attente</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="justification" class="form-label">Justification</label>
+                            <textarea name="justification" id="justification" class="form-control" rows="4" 
+                                      placeholder="Détails de la justification...">{{ absence.justification }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes supplémentaires</label>
+                            <textarea name="notes" id="notes" class="form-control" rows="3" 
+                                      placeholder="Notes additionnelles...">{{ absence.notes }}</textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="mdi mdi-check"></i> Enregistrer la justification
+                            </button>
+                            <a href="{{ path('admin_absence_show', {'id': absence.id}) }}" class="btn btn-secondary">
+                                <i class="mdi mdi-arrow-left"></i> Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Informations de l'absence</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-5">Élève :</dt>
+                        <dd class="col-sm-7">{{ absence.student.fullName }}</dd>
+
+                        <dt class="col-sm-5">Classe :</dt>
+                        <dd class="col-sm-7">
+                            {% if absence.student.classroom %}
+                                {{ absence.student.classroom.name }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-5">Type :</dt>
+                        <dd class="col-sm-7">
+                            <span class="badge" style="background-color: {{ absence.absenceType.color ?? '#6c757d' }}">
+                                {{ absence.absenceType.name }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-5">Date :</dt>
+                        <dd class="col-sm-7">{{ absence.date|date('d/m/Y') }}</dd>
+
+                        {% if absence.startTime and absence.endTime %}
+                            <dt class="col-sm-5">Heures :</dt>
+                            <dd class="col-sm-7">{{ absence.startTime|date('H:i') }} - {{ absence.endTime|date('H:i') }}</dd>
+                        {% endif %}
+
+                        <dt class="col-sm-5">Enregistrée :</dt>
+                        <dd class="col-sm-7">{{ absence.createdAt|date('d/m/Y H:i') }}</dd>
+                    </dl>
+
+                    {% if absence.reason %}
+                        <div class="mt-3">
+                            <h6>Motif original</h6>
+                            <p class="text-muted">{{ absence.reason }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Conseils</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Statuts de justification</h6>
+                        <ul class="mb-0">
+                            <li><strong>Justifiée :</strong> L'absence est légitime et documentée</li>
+                            <li><strong>Non justifiée :</strong> L'absence n'est pas justifiée</li>
+                            <li><strong>En attente :</strong> Justification en cours d'évaluation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

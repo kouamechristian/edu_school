@@ -1,0 +1,133 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails de la Période{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">Détails de la Période</h1>
+                <div>
+                    <a href="{{ path('admin_period_edit', {'id': period.id}) }}" class="btn btn-warning me-2">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+                    <a href="{{ path('admin_period_index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt"></i> {{ period.name }}
+                    </h5>
+                    {% if period.isActive %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3">Informations Générales</h6>
+                            
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Établissement</th>
+                                        <td>
+                                            <i class="fas fa-school text-primary"></i>
+                                            {{ period.school.name }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Année scolaire</th>
+                                        <td>
+                                            <i class="fas fa-calendar text-info"></i>
+                                            {{ period.schoolYear.name }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <td><strong>{{ period.name }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Code</th>
+                                        <td><code>{{ period.code }}</code></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Numéro d'ordre</th>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ period.orderNumber }}</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3">Période</h6>
+                            
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Date de début</th>
+                                        <td>
+                                            <i class="fas fa-calendar-check text-success"></i>
+                                            {{ period.startDate|date('d/m/Y') }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date de fin</th>
+                                        <td>
+                                            <i class="fas fa-calendar-times text-danger"></i>
+                                            {{ period.endDate|date('d/m/Y') }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Durée</th>
+                                        <td>
+                                            {% set duration = date(period.endDate).diff(date(period.startDate)).days + 1 %}
+                                            <i class="fas fa-hourglass-half text-warning"></i>
+                                            {{ duration }} jours
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6 class="border-bottom pb-2 mb-3 mt-4">Dates de création</h6>
+                            
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Créée le</th>
+                                        <td>
+                                            <i class="fas fa-clock text-success"></i>
+                                            {{ period.createdAt|date('d/m/Y à H:i') }}
+                                        </td>
+                                    </tr>
+                                    {% if period.updatedAt %}
+                                        <tr>
+                                            <th>Modifiée le</th>
+                                            <td>
+                                                <i class="fas fa-clock text-warning"></i>
+                                                {{ period.updatedAt|date('d/m/Y à H:i') }}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

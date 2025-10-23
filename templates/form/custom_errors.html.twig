@@ -1,0 +1,15 @@
+{% block form_errors %}
+    {% if errors|length > 0 %}
+        <div class="alert alert-danger alert-dismissible fade show mt-2 mb-2" role="alert">
+            <ul class="list-unstyled mb-0">
+                {% for error in errors %}
+                    <li>
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        <strong>{{ error.message }}</strong>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endblock form_errors %}
+

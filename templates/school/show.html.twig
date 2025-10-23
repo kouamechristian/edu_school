@@ -1,0 +1,128 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ school.name }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-school me-2"></i> {{ school.name }}
+                    </h4>
+                    <span class="badge {{ school.isActive ? 'bg-success' : 'bg-danger' }}">
+                        {{ school.isActive ? 'Actif' : 'Inactif' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-barcode me-2"></i> Code :</strong><br>
+                            <span class="text-muted">{{ school.code }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-tag me-2"></i> Type :</strong><br>
+                            <span class="badge bg-secondary">{{ school.typeLabel }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-sitemap me-2"></i> Groupe :</strong><br>
+                            {% if school.schoolGroup %}
+                                <a href="{{ path('admin_school_group_show', {'id': school.schoolGroup.id}) }}">
+                                    {{ school.schoolGroup.name }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">Aucun</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if school.director %}
+                    <div class="mb-3">
+                        <strong><i class="fas fa-user-tie me-2"></i> Directeur/Directrice :</strong><br>
+                        <span class="text-muted">{{ school.director }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if school.address %}
+                    <div class="mb-3">
+                        <strong><i class="fas fa-map-marker-alt me-2"></i> Adresse :</strong><br>
+                        <span class="text-muted">{{ school.address|nl2br }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="row mb-3">
+                        {% if school.phone %}
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-phone me-2"></i> Téléphone :</strong><br>
+                            <span class="text-muted">{{ school.phone }}</span>
+                        </div>
+                        {% endif %}
+                        {% if school.email %}
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-envelope me-2"></i> Email :</strong><br>
+                            <a href="mailto:{{ school.email }}">{{ school.email }}</a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-calendar-plus me-2"></i> Créé le :</strong><br>
+                            <span class="text-muted">{{ school.createdAt|date('d/m/Y à H:i') }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-calendar-check me-2"></i> Modifié le :</strong><br>
+                            <span class="text-muted">{{ school.updatedAt|date('d/m/Y à H:i') }}</span>
+                        </div>
+                    </div>
+
+                    {% if school.schoolYears is not empty %}
+                    <div class="mt-4">
+                        <h5><i class="fas fa-calendar-alt me-2"></i> Années scolaires</h5>
+                        <ul class="list-group">
+                            {% for schoolYear in school.schoolYears %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ schoolYear.name }}
+                                {% if schoolYear.isCurrent %}
+                                    <span class="badge bg-primary">En cours</span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="{{ path('admin_school_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Retour
+                        </a>
+                        <a href="{{ path('admin_school_edit', {'id': school.id}) }}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i> Modifier
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ path('admin_school_year_new') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i> Ajouter une année scolaire
+                        </a>
+                        <a href="{{ path('admin_level_new') }}" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i> Ajouter un niveau
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

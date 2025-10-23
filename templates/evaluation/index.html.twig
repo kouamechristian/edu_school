@@ -1,0 +1,154 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Évaluations{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">Gestion des Évaluations</h1>
+            {% if current_school and current_year %}
+                <p class="text-muted mb-0">
+                    <i class="fas fa-school"></i> {{ current_school.name }}
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-calendar"></i> {{ current_year.name }}
+                </p>
+            {% endif %}
+        </div>
+        <a href="{{ path('admin_evaluation_new') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouvelle Évaluation
+        </a>
+    </div>
+
+    {% include '_flash.html.twig' %}
+
+    {% if not current_school or not current_year %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            Veuillez sélectionner un établissement et une année scolaire.
+        </div>
+    {% else %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-white">
+                <form method="get" class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Classe</label>
+                        <select name="classroom" class="form-select" onchange="this.form.submit()">
+                            <option value="">Toutes les classes</option>
+                            {% for classroom in classrooms %}
+                                <option value="{{ classroom.id }}" {{ selected_classroom == classroom.id ? 'selected' : '' }}>
+                                    {{ classroom.fullName }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Période</label>
+                        <select name="period" class="form-select" onchange="this.form.submit()">
+                            <option value="">Toutes les périodes</option>
+                            {% for period in periods %}
+                                <option value="{{ period.id }}" {{ selected_period == period.id ? 'selected' : '' }}>
+                                    {{ period.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <a href="{{ path('admin_evaluation_index') }}" class="btn btn-secondary w-100">
+                            <i class="fas fa-redo"></i> Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                {% if selected_classroom or selected_period %}
+                    {% if evaluations is empty %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Aucune évaluation trouvée avec ces filtres.</p>
+                        </div>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Classe</th>
+                                        <th>Matière</th>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Note / Coef</th>
+                                        <th>Statut</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for evaluation in evaluations %}
+                                        <tr>
+                                            <td>
+                                                <small>{{ evaluation.classroom.name }}</small>
+                                            </td>
+                                            <td>
+                                                <strong>{{ evaluation.subject.name }}</strong>
+                                            </td>
+                                            <td>{{ evaluation.name }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">
+                                                    {{ evaluation.typeLabel }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small>{{ evaluation.date|date('d/m/Y') }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">/ {{ evaluation.maxGrade }}</span>
+                                                <span class="badge bg-warning">x{{ evaluation.coefficient }}</span>
+                                            </td>
+                                            <td>
+                                                {% if evaluation.isPublished %}
+                                                    <span class="badge bg-success">Publiée</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">Brouillon</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ path('admin_evaluation_grades', {'id': evaluation.id}) }}" 
+                                                       class="btn btn-success" 
+                                                       title="Saisir les notes">
+                                                        <i class="fas fa-keyboard"></i>
+                                                    </a>
+                                                    <a href="{{ path('admin_evaluation_show', {'id': evaluation.id}) }}" 
+                                                       class="btn btn-outline-info" 
+                                                       title="Détails">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="{{ path('admin_evaluation_edit', {'id': evaluation.id}) }}" 
+                                                       class="btn btn-outline-warning" 
+                                                       title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-filter fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Sélectionnez une classe ou une période pour voir les évaluations.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

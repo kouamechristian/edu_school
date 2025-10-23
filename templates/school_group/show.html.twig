@@ -1,0 +1,118 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ school_group.name }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-sitemap me-2"></i> {{ school_group.name }}
+                    </h4>
+                    <span class="badge {{ school_group.isActive ? 'bg-success' : 'bg-danger' }}">
+                        {{ school_group.isActive ? 'Actif' : 'Inactif' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-barcode me-2"></i> Code :</strong><br>
+                            <span class="text-muted">{{ school_group.code }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-calendar-plus me-2"></i> Créé le :</strong><br>
+                            <span class="text-muted">{{ school_group.createdAt|date('d/m/Y à H:i') }}</span>
+                        </div>
+                    </div>
+
+                    {% if school_group.description %}
+                    <div class="mb-3">
+                        <strong><i class="fas fa-info-circle me-2"></i> Description :</strong><br>
+                        <span class="text-muted">{{ school_group.description|nl2br }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if school_group.schools is not empty %}
+                    <div class="mt-4">
+                        <h5><i class="fas fa-school me-2"></i> Établissements du groupe ({{ school_group.schools|length }})</h5>
+                        <div class="list-group">
+                            {% for school in school_group.schools %}
+                            <a href="{{ path('admin_school_show', {'id': school.id}) }}" 
+                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ school.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-barcode me-1"></i>{{ school.code }}
+                                        | <i class="fas fa-tag me-1"></i>{{ school.typeLabel }}
+                                        {% if school.director %}
+                                        | <i class="fas fa-user-tie me-1"></i>{{ school.director }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <span class="badge {{ school.isActive ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ school.isActive ? 'Actif' : 'Inactif' }}
+                                </span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mt-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Aucun établissement dans ce groupe. Ajoutez des établissements depuis leur page de modification.
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="{{ path('admin_school_group_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Retour
+                        </a>
+                        <a href="{{ path('admin_school_group_edit', {'id': school_group.id}) }}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i> Modifier
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Informations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="fas fa-school text-primary me-2"></i>
+                        <strong>{{ school_group.schools|length }}</strong> établissement(s)
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-calendar text-success me-2"></i>
+                        Créé le {{ school_group.createdAt|date('d/m/Y') }}
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-check text-info me-2"></i>
+                        Modifié le {{ school_group.updatedAt|date('d/m/Y') }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ path('admin_school_new') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i> Ajouter un établissement
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,154 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier la Préinscription - {{ pre_registration.fullName }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Modifier la Préinscription</h1>
+                <div class="btn-group">
+                    <a href="{{ path('admin_pre_registration_show', {'id': pre_registration.id}) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Informations de l'élève</h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form_start(form) }}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form_row(form.firstName) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_row(form.lastName) }}
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form_row(form.dateOfBirth) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_row(form.gender) }}
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form_row(form.phone) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_row(form.email) }}
+                                    </div>
+                                </div>
+
+                                {{ form_row(form.address) }}
+
+                                <hr class="my-4">
+                                <h6 class="text-muted">Informations du parent/tuteur</h6>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form_row(form.parentName) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_row(form.parentPhone) }}
+                                    </div>
+                                </div>
+
+                                {{ form_row(form.parentEmail) }}
+
+                                <hr class="my-4">
+                                <h6 class="text-muted">Contact d'urgence</h6>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form_row(form.emergencyContact) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_row(form.emergencyPhone) }}
+                                    </div>
+                                </div>
+
+                                <hr class="my-4">
+                                <h6 class="text-muted">Informations scolaires</h6>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {{ form_row(form.requestedLevel) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_row(form.schoolYear) }}
+                                    </div>
+                                </div>
+
+                                <hr class="my-4">
+                                <h6 class="text-muted">Informations supplémentaires</h6>
+
+                                {{ form_row(form.medicalInfo) }}
+                                {{ form_row(form.notes) }}
+
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="{{ path('admin_pre_registration_show', {'id': pre_registration.id}) }}" class="btn btn-outline-secondary">
+                                        Annuler
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Enregistrer les modifications
+                                    </button>
+                                </div>
+                            {{ form_end(form) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Statut actuel</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-{{ pre_registration.statusColor }}">
+                                <strong>{{ pre_registration.statusLabel }}</strong>
+                                {% if pre_registration.validatedAt %}
+                                    <br><small>Validée le {{ pre_registration.validatedAt|date('d/m/Y à H:i') }}</small>
+                                {% endif %}
+                                {% if pre_registration.enrolledAt %}
+                                    <br><small>Inscrite le {{ pre_registration.enrolledAt|date('d/m/Y à H:i') }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Informations de création</h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row small">
+                                <dt class="col-5">Créée le :</dt>
+                                <dd class="col-7">{{ pre_registration.createdAt|date('d/m/Y à H:i') }}</dd>
+                                
+                                <dt class="col-5">Modifiée le :</dt>
+                                <dd class="col-7">{{ pre_registration.updatedAt|date('d/m/Y à H:i') }}</dd>
+                                
+                                {% if pre_registration.validatedBy %}
+                                    <dt class="col-5">Validée par :</dt>
+                                    <dd class="col-7">{{ pre_registration.validatedBy.fullName }}</dd>
+                                {% endif %}
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

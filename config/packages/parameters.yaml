@@ -1,0 +1,2 @@
+parameters:
+    pre_registration_documents_directory: '%kernel.project_dir%/public/uploads/pre-registration-documents'

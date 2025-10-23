@@ -1,0 +1,237 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon Tableau de Bord{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h1 class="h3 mb-2">
+            <i class="fas fa-home"></i> Bienvenue {{ user.firstName }} !
+        </h1>
+        <p class="text-muted">
+            {% if current_school %}
+                <i class="fas fa-school"></i> {{ current_school.name }}
+                {% if current_year %}
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-calendar"></i> {{ current_year.name }}
+                {% endif %}
+            {% endif %}
+        </p>
+    </div>
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row">
+        <!-- Statistiques -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-primary">
+                <div class="card-body text-center">
+                    <i class="fas fa-star fa-3x text-primary mb-3"></i>
+                    <h3 class="mb-0">
+                        {% if stats.average %}
+                            <span class="text-{{ stats.average >= 10 ? 'success' : 'danger' }}">
+                                {{ stats.average|number_format(2, '.', '') }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </h3>
+                    <p class="text-muted mb-0">Moyenne Générale</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-clipboard-list fa-3x text-info mb-3"></i>
+                    <h3 class="mb-0">{{ stats.total_evaluations }}</h3>
+                    <p class="text-muted mb-0">Évaluations</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
+                    <h3 class="mb-0">
+                        {% if stats.rank %}
+                            #{{ stats.rank }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </h3>
+                    <p class="text-muted mb-0">Classement</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-check fa-3x text-success mb-3"></i>
+                    <h3 class="mb-0">
+                        {% if current_period %}
+                            {{ current_period.name }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </h3>
+                    <p class="text-muted mb-0">Période Actuelle</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Accès rapide -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-rocket"></i> Accès Rapide</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ path('student_grades') }}" class="btn btn-outline-primary btn-lg w-100">
+                                <i class="fas fa-book fa-2x d-block mb-2"></i>
+                                <strong>Mes Notes</strong>
+                                <p class="small mb-0">Consulter toutes mes notes</p>
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ path('student_schedule') }}" class="btn btn-outline-info btn-lg w-100">
+                                <i class="fas fa-calendar fa-2x d-block mb-2"></i>
+                                <strong>Mon Emploi du Temps</strong>
+                                <p class="small mb-0">Voir mon emploi du temps</p>
+                            </a>
+                        </div>
+                        {% if current_period %}
+                            <div class="col-md-6 mb-3">
+                                <a href="{{ path('student_bulletin', {'periodId': current_period.id}) }}" class="btn btn-outline-success btn-lg w-100">
+                                    <i class="fas fa-file-alt fa-2x d-block mb-2"></i>
+                                    <strong>Mon Bulletin</strong>
+                                    <p class="small mb-0">Consulter mon bulletin</p>
+                                </a>
+                            </div>
+                        {% endif %}
+                        <div class="col-md-6 mb-3">
+                            <a href="#" class="btn btn-outline-warning btn-lg w-100">
+                                <i class="fas fa-chart-line fa-2x d-block mb-2"></i>
+                                <strong>Ma Progression</strong>
+                                <p class="small mb-0">Voir mes statistiques</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dernières notes -->
+            {% if recent_grades is defined and recent_grades|length > 0 %}
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-history"></i> Dernières Notes</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Matière</th>
+                                        <th>Évaluation</th>
+                                        <th>Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for grade in recent_grades %}
+                                        {% if grade.evaluation.isPublished %}
+                                            <tr>
+                                                <td>
+                                                    <small>{{ grade.evaluation.date|date('d/m/Y') }}</small>
+                                                </td>
+                                                <td>
+                                                    <strong>{{ grade.evaluation.subject.name }}</strong>
+                                                </td>
+                                                <td>{{ grade.evaluation.name }}</td>
+                                                <td>
+                                                    <span class="badge bg-{{ grade.value and grade.value >= (grade.evaluation.maxGrade / 2) ? 'success' : 'danger' }}">
+                                                        {{ grade.displayValue }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Informations -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-user"></i> Mes Informations</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Nom :</dt>
+                        <dd class="col-sm-7">{{ user.lastName }}</dd>
+
+                        <dt class="col-sm-5">Prénom :</dt>
+                        <dd class="col-sm-7">{{ user.firstName }}</dd>
+
+                        <dt class="col-sm-5">Email :</dt>
+                        <dd class="col-sm-7"><small>{{ user.email }}</small></dd>
+
+                        {% if user.dateOfBirth %}
+                            <dt class="col-sm-5">Né(e) le :</dt>
+                            <dd class="col-sm-7">{{ user.dateOfBirth|date('d/m/Y') }}</dd>
+                        {% endif %}
+
+                        <dt class="col-sm-5">Établissement :</dt>
+                        <dd class="col-sm-7">
+                            <small>{{ current_school ? current_school.name : '-' }}</small>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            {% if stats.average %}
+                <div class="card shadow-sm">
+                    <div class="card-header bg-{{ stats.average >= 10 ? 'success' : 'danger' }} text-white">
+                        <h6 class="mb-0"><i class="fas fa-award"></i> Mon Niveau</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <h4>
+                            {% if stats.average >= 16 %}
+                                <i class="fas fa-star text-warning"></i> Très bien
+                            {% elseif stats.average >= 14 %}
+                                <i class="fas fa-thumbs-up text-info"></i> Bien
+                            {% elseif stats.average >= 12 %}
+                                <i class="fas fa-check text-primary"></i> Assez bien
+                            {% elseif stats.average >= 10 %}
+                                <i class="fas fa-hand-paper text-warning"></i> Passable
+                            {% else %}
+                                <i class="fas fa-exclamation-triangle text-danger"></i> Peut mieux faire
+                            {% endif %}
+                        </h4>
+                        {% if stats.average >= 14 %}
+                            <p class="text-muted small mb-0">Continue comme ça !</p>
+                        {% elseif stats.average >= 10 %}
+                            <p class="text-muted small mb-0">Bon travail !</p>
+                        {% else %}
+                            <p class="text-muted small mb-0">Il faut redoubler d'efforts</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

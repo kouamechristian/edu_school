@@ -1,0 +1,407 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {# Page Heading #}
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-tachometer-alt me-2"></i> Tableau de bord
+        </h1>
+        <a href="#" class="btn btn-primary btn-sm">
+            <i class="fas fa-download me-2"></i> Générer Rapport
+        </a>
+    </div>
+
+    {# Welcome Message #}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Bienvenue {{ app.user ? app.user.username : 'Administrateur' }} !</strong> 
+        Vous êtes connecté au système de gestion scolaire EDU-SCHOOL.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    {# Context Info #}
+    {% if current_school %}
+    <div class="alert alert-primary mb-4">
+        <i class="fas fa-school me-2"></i>
+        <strong>Établissement sélectionné :</strong> {{ current_school.name }}
+        {% if current_school_year %}
+            | <i class="fas fa-calendar me-2"></i> <strong>Année :</strong> {{ current_school_year.name }}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# Statistics Row #}
+    <div class="row mb-4">
+        {# Établissements Card #}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card primary h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-uppercase text-primary fw-bold text-xs mb-1">
+                                {% if current_school %}
+                                    Niveaux
+                                {% else %}
+                                    Établissements
+                                {% endif %}
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">
+                                {% if current_school %}
+                                    {{ stats.levels }}
+                                {% else %}
+                                    {{ stats.schools }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-{% if current_school %}graduation-cap{% else %}school{% endif %} fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Élèves Card #}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card success h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-uppercase text-success fw-bold text-xs mb-1">
+                                Élèves Inscrits
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ user_types.eleves }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Enseignants Card #}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card info h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-uppercase text-info fw-bold text-xs mb-1">
+                                Enseignants
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ user_types.enseignants }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Personnel Card #}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card warning h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-uppercase text-warning fw-bold text-xs mb-1">
+                                Personnel
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ user_types.personnel + user_types.admins }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Content Row #}
+    <div class="row">
+        {# Activités récentes #}
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-primary">
+                        <i class="fas fa-history me-2"></i> Activités Récentes
+                    </h6>
+                    <a href="#" class="btn btn-sm btn-primary">Voir tout</a>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary text-white rounded-circle p-2" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-user-plus"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">Nouvelle inscription</h6>
+                                    <p class="text-muted small mb-0">
+                                        Marie DUPONT a été inscrite en classe de 6ème A
+                                    </p>
+                                    <small class="text-muted">Il y a 2 heures</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-success text-white rounded-circle p-2" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">Notes saisies</h6>
+                                    <p class="text-muted small mb-0">
+                                        M. MARTIN a saisi les notes de mathématiques pour la classe 5ème B
+                                    </p>
+                                    <small class="text-muted">Il y a 5 heures</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-warning text-white rounded-circle p-2" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-euro-sign"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">Paiement reçu</h6>
+                                    <p class="text-muted small mb-0">
+                                        Paiement de 500€ reçu pour l'élève Jean BERNARD
+                                    </p>
+                                    <small class="text-muted">Hier à 14:30</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="timeline-item">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-info text-white rounded-circle p-2" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-calendar"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">Événement planifié</h6>
+                                    <p class="text-muted small mb-0">
+                                        Réunion parents-professeurs le 15 novembre 2024
+                                    </p>
+                                    <small class="text-muted">Il y a 2 jours</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Quick Actions & Calendar #}
+        <div class="col-lg-4 mb-4">
+            {# Quick Actions #}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">
+                        <i class="fas fa-bolt me-2"></i> Actions Rapides
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ path('admin_school_new') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-school me-2"></i> Nouvel Établissement
+                        </a>
+                        <a href="{{ path('admin_school_year_new') }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-calendar me-2"></i> Nouvelle Année Scolaire
+                        </a>
+                        <a href="#" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-user-graduate me-2"></i> Inscrire un Élève
+                        </a>
+                        <a href="#" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-clipboard-list me-2"></i> Saisir des Notes
+                        </a>
+                        <a href="#" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-file-pdf me-2"></i> Générer Bulletins
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# Calendar #}
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">
+                        <i class="fas fa-calendar-alt me-2"></i> Événements à venir
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="#" class="list-group-item list-group-item-action border-0 px-0">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Réunion Parents</h6>
+                                <small class="text-primary">15 Nov</small>
+                            </div>
+                            <p class="mb-1 small text-muted">18:00 - Salle polyvalente</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action border-0 px-0">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Conseil de Classe</h6>
+                                <small class="text-success">20 Nov</small>
+                            </div>
+                            <p class="mb-1 small text-muted">14:00 - Classe 6ème A</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action border-0 px-0">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Sortie Scolaire</h6>
+                                <small class="text-warning">25 Nov</small>
+                            </div>
+                            <p class="mb-1 small text-muted">Musée des Sciences</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Charts Row #}
+    <div class="row">
+        {# Pie Chart - Répartition par type #}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i> Répartition des Utilisateurs par Type
+                    </h6>
+                    {% if current_school %}
+                    <small class="text-muted">{{ current_school.name }}</small>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Bar Chart - Utilisateurs par type #}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i> Utilisateurs par Type
+                    </h6>
+                    {% if current_school %}
+                    <small class="text-muted">{{ current_school.name }}</small>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Pie Chart - Répartition des utilisateurs par type
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Élèves', 'Enseignants', 'Personnel', 'Parents', 'Admins'],
+            datasets: [{
+                data: [
+                    {{ user_types.eleves }},
+                    {{ user_types.enseignants }},
+                    {{ user_types.personnel }},
+                    {{ user_types.parents }},
+                    {{ user_types.admins }}
+                ],
+                backgroundColor: [
+                    '#4e73df',
+                    '#1cc88a',
+                    '#36b9cc',
+                    '#f6c23e',
+                    '#e74a3b'
+                ]
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: '{% if current_school %}{{ current_school.name }}{% else %}Tous les établissements{% endif %}'
+                }
+            }
+        }
+    });
+
+    // Bar Chart - Utilisateurs par type
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Élèves', 'Enseignants', 'Personnel', 'Parents', 'Admins'],
+            datasets: [{
+                label: 'Nombre d\'utilisateurs',
+                data: [
+                    {{ user_types.eleves }},
+                    {{ user_types.enseignants }},
+                    {{ user_types.personnel }},
+                    {{ user_types.parents }},
+                    {{ user_types.admins }}
+                ],
+                backgroundColor: [
+                    '#4e73df',
+                    '#1cc88a',
+                    '#36b9cc',
+                    '#f6c23e',
+                    '#e74a3b'
+                ]
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: '{% if current_school %}{{ current_school.name }}{% else %}Tous les établissements{% endif %}'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
