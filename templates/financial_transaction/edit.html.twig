@@ -1,0 +1,93 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier la Transaction{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-exchange-alt me-2"></i>Modifier la Transaction
+        </h1>
+        <div>
+            <a href="{{ path('admin_financial_transaction_show', {'id': financial_transaction.id}) }}" class="btn btn-info">
+                <i class="fas fa-eye me-2"></i>Voir les détails
+            </a>
+            <a href="{{ path('admin_financial_transaction_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Modifier: Transaction #{{ financial_transaction.reference }}</h6>
+        </div>
+        <div class="card-body">
+            {{ form_start(form) }}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.type, 'Type de transaction') }}
+                            {{ form_widget(form.type, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.type) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.amount, 'Montant') }}
+                            {{ form_widget(form.amount, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.amount) }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.reference, 'Référence') }}
+                            {{ form_widget(form.reference, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.reference) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.status, 'Statut') }}
+                            {{ form_widget(form.status, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.status) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.transactionDate, 'Date de transaction') }}
+                            {{ form_widget(form.transactionDate, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.transactionDate) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form_label(form.description, 'Description') }}
+                            {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 3}}) }}
+                            {{ form_errors(form.description) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                    </button>
+                    <a href="{{ path('admin_financial_transaction_show', {'id': financial_transaction.id}) }}" class="btn btn-info">
+                        <i class="fas fa-eye me-2"></i>Voir les détails
+                    </a>
+                    <a href="{{ path('admin_financial_transaction_index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Annuler
+                    </a>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

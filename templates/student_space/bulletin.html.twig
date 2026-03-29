@@ -1,0 +1,212 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon Bulletin - {{ period.name }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Mon Bulletin - {{ period.name }}</h1>
+        <a href="{{ path('student_grades') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour à mes notes
+        </a>
+    </div>
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row">
+        <div class="col-md-12">
+            <!-- En-tête du bulletin -->
+            <div class="card shadow mb-3">
+                <div class="card-header bg-gradient text-white text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h3 class="mb-1">
+                        <i class="fas fa-graduation-cap"></i> BULLETIN DE NOTES
+                    </h3>
+                    <p class="mb-0">{{ period.schoolYear.name }} - {{ period.name }}</p>
+                    <p class="mb-0"><small>{{ period.school.name }}</small></p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Élève :</dt>
+                                <dd class="col-sm-7"><strong>{{ student.fullName }}</strong></dd>
+
+                                <dt class="col-sm-5">Date de naissance :</dt>
+                                <dd class="col-sm-7">{{ student.dateOfBirth ? student.dateOfBirth|date('d/m/Y') : '-' }}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Période :</dt>
+                                <dd class="col-sm-7">{{ period.name }}</dd>
+
+                                <dt class="col-sm-5">Établissement :</dt>
+                                <dd class="col-sm-7">{{ period.school.name }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Moyennes par matière -->
+            <div class="card shadow mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Mes Moyennes par Matière</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Matière</th>
+                                    <th class="text-center">Ma Moyenne</th>
+                                    <th class="text-center">Coefficient</th>
+                                    <th>Appréciation</th>
+                                    <th class="text-center">Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject_data in averages.subjects %}
+                                    <tr style="border-left: 4px solid {{ subject_data.subject.color ?? '#6c757d' }};">
+                                        <td><strong>{{ subject_data.subject.name }}</strong></td>
+                                        <td class="text-center">
+                                            <h5 class="mb-0">
+                                                <span class="badge bg-{{ subject_data.average >= 10 ? 'success' : 'danger' }} fs-6">
+                                                    {{ subject_data.average|number_format(2, '.', '') }}
+                                                </span>
+                                            </h5>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary">{{ subject_data.coefficient|number_format(0, '.', '') }}</span>
+                                        </td>
+                                        <td>
+                                            {% if subject_data.average >= 16 %}
+                                                <span class="badge bg-success">Très bien</span>
+                                            {% elseif subject_data.average >= 14 %}
+                                                <span class="badge bg-info">Bien</span>
+                                            {% elseif subject_data.average >= 12 %}
+                                                <span class="badge bg-primary">Assez bien</span>
+                                            {% elseif subject_data.average >= 10 %}
+                                                <span class="badge bg-warning">Passable</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Insuffisant</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ subject_data.weighted_average|number_format(2, '.', '') }}</strong>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">
+                                            <i class="fas fa-info-circle text-muted"></i>
+                                            Aucune note publiée pour cette période
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if averages.general_average %}
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="3" class="text-end"><strong>MOYENNE GÉNÉRALE :</strong></td>
+                                        <td colspan="2" class="text-center">
+                                            <h4 class="mb-0">
+                                                <span class="badge bg-{{ averages.general_average >= 10 ? 'success' : 'danger' }}">
+                                                    {{ averages.general_average|number_format(2, '.', '') }} / 20
+                                                </span>
+                                            </h4>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Détail des notes par matière -->
+            {% if grades is not empty %}
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-list"></i> Détail de Toutes mes Notes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion" id="gradesAccordion">
+                            {% for subject_id, subject_data in grades %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="heading{{ subject_id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ subject_id }}">
+                                            <strong>{{ subject_data.subject.name }}</strong>
+                                            <span class="ms-auto me-3">
+                                                {{ subject_data.grades|length }} évaluation(s)
+                                            </span>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse{{ subject_id }}" class="accordion-collapse collapse" data-bs-parent="#gradesAccordion">
+                                        <div class="accordion-body p-0">
+                                            <table class="table table-sm mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Évaluation</th>
+                                                        <th>Type</th>
+                                                        <th class="text-center">Note</th>
+                                                        <th class="text-center">Coef.</th>
+                                                        <th>Commentaire</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for grade in subject_data.grades %}
+                                                        <tr>
+                                                            <td><small>{{ grade.evaluation.date|date('d/m/Y') }}</small></td>
+                                                            <td>{{ grade.evaluation.name }}</td>
+                                                            <td><small>{{ grade.evaluation.typeLabel }}</small></td>
+                                                            <td class="text-center">
+                                                                {% if grade.value %}
+                                                                    <strong class="text-{{ grade.value >= (grade.evaluation.maxGrade / 2) ? 'success' : 'danger' }}">
+                                                                        {{ grade.value|number_format(2, '.', '') }}
+                                                                    </strong>
+                                                                    <small class="text-muted">/ {{ grade.evaluation.maxGrade }}</small>
+                                                                {% else %}
+                                                                    <span class="badge bg-warning">{{ grade.statusLabel }}</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge bg-info">{{ grade.evaluation.coefficient }}</span>
+                                                            </td>
+                                                            <td><small class="text-muted">{{ grade.comment ?? '-' }}</small></td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Mentions et encouragements -->
+            {% if averages.general_average %}
+                {% set mention = getMention(averages.general_average) %}
+                {% if mention %}
+                    <div class="alert alert-{{ averages.general_average >= 16 ? 'success' : 'info' }} mt-3">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-award"></i> Mention
+                        </h5>
+                        <p class="mb-0"><strong>{{ mention }}</strong></p>
+                    </div>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle fa-2x mb-3"></i><br>
+            <strong>Sélectionnez une période pour voir vos notes</strong>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

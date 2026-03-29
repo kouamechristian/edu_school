@@ -1,0 +1,19 @@
+twig:
+    file_name_pattern: '*.twig'
+    form_themes: 
+        - 'bootstrap_5_layout.html.twig'
+        - 'form/custom_errors.html.twig'
+    globals:
+        app_name: '%zed.app_name%'
+        app_code: '%zed.app_code%'
+        app_short_name: '%zed.app_short_name%'
+        app_devise: '%zed.app_devise%'
+        app_phone_number: '%zed.app_phone_number%'
+        app_address: '%zed.app_location%'
+        app_email: '%zed.app_email%'
+        host_url: '%zed.host_url%'
+        app_directory: '%zed.app_directory%'
+
+when@test:
+    twig:
+        strict_variables: true

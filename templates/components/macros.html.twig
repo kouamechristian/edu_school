@@ -1,0 +1,228 @@
+{# ==========================================================================
+   EDU-SCHOOL - Macros Twig Réutilisables
+   Fichier : templates/components/macros.html.twig
+   ========================================================================== #}
+
+{# --------------------------------------------------------------------------
+   MACRO: card_stat
+   Carte statistique animée avec compteur JS, icône, couleur et tendance
+   @param title   string  Titre de la statistique
+   @param value   int     Valeur numérique à afficher
+   @param icon    string  Classe Font Awesome (ex: 'fa-users')
+   @param color   string  Variante Bootstrap (primary, success, info, warning, danger)
+   @param trend   float   Pourcentage de tendance (+/-), null si non applicable
+   -------------------------------------------------------------------------- #}
+{% macro card_stat(title, value, icon, color, trend) %}
+<div class="card stat-card {{ color }} h-100">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="text-uppercase text-{{ color }} fw-bold text-xs mb-1">
+                    {{ title }}
+                </div>
+                <div class="h5 mb-0 fw-bold text-gray-800">
+                    <span class="counter" data-target="{{ value }}">0</span>
+                </div>
+                {% if trend is not null and trend is defined %}
+                <div class="mt-2">
+                    {% if trend > 0 %}
+                        <span class="text-success small">
+                            <i class="fas fa-arrow-up me-1"></i>+{{ trend }}%
+                        </span>
+                    {% elseif trend < 0 %}
+                        <span class="text-danger small">
+                            <i class="fas fa-arrow-down me-1"></i>{{ trend }}%
+                        </span>
+                    {% else %}
+                        <span class="text-muted small">
+                            <i class="fas fa-minus me-1"></i>0%
+                        </span>
+                    {% endif %}
+                    <span class="text-muted small ms-1">vs mois dernier</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-auto">
+                <i class="fas {{ icon }} fa-2x text-gray-300"></i>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   MACRO: alert_flash
+   Message flash stylisé comme toast notification
+   @param type    string  Type d'alerte (success, danger, warning, info)
+   @param message string  Contenu du message
+   -------------------------------------------------------------------------- #}
+{% macro alert_flash(type, message) %}
+{% set icon_map = {
+    'success': 'fa-check-circle',
+    'danger': 'fa-exclamation-circle',
+    'error': 'fa-exclamation-circle',
+    'warning': 'fa-exclamation-triangle',
+    'info': 'fa-info-circle'
+} %}
+{% set title_map = {
+    'success': 'Succès',
+    'danger': 'Erreur',
+    'error': 'Erreur',
+    'warning': 'Attention',
+    'info': 'Information'
+} %}
+<div class="toast align-items-center text-bg-{{ type == 'error' ? 'danger' : type }} border-0 show"
+     role="alert" aria-live="assertive" aria-atomic="true"
+     data-bs-autohide="true" data-bs-delay="5000">
+    <div class="d-flex">
+        <div class="toast-body">
+            <i class="fas {{ icon_map[type] | default('fa-info-circle') }} me-2"></i>
+            <strong>{{ title_map[type] | default('Info') }} :</strong> {{ message }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                data-bs-dismiss="toast" aria-label="Fermer"></button>
+    </div>
+</div>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   MACRO: table_actions
+   Boutons d'action pour les tableaux CRUD (éditer, supprimer)
+   @param editRoute   string  Nom de la route d'édition
+   @param deleteRoute string  Nom de la route de suppression
+   @param id          int     ID de l'entité
+   -------------------------------------------------------------------------- #}
+{% macro table_actions(editRoute, deleteRoute, id) %}
+<div class="btn-group btn-group-sm" role="group">
+    <a href="{{ path(editRoute, {id: id}) }}" class="btn btn-outline-primary" title="Modifier">
+        <i class="fas fa-edit"></i>
+    </a>
+    <button type="button" class="btn btn-outline-danger btn-delete"
+            data-delete-url="{{ path(deleteRoute, {id: id}) }}"
+            data-entity-id="{{ id }}"
+            title="Supprimer">
+        <i class="fas fa-trash-alt"></i>
+    </button>
+</div>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   MACRO: badge_role
+   Badge coloré selon le rôle utilisateur
+   @param role string  Type de rôle (admin, directeur, enseignant, personnel, parent, eleve)
+   -------------------------------------------------------------------------- #}
+{% macro badge_role(role) %}
+{% set role_config = {
+    'admin':       { 'color': 'danger',  'icon': 'fa-shield-alt',        'label': 'Administrateur' },
+    'directeur':   { 'color': 'purple',  'icon': 'fa-user-tie',          'label': 'Directeur' },
+    'enseignant':  { 'color': 'info',    'icon': 'fa-chalkboard-teacher','label': 'Enseignant' },
+    'personnel':   { 'color': 'warning', 'icon': 'fa-id-badge',         'label': 'Personnel' },
+    'parent':      { 'color': 'success', 'icon': 'fa-users',            'label': 'Parent' },
+    'eleve':       { 'color': 'primary', 'icon': 'fa-user-graduate',    'label': 'Élève' }
+} %}
+{% set config = role_config[role] | default({ 'color': 'secondary', 'icon': 'fa-user', 'label': role | capitalize }) %}
+<span class="badge bg-{{ config.color }}">
+    <i class="fas {{ config.icon }} me-1"></i>{{ config.label }}
+</span>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   MACRO: avatar
+   Avatar dynamique avec initiales colorées selon le rôle
+   @param user  object  Entité User (doit avoir getInitials(), getUserType())
+   @param size  string  Taille CSS (sm, md, lg) - défaut md
+   -------------------------------------------------------------------------- #}
+{% macro avatar(user, size) %}
+{% set size = size | default('md') %}
+{% set size_map = { 'sm': '30px', 'md': '40px', 'lg': '56px' } %}
+{% set font_map = { 'sm': '0.7rem', 'md': '0.85rem', 'lg': '1.1rem' } %}
+{% set color_map = {
+    'admin':      '#e74a3b',
+    'directeur':  '#8b5cf6',
+    'enseignant': '#36b9cc',
+    'personnel':  '#f6c23e',
+    'parent':     '#1cc88a',
+    'eleve':      '#4e73df'
+} %}
+{% set bg_color = color_map[user.userType] | default('#858796') %}
+{% set dim = size_map[size] | default('40px') %}
+{% set fs = font_map[size] | default('0.85rem') %}
+
+{% if user.avatar %}
+    <img src="{{ asset('uploads/avatars/' ~ user.avatar) }}"
+         alt="{{ user.fullName }}"
+         class="rounded-circle"
+         style="width: {{ dim }}; height: {{ dim }}; object-fit: cover;"
+         title="{{ user.fullName }}">
+{% else %}
+    <div class="user-avatar d-inline-flex align-items-center justify-content-center rounded-circle"
+         style="width: {{ dim }}; height: {{ dim }}; background: {{ bg_color }}; color: #fff; font-size: {{ fs }}; font-weight: 600;"
+         title="{{ user.fullName }}">
+        {{ user.initials }}
+    </div>
+{% endif %}
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   MACRO: skeleton_table
+   Squelette de chargement pour les tableaux
+   @param rows    int  Nombre de lignes à afficher
+   @param cols    int  Nombre de colonnes
+   -------------------------------------------------------------------------- #}
+{% macro skeleton_table(rows, cols) %}
+{% set rows = rows | default(5) %}
+{% set cols = cols | default(4) %}
+<div class="skeleton-loader">
+    <table class="table">
+        <thead>
+            <tr>
+                {% for c in 1..cols %}
+                <th><div class="skeleton skeleton-text" style="width: {{ 60 + random(30) }}%"></div></th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in 1..rows %}
+            <tr>
+                {% for c in 1..cols %}
+                <td><div class="skeleton skeleton-text" style="width: {{ 40 + random(50) }}%"></div></td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   MACRO: delete_modal
+   Modale de confirmation de suppression réutilisable
+   -------------------------------------------------------------------------- #}
+{% macro delete_modal() %}
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Annuler
+                </button>
+                <form id="deleteForm" method="post" style="display:inline">
+                    <input type="hidden" name="_token" value="">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}

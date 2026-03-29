@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ school_year.name }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-calendar-alt me-2"></i> {{ school_year.name }}
+            </h4>
+            {% if school_year.isCurrent %}
+                <span class="badge bg-primary">Année en cours</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong><i class="fas fa-school me-2"></i> Établissement :</strong><br>
+                    <span class="text-muted">{{ school_year.school.name }}</span>
+                </div>
+                <div class="col-md-6">
+                    <strong><i class="fas fa-calendar me-2"></i> Année :</strong><br>
+                    <span class="text-muted">{{ school_year.name }}</span>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong><i class="fas fa-calendar-plus me-2"></i> Date de début :</strong><br>
+                    <span class="text-muted">{{ school_year.startDate|date('d/m/Y') }}</span>
+                </div>
+                <div class="col-md-6">
+                    <strong><i class="fas fa-calendar-check me-2"></i> Date de fin :</strong><br>
+                    <span class="text-muted">{{ school_year.endDate|date('d/m/Y') }}</span>
+                </div>
+            </div>
+
+            {% if school_year.periods is not empty %}
+            <div class="mt-4">
+                <h5><i class="fas fa-clock me-2"></i> Périodes</h5>
+                <ul class="list-group">
+                    {% for period in school_year.periods %}
+                    <li class="list-group-item">
+                        <strong>{{ period.name }}</strong>
+                        <span class="badge bg-secondary">{{ period.typeLabel }}</span>
+                        <br>
+                        <small class="text-muted">
+                            {{ period.startDate|date('d/m/Y') }} - {{ period.endDate|date('d/m/Y') }}
+                            (Coeff: {{ period.weight }})
+                        </small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex justify-content-between">
+                <a href="{{ path('admin_school_year_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Retour
+                </a>
+                <a href="{{ path('admin_school_year_edit', {'id': school_year.id}) }}" class="btn btn-warning">
+                    <i class="fas fa-edit me-2"></i> Modifier
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

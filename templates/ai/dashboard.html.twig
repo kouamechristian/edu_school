@@ -1,0 +1,308 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de bord IA - EDU-SCHOOL{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="fas fa-robot me-2"></i>Module Intelligence Artificielle</h1>
+            <p class="text-muted mb-0">Tableau de bord et outils IA</p>
+        </div>
+        <div>
+            {% if ai_stats.enabled %}
+                <span class="badge bg-success fs-6"><i class="fas fa-check-circle me-1"></i>IA Active</span>
+            {% else %}
+                <span class="badge bg-danger fs-6"><i class="fas fa-times-circle me-1"></i>IA Désactivée</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Statistiques d'utilisation #}
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:60px;height:60px">
+                        <i class="fas fa-paper-plane text-primary fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">{{ ai_stats.total_calls }}</h3>
+                    <p class="text-muted mb-0">Appels totaux</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:60px;height:60px">
+                        <i class="fas fa-database text-success fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">{{ ai_stats.cached_calls }}</h3>
+                    <p class="text-muted mb-0">Réponses en cache</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:60px;height:60px">
+                        <i class="fas fa-exclamation-triangle text-danger fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">{{ ai_stats.failed_calls }}</h3>
+                    <p class="text-muted mb-0">Échecs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:60px;height:60px">
+                        <i class="fas fa-users text-info fs-4"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">{{ student_count }}</h3>
+                    <p class="text-muted mb-0">Élèves actifs</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        {# Génération de commentaire bulletin #}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0"><i class="fas fa-file-alt text-primary me-2"></i>Commentaire de Bulletin</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Générez automatiquement un commentaire adapté au niveau scolaire.</p>
+                    <div class="mb-3">
+                        <label for="bulletin-student-id" class="form-label">ID de l'élève</label>
+                        <input type="number" class="form-control" id="bulletin-student-id" placeholder="Ex: 1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="bulletin-period" class="form-label">Période</label>
+                        <input type="text" class="form-control" id="bulletin-period" value="Trimestre 1">
+                    </div>
+                    <button class="btn btn-primary" id="btn-generate-bulletin" onclick="generateBulletinComment()">
+                        <i class="fas fa-magic me-1"></i>Générer le commentaire
+                    </button>
+                    <div id="bulletin-result" class="mt-3" style="display:none">
+                        <label class="form-label fw-bold">Commentaire généré :</label>
+                        <div class="alert alert-info" id="bulletin-comment-text"></div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('bulletin-comment-text')">
+                            <i class="fas fa-copy me-1"></i>Copier
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Analyse d'assiduité #}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0"><i class="fas fa-chart-line text-warning me-2"></i>Analyse d'Assiduité</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Détectez les patterns d'absences et évaluez le niveau de risque.</p>
+                    <div class="mb-3">
+                        <label for="attendance-student-id" class="form-label">ID de l'élève</label>
+                        <input type="number" class="form-control" id="attendance-student-id" placeholder="Ex: 1">
+                    </div>
+                    <button class="btn btn-warning text-white" id="btn-analyze-attendance" onclick="analyzeAttendance()">
+                        <i class="fas fa-search me-1"></i>Analyser
+                    </button>
+                    <div id="attendance-result" class="mt-3" style="display:none">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="fw-bold me-2">Niveau de risque :</span>
+                            <span id="attendance-risk-badge" class="badge"></span>
+                        </div>
+                        <p class="mb-1"><strong>Pattern :</strong> <span id="attendance-pattern"></span></p>
+                        <p class="mb-1"><strong>Total absences :</strong> <span id="attendance-total"></span></p>
+                        <p class="mb-0"><strong>Recommandation :</strong> <span id="attendance-recommendation"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {# Rapport mensuel #}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0"><i class="fas fa-clipboard-list text-success me-2"></i>Rapport Mensuel</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Générez un résumé exécutif pour l'établissement.</p>
+                    <div class="mb-3">
+                        <label for="report-school-id" class="form-label">ID de l'établissement</label>
+                        <input type="number" class="form-control" id="report-school-id" placeholder="Ex: 1">
+                    </div>
+                    <button class="btn btn-success" id="btn-generate-report" onclick="generateReport()">
+                        <i class="fas fa-file-medical me-1"></i>Générer le rapport
+                    </button>
+                    <div id="report-result" class="mt-3" style="display:none">
+                        <div class="border rounded p-3 bg-light" id="report-text" style="white-space:pre-wrap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Configuration #}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0"><i class="fas fa-cog text-secondary me-2"></i>Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">Modèle</td>
+                            <td class="fw-bold">{{ ai_stats.model }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Statut</td>
+                            <td>
+                                {% if ai_stats.enabled %}
+                                    <span class="text-success"><i class="fas fa-check-circle me-1"></i>Activé</span>
+                                {% else %}
+                                    <span class="text-danger"><i class="fas fa-times-circle me-1"></i>Désactivé</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Cache TTL</td>
+                            <td>{{ ai_stats.cache_ttl is defined ? ai_stats.cache_ttl ~ 's' : '3600s' }}</td>
+                        </tr>
+                    </table>
+                    <hr>
+                    <p class="text-muted small mb-2">
+                        Pour configurer la clé API et les paramètres, modifiez le fichier <code>.env</code> ou <code>.env.local</code>.
+                    </p>
+                    <div class="bg-dark text-light rounded p-3 small font-monospace">
+                        ANTHROPIC_API_KEY=sk-ant-...<br>
+                        AI_MODEL={{ ai_stats.model }}<br>
+                        AI_MAX_TOKENS=1000<br>
+                        AI_ENABLED=true
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (loading) {
+        btn.dataset.originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Traitement...';
+        btn.disabled = true;
+    } else {
+        btn.innerHTML = btn.dataset.originalText;
+        btn.disabled = false;
+    }
+}
+
+function generateBulletinComment() {
+    const studentId = document.getElementById('bulletin-student-id').value;
+    const period = document.getElementById('bulletin-period').value;
+    if (!studentId) { alert('Veuillez saisir un ID élève.'); return; }
+
+    setLoading('btn-generate-bulletin', true);
+
+    fetch('{{ path("ai_bulletin_comment") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ student_id: parseInt(studentId), period: period })
+    })
+    .then(r => r.json())
+    .then(data => {
+        setLoading('btn-generate-bulletin', false);
+        const result = document.getElementById('bulletin-result');
+        const text = document.getElementById('bulletin-comment-text');
+        if (data.success) {
+            text.textContent = data.comment;
+            result.style.display = 'block';
+        } else {
+            text.textContent = data.error || 'Erreur inconnue';
+            result.style.display = 'block';
+        }
+    })
+    .catch(() => {
+        setLoading('btn-generate-bulletin', false);
+        alert('Erreur de connexion');
+    });
+}
+
+function analyzeAttendance() {
+    const studentId = document.getElementById('attendance-student-id').value;
+    if (!studentId) { alert('Veuillez saisir un ID élève.'); return; }
+
+    setLoading('btn-analyze-attendance', true);
+
+    fetch('{{ path("ai_attendance_analysis") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ student_id: parseInt(studentId) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        setLoading('btn-analyze-attendance', false);
+        if (data.success) {
+            const a = data.analysis;
+            document.getElementById('attendance-result').style.display = 'block';
+            const badge = document.getElementById('attendance-risk-badge');
+            badge.textContent = a.risk_level.toUpperCase();
+            badge.className = 'badge bg-' + {low:'success',medium:'warning',high:'danger'}[a.risk_level];
+            document.getElementById('attendance-pattern').textContent = a.pattern;
+            document.getElementById('attendance-total').textContent = a.total_absences + ' (dont ' + a.unjustified_count + ' non justifiées)';
+            document.getElementById('attendance-recommendation').textContent = a.recommendation;
+        }
+    })
+    .catch(() => {
+        setLoading('btn-analyze-attendance', false);
+        alert('Erreur de connexion');
+    });
+}
+
+function generateReport() {
+    const schoolId = document.getElementById('report-school-id').value;
+    if (!schoolId) { alert('Veuillez saisir un ID établissement.'); return; }
+
+    setLoading('btn-generate-report', true);
+
+    fetch('{{ path("ai_report") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ school_id: parseInt(schoolId) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        setLoading('btn-generate-report', false);
+        if (data.success) {
+            document.getElementById('report-text').textContent = data.summary;
+            document.getElementById('report-result').style.display = 'block';
+        }
+    })
+    .catch(() => {
+        setLoading('btn-generate-report', false);
+        alert('Erreur de connexion');
+    });
+}
+
+function copyToClipboard(elementId) {
+    const text = document.getElementById(elementId).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target.closest('button');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-1"></i>Copié !';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+    });
+}
+</script>
+{% endblock %}

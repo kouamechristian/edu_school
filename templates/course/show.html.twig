@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails du Cours{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i> Détails du Cours
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-door-open me-2"></i> Classe :</strong><br>
+                            <a href="{{ path('admin_classroom_show', {'id': course.classroom.id}) }}">
+                                {{ course.classroom.fullName }}
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-book me-2"></i> Matière :</strong><br>
+                            <span class="badge" style="background-color: {{ course.subject.color ?? '#6c757d' }}; color: white; padding: 8px 12px;">
+                                {{ course.subject.name }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <strong><i class="fas fa-chalkboard-teacher me-2"></i> Enseignant :</strong><br>
+                            {% if course.teacher %}
+                                <a href="{{ path('admin_user_show', {'id': course.teacher.id}) }}">
+                                    {{ course.teacher.fullName }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">Non assigné</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-calendar-day me-2"></i> Jour :</strong><br>
+                            <span class="badge bg-primary">{{ course.dayOfWeekLabel }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-clock me-2"></i> Horaire :</strong><br>
+                            <span class="text-muted">{{ course.startTime|date('H:i') }} - {{ course.endTime|date('H:i') }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-hourglass-half me-2"></i> Durée :</strong><br>
+                            <span class="text-muted">{{ course.duration }} minutes</span>
+                        </div>
+                    </div>
+
+                    {% if course.room %}
+                    <div class="mb-3">
+                        <strong><i class="fas fa-door-closed me-2"></i> Salle :</strong><br>
+                        <span class="text-muted">{{ course.room.fullName }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if course.notes %}
+                    <div class="mb-3">
+                        <strong><i class="fas fa-sticky-note me-2"></i> Remarques :</strong><br>
+                        <span class="text-muted">{{ course.notes|nl2br }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="{{ path('admin_course_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Retour
+                        </a>
+                        <a href="{{ path('admin_course_edit', {'id': course.id}) }}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i> Modifier
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

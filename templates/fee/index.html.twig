@@ -1,0 +1,279 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Frais{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                        <li class="breadcrumb-item active">Frais</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">Gestion des Frais</h4>
+            </div>
+        </div>
+    </div>
+
+    {% if current_school %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="card-title mb-0">
+                                    <i class="mdi mdi-currency-usd me-2"></i>
+                                    Frais - {{ current_school.name }}
+                                </h5>
+                            </div>
+                            <div class="col-auto">
+                                <a href="{{ path('admin_fee_new') }}" class="btn btn-primary">
+                                    <i class="mdi mdi-plus me-1"></i>
+                                    Nouveau Frais
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filtres -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="searchInput" placeholder="Rechercher..." value="{{ search_term }}">
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="typeFilter">
+                                    <option value="">Tous les types</option>
+                                    <option value="obligatoire" {{ current_type == 'obligatoire' ? 'selected' : '' }}>Obligatoire</option>
+                                    <option value="optionnel" {{ current_type == 'optionnel' ? 'selected' : '' }}>Optionnel</option>
+                                    <option value="pénalité" {{ current_type == 'pénalité' ? 'selected' : '' }}>Pénalité</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="frequencyFilter">
+                                    <option value="">Toutes fréquences</option>
+                                    <option value="unique" {{ current_frequency == 'unique' ? 'selected' : '' }}>Unique</option>
+                                    <option value="mensuel" {{ current_frequency == 'mensuel' ? 'selected' : '' }}>Mensuel</option>
+                                    <option value="trimestriel" {{ current_frequency == 'trimestriel' ? 'selected' : '' }}>Trimestriel</option>
+                                    <option value="annuel" {{ current_frequency == 'annuel' ? 'selected' : '' }}>Annuel</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-secondary" onclick="applyFilters()">
+                                    <i class="mdi mdi-filter me-1"></i>
+                                    Filtrer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Statistiques -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h4 class="mb-0">{{ stats.total }}</h4>
+                                                <p class="mb-0">Total Frais</p>
+                                            </div>
+                                            <div class="align-self-center">
+                                                <i class="mdi mdi-currency-usd font-24"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h4 class="mb-0">{{ stats.total_amount|number_format(0, ',', ' ') }} FCFA</h4>
+                                                <p class="mb-0">Montant Total</p>
+                                            </div>
+                                            <div class="align-self-center">
+                                                <i class="mdi mdi-cash font-24"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h4 class="mb-0">
+                                                    <a href="{{ path('admin_fee_overdue') }}" class="text-white">
+                                                        {{ fees|filter(fee => fee.dueDate and fee.dueDate < date())|length }}
+                                                    </a>
+                                                </h4>
+                                                <p class="mb-0">En Retard</p>
+                                            </div>
+                                            <div class="align-self-center">
+                                                <i class="mdi mdi-alert font-24"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h4 class="mb-0">
+                                                    <a href="{{ path('admin_fee_due_soon') }}" class="text-white">
+                                                        {{ fees|filter(fee => fee.dueDate and fee.dueDate <= date('+7 days'))|length }}
+                                                    </a>
+                                                </h4>
+                                                <p class="mb-0">Échéance Proche</p>
+                                            </div>
+                                            <div class="align-self-center">
+                                                <i class="mdi mdi-clock font-24"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tableau des frais -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Fréquence</th>
+                                        <th>Montant</th>
+                                        <th>Échéance</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for fee in fees %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ fee.code }}</span>
+                                            </td>
+                                            <td>
+                                                <strong>{{ fee.name }}</strong>
+                                                {% if fee.description %}
+                                                    <br><small class="text-muted">{{ fee.description|slice(0, 50) }}{% if fee.description|length > 50 %}...{% endif %}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ fee.type == 'obligatoire' ? 'primary' : (fee.type == 'optionnel' ? 'info' : 'warning') }}">
+                                                    {{ fee.typeLabel }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark">{{ fee.frequencyLabel }}</span>
+                                            </td>
+                                            <td>
+                                                <strong>{{ fee.amount|number_format(0, ',', ' ') }} FCFA</strong>
+                                                {% if fee.discountPercentage or fee.discountAmount %}
+                                                    <br><small class="text-success">
+                                                        Final: {{ fee.finalAmount|number_format(0, ',', ' ') }} FCFA
+                                                    </small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if fee.dueDate %}
+                                                    <span class="{% if fee.dueDate < date() %}text-danger{% elseif fee.dueDate <= date('+7 days') %}text-warning{% else %}text-success{% endif %}">
+                                                        {{ fee.dueDate|date('d/m/Y') }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ fee.isActive ? 'success' : 'danger' }}">
+                                                    {{ fee.isActive ? 'Actif' : 'Inactif' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ path('admin_fee_show', {'id': fee.id}) }}" class="btn btn-outline-primary">
+                                                        <i class="mdi mdi-eye"></i>
+                                                    </a>
+                                                    <a href="{{ path('admin_fee_edit', {'id': fee.id}) }}" class="btn btn-outline-secondary">
+                                                        <i class="mdi mdi-pencil"></i>
+                                                    </a>
+                                                    <form method="post" action="{{ path('admin_fee_toggle', {'id': fee.id}) }}" class="d-inline">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ fee.id) }}">
+                                                        <button type="submit" class="btn btn-outline-{{ fee.isActive ? 'warning' : 'success' }}" title="{{ fee.isActive ? 'Désactiver' : 'Activer' }}">
+                                                            <i class="mdi mdi-{{ fee.isActive ? 'pause' : 'play' }}"></i>
+                                                        </button>
+                                                    </form>
+                                                    <form method="post" action="{{ path('admin_fee_delete', {'id': fee.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce frais ?')">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ fee.id) }}">
+                                                        <button type="submit" class="btn btn-outline-danger">
+                                                            <i class="mdi mdi-delete"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">
+                                                <i class="mdi mdi-information-outline font-24"></i>
+                                                <p class="mb-0">Aucun frais trouvé</p>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="mdi mdi-school font-48 text-muted mb-3"></i>
+                        <h4 class="text-muted">Sélectionnez un établissement</h4>
+                        <p class="text-muted">Veuillez sélectionner un établissement pour voir les frais.</p>
+                        <a href="{{ path('admin_school_index') }}" class="btn btn-primary">
+                            <i class="mdi mdi-school me-1"></i>
+                            Gérer les Établissements
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function applyFilters() {
+    const search = document.getElementById('searchInput').value;
+    const type = document.getElementById('typeFilter').value;
+    const frequency = document.getElementById('frequencyFilter').value;
+    
+    let url = new URL(window.location.href);
+    url.searchParams.set('search', search);
+    url.searchParams.set('type', type);
+    url.searchParams.set('frequency', frequency);
+    
+    window.location.href = url.toString();
+}
+
+// Auto-submit on Enter
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        applyFilters();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails de l'Évaluation{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Détails de l'Évaluation</h1>
+        <div>
+            <a href="{{ path('admin_evaluation_grades', {'id': evaluation.id}) }}" class="btn btn-success me-2">
+                <i class="fas fa-keyboard"></i> Saisir les notes
+            </a>
+            <a href="{{ path('admin_evaluation_edit', {'id': evaluation.id}) }}" class="btn btn-warning me-2">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+            <a href="{{ path('admin_evaluation_index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-list"></i> {{ evaluation.name }}
+                    </h5>
+                    <div>
+                        {% if evaluation.isPublished %}
+                            <span class="badge bg-success">Publiée</span>
+                        {% else %}
+                            <span class="badge bg-warning">Brouillon</span>
+                        {% endif %}
+                        {% if evaluation.isActive %}
+                            <span class="badge bg-light text-dark">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Classe :</dt>
+                                <dd class="col-sm-7">{{ evaluation.classroom.fullName }}</dd>
+
+                                <dt class="col-sm-5">Matière :</dt>
+                                <dd class="col-sm-7">{{ evaluation.subject.name }}</dd>
+
+                                <dt class="col-sm-5">Période :</dt>
+                                <dd class="col-sm-7">{{ evaluation.period.name }}</dd>
+
+                                <dt class="col-sm-5">Enseignant :</dt>
+                                <dd class="col-sm-7">
+                                    {{ evaluation.teacher ? evaluation.teacher.fullName : '-' }}
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Type :</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-secondary">{{ evaluation.typeLabel }}</span>
+                                </dd>
+
+                                <dt class="col-sm-5">Date :</dt>
+                                <dd class="col-sm-7">{{ evaluation.date|date('d/m/Y') }}</dd>
+
+                                <dt class="col-sm-5">Note max :</dt>
+                                <dd class="col-sm-7"><strong>{{ evaluation.maxGrade }}</strong></dd>
+
+                                <dt class="col-sm-5">Coefficient :</dt>
+                                <dd class="col-sm-7"><strong>{{ evaluation.coefficient }}</strong></dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    {% if evaluation.description %}
+                        <div class="alert alert-light">
+                            <strong><i class="fas fa-info-circle"></i> Description :</strong>
+                            <p class="mb-0 mt-2">{{ evaluation.description|nl2br }}</p>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <form method="post" action="{{ path('admin_evaluation_publish', {'id': evaluation.id}) }}" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('publish' ~ evaluation.id) }}">
+                            <button type="submit" class="btn {{ evaluation.isPublished ? 'btn-warning' : 'btn-success' }}">
+                                <i class="fas fa-{{ evaluation.isPublished ? 'eye-slash' : 'eye' }}"></i>
+                                {{ evaluation.isPublished ? 'Dépublier' : 'Publier' }} les résultats
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar"></i> Statistiques de Classe
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if statistics.count > 0 %}
+                        <div class="text-center mb-3">
+                            <h2 class="text-primary mb-0">{{ statistics.average|number_format(2, '.', '') }}</h2>
+                            <small class="text-muted">Moyenne de la classe / {{ evaluation.maxGrade }}</small>
+                        </div>
+                        <hr>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-6">Note minimale :</dt>
+                            <dd class="col-sm-6">
+                                <strong class="text-danger">{{ statistics.min|number_format(2, '.', '') }}</strong>
+                            </dd>
+
+                            <dt class="col-sm-6">Note maximale :</dt>
+                            <dd class="col-sm-6">
+                                <strong class="text-success">{{ statistics.max|number_format(2, '.', '') }}</strong>
+                            </dd>
+
+                            <dt class="col-sm-6">Élèves notés :</dt>
+                            <dd class="col-sm-6">
+                                <strong>{{ statistics.count }}</strong>
+                            </dd>
+                        </dl>
+                    {% else %}
+                        <p class="text-muted text-center mb-0">
+                            <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+                            Aucune statistique disponible.<br>
+                            <small>Les notes n'ont pas encore été saisies.</small>
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-sm-6">Créée le :</dt>
+                        <dd class="col-sm-6">{{ evaluation.createdAt|date('d/m/Y H:i') }}</dd>
+
+                        {% if evaluation.updatedAt %}
+                            <dt class="col-sm-6">Modifiée le :</dt>
+                            <dd class="col-sm-6">{{ evaluation.updatedAt|date('d/m/Y H:i') }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if grades|length > 0 %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-list"></i> Aperçu des Notes
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Élève</th>
+                                        <th>Note</th>
+                                        <th>Commentaire</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for index, grade in grades %}
+                                        <tr>
+                                            <td>{{ index + 1 }}</td>
+                                            <td>{{ grade.student.fullName }}</td>
+                                            <td>
+                                                <strong>{{ grade.displayValue }}</strong>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">{{ grade.comment ?? '-' }}</small>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

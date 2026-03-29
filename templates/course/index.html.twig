@@ -1,0 +1,150 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Cours{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-calendar-alt me-2"></i> Gestion des Cours et Emplois du Temps
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ path('admin_course_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Nouveau Cours
+            </a>
+        </div>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('warning') %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {# Sélection de classe #}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="{{ path('admin_course_index') }}" class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Sélectionnez une classe</label>
+                    <select name="classroom" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Choisir une classe --</option>
+                        {% for classroom in classrooms %}
+                            <option value="{{ classroom.id }}" {{ selected_classroom == classroom.id ? 'selected' : '' }}>
+                                {{ classroom.fullName }} - {{ classroom.schoolYear.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    {% if selected_classroom %}
+                        <a href="{{ path('admin_course_schedule', {'id': selected_classroom}) }}" 
+                           class="btn btn-success w-100">
+                            <i class="fas fa-calendar me-2"></i> Voir l'emploi du temps
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Liste des cours #}
+    {% if selected_classroom %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Cours de la classe ({{ courses|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if courses is empty %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Aucun cours enregistré pour cette classe. Cliquez sur "Nouveau Cours" pour commencer.
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Jour</th>
+                                <th>Horaire</th>
+                                <th>Matière</th>
+                                <th>Enseignant</th>
+                                <th>Salle</th>
+                                <th>Durée</th>
+                                <th width="180">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for course in courses %}
+                            <tr>
+                                <td><strong>{{ course.dayOfWeekLabel }}</strong></td>
+                                <td>
+                                    {{ course.startTime|date('H:i') }} - {{ course.endTime|date('H:i') }}
+                                </td>
+                                <td>
+                                    <span class="badge" style="background-color: {{ course.subject.color ?? '#6c757d' }}; color: white;">
+                                        {{ course.subject.name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if course.teacher %}
+                                        {{ course.teacher.fullName }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ course.room ? course.room.code : '-' }}</td>
+                                <td>
+                                    {% if course.duration %}
+                                        {{ course.duration }} min
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ path('admin_course_show', {'id': course.id}) }}" 
+                                           class="btn btn-info" title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ path('admin_course_edit', {'id': course.id}) }}" 
+                                           class="btn btn-warning" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post" action="{{ path('admin_course_delete', {'id': course.id}) }}" 
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce cours ?');"
+                                              style="display:inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ course.id) }}">
+                                            <button type="submit" class="btn btn-danger" title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-arrow-up me-2"></i>
+            Sélectionnez une classe ci-dessus pour voir ses cours
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

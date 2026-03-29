@@ -1,0 +1,133 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Classes{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-door-open me-2"></i> Gestion des Classes
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ path('admin_classroom_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Nouvelle Classe
+            </a>
+        </div>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {% for message in app.flashes('warning') %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Liste des Classes ({{ classrooms|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if classrooms is empty %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Aucune classe enregistrée. Cliquez sur "Nouvelle Classe" pour commencer.
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Nom</th>
+                                <th>Niveau</th>
+                                <th>Année</th>
+                                <th>Prof. Principal</th>
+                                <th>Salle</th>
+                                <th>Capacité</th>
+                                <th>Statut</th>
+                                <th width="200">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for classroom in classrooms %}
+                            <tr>
+                                <td><strong>{{ classroom.code }}</strong></td>
+                                <td>{{ classroom.name }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ classroom.level.name }}</span>
+                                </td>
+                                <td>{{ classroom.schoolYear.name }}</td>
+                                <td>
+                                    {% if classroom.mainTeacher %}
+                                        {{ classroom.mainTeacher.fullName }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ classroom.room ? classroom.room.code : '-' }}</td>
+                                <td>
+                                    {% if classroom.capacity %}
+                                        <span class="badge bg-info">{{ classroom.capacity }} élèves</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if classroom.isActive %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ path('admin_classroom_show', {'id': classroom.id}) }}" 
+                                           class="btn btn-info" title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ path('admin_course_schedule', {'id': classroom.id}) }}" 
+                                           class="btn btn-primary" title="Emploi du temps">
+                                            <i class="fas fa-calendar"></i>
+                                        </a>
+                                        <a href="{{ path('admin_classroom_edit', {'id': classroom.id}) }}" 
+                                           class="btn btn-warning" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post" action="{{ path('admin_classroom_toggle', {'id': classroom.id}) }}" 
+                                              style="display:inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ classroom.id) }}">
+                                            <button type="submit" class="btn btn-secondary" 
+                                                    title="{{ classroom.isActive ? 'Désactiver' : 'Activer' }}">
+                                                <i class="fas fa-{{ classroom.isActive ? 'ban' : 'check' }}"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ path('admin_classroom_delete', {'id': classroom.id}) }}" 
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette classe ?');"
+                                              style="display:inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ classroom.id) }}">
+                                            <button type="submit" class="btn btn-danger" title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

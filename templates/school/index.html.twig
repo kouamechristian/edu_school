@@ -1,0 +1,145 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Établissements{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-school me-2"></i> Gestion des Établissements
+            </h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ path('admin_school_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Nouvel Établissement
+            </a>
+        </div>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    {# Statistiques #}
+    {% if stats is defined and stats is not empty %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Statistiques par type</h5>
+                    <div class="row">
+                        {% for stat in stats %}
+                        <div class="col-md-2 text-center">
+                            <div class="p-3 border rounded">
+                                <h3 class="text-primary mb-0">{{ stat.count }}</h3>
+                                <small class="text-muted text-capitalize">{{ stat.type }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Liste des établissements #}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Liste des Établissements</h5>
+        </div>
+        <div class="card-body">
+            {% if schools is empty %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Aucun établissement enregistré. Cliquez sur "Nouvel Établissement" pour commencer.
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Nom</th>
+                                <th>Groupe</th>
+                                <th>Type</th>
+                                <th>Directeur</th>
+                                <th>Contact</th>
+                                <th>Statut</th>
+                                <th width="200">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for school in schools %}
+                            <tr>
+                                <td><strong>{{ school.code }}</strong></td>
+                                <td>{{ school.name }}</td>
+                                <td>
+                                    {% if school.schoolGroup %}
+                                        <span class="badge bg-info" title="{{ school.schoolGroup.name }}">
+                                            {{ school.schoolGroup.code }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ school.typeLabel }}</span>
+                                </td>
+                                <td>{{ school.director ?? '-' }}</td>
+                                <td>
+                                    <small>
+                                        {% if school.phone %}<i class="fas fa-phone me-1"></i>{{ school.phone }}<br>{% endif %}
+                                        {% if school.email %}<i class="fas fa-envelope me-1"></i>{{ school.email }}{% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if school.isActive %}
+                                        <span class="badge bg-success">Actif</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactif</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ path('admin_school_show', {'id': school.id}) }}" 
+                                           class="btn btn-info" title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ path('admin_school_edit', {'id': school.id}) }}" 
+                                           class="btn btn-warning" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post" action="{{ path('admin_school_toggle', {'id': school.id}) }}" 
+                                              style="display:inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ school.id) }}">
+                                            <button type="submit" class="btn btn-secondary" 
+                                                    title="{{ school.isActive ? 'Désactiver' : 'Activer' }}">
+                                                <i class="fas fa-{{ school.isActive ? 'ban' : 'check' }}"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{{ path('admin_school_delete', {'id': school.id}) }}" 
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet établissement ?');"
+                                              style="display:inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ school.id) }}">
+                                            <button type="submit" class="btn btn-danger" title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

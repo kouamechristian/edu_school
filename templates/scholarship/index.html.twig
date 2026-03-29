@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bourses{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-graduation-cap me-2"></i>Gestion des Bourses
+        </h1>
+        <a href="{{ path('admin_scholarship_new') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nouvelle Bourse
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Liste des Bourses</h6>
+        </div>
+        <div class="card-body">
+            {% if scholarships|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Type</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                                <th>Date de début</th>
+                                <th>Date de fin</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scholarship in scholarships %}
+                                <tr>
+                                    <td>{{ scholarship.name }}</td>
+                                    <td>{{ scholarship.type }}</td>
+                                    <td>{{ scholarship.amount|number_format(0, ',', ' ') }} FCFA</td>
+                                    <td>
+                                        <span class="badge badge-{{ scholarship.status == 'active' ? 'success' : 'secondary' }}">
+                                            {{ scholarship.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ scholarship.startDate ? scholarship.startDate|date('d/m/Y') : '' }}</td>
+                                    <td>{{ scholarship.endDate ? scholarship.endDate|date('d/m/Y') : '' }}</td>
+                                    <td>
+                                        <a href="{{ path('admin_scholarship_show', {'id': scholarship.id}) }}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ path('admin_scholarship_edit', {'id': scholarship.id}) }}" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Aucune bourse trouvée</p>
+                    <a href="{{ path('admin_scholarship_new') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Créer la première bourse
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

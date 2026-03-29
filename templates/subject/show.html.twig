@@ -1,0 +1,113 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ subject.name }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-book me-2"></i> {{ subject.name }}
+                    </h4>
+                    <span class="badge {{ subject.isActive ? 'bg-success' : 'bg-danger' }}">
+                        {{ subject.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-barcode me-2"></i> Code :</strong><br>
+                            <span class="text-muted">{{ subject.code }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-tag me-2"></i> Type :</strong><br>
+                            <span class="badge bg-{{ subject.type == 'obligatoire' ? 'danger' : (subject.type == 'optionnelle' ? 'warning' : 'info') }}">
+                                {{ subject.typeLabel }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-school me-2"></i> Établissement :</strong><br>
+                            {% if subject.school %}
+                                <a href="{{ path('admin_school_show', {'id': subject.school.id}) }}">
+                                    {{ subject.school.name }}
+                                </a>
+                            {% else %}
+                                <span class="badge bg-info">Matière globale</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-graduation-cap me-2"></i> Niveau :</strong><br>
+                            {% if subject.level %}
+                                {{ subject.level.name }}
+                            {% else %}
+                                <span class="badge bg-info">Tous niveaux</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-calculator me-2"></i> Coefficient :</strong><br>
+                            <span class="text-muted">{{ subject.coefficient ?? 'Non défini' }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-clock me-2"></i> Heures/semaine :</strong><br>
+                            <span class="text-muted">{{ subject.hoursPerWeek ?? 'Non défini' }}h</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-palette me-2"></i> Couleur :</strong><br>
+                            {% if subject.color %}
+                                <span class="badge" style="background-color: {{ subject.color }}; color: white; padding: 8px 12px;">
+                                    {{ subject.color }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">Non définie</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if subject.description %}
+                    <div class="mb-3">
+                        <strong><i class="fas fa-info-circle me-2"></i> Description :</strong><br>
+                        <span class="text-muted">{{ subject.description|nl2br }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="{{ path('admin_subject_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Retour
+                        </a>
+                        <a href="{{ path('admin_subject_edit', {'id': subject.id}) }}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i> Modifier
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Informations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar text-success me-2"></i>
+                        Créée le {{ subject.createdAt|date('d/m/Y') }}
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-check text-info me-2"></i>
+                        Modifiée le {{ subject.updatedAt|date('d/m/Y') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

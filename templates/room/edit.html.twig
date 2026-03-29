@@ -1,0 +1,104 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier la Salle{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">Modifier la Salle</h1>
+                <a href="{{ path('admin_room_index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                {{ form_row(form.school) }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form_row(form.code) }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_row(form.name) }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form_row(form.type) }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_row(form.capacity) }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                {{ form_row(form.building) }}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form_row(form.floor) }}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="form-check mt-4 pt-2">
+                                    {{ form_widget(form.isActive) }}
+                                    {{ form_label(form.isActive) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                {{ form_row(form.equipment) }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                {{ form_row(form.description) }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ path('admin_room_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer les modifications
+                            </button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Zone dangereuse
+                    </h5>
+                    <p class="card-text text-muted">
+                        La suppression de cette salle est irréversible. Assurez-vous qu'elle n'est pas utilisée dans des cours ou des classes.
+                    </p>
+                    <form method="post" action="{{ path('admin_room_delete', {'id': room.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette salle ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ room.id) }}">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Supprimer la salle
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

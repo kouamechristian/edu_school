@@ -1,0 +1,164 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails de la Salle{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">Détails de la Salle</h1>
+                <div>
+                    <a href="{{ path('admin_room_edit', {'id': room.id}) }}" class="btn btn-warning me-2">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+                    <a href="{{ path('admin_room_index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-door-open"></i> {{ room.code }} - {{ room.name }}
+                    </h5>
+                    {% if room.isActive %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3">Informations Générales</h6>
+                            
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Établissement</th>
+                                        <td>
+                                            <i class="fas fa-school text-primary"></i>
+                                            {{ room.school.name }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Code</th>
+                                        <td><strong class="text-primary">{{ room.code }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <td>{{ room.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Type</th>
+                                        <td>
+                                            {% if room.type %}
+                                                <span class="badge bg-secondary">
+                                                    {{ room.type|replace({'_': ' '})|title }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">Non spécifié</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Capacité</th>
+                                        <td>
+                                            {% if room.capacity %}
+                                                <i class="fas fa-users text-info"></i> {{ room.capacity }} places
+                                            {% else %}
+                                                <span class="text-muted">Non spécifiée</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="border-bottom pb-2 mb-3">Localisation</h6>
+                            
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Bâtiment</th>
+                                        <td>
+                                            {% if room.building %}
+                                                <i class="fas fa-building text-info"></i> {{ room.building }}
+                                            {% else %}
+                                                <span class="text-muted">Non spécifié</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Étage</th>
+                                        <td>
+                                            {% if room.floor %}
+                                                <i class="fas fa-layer-group text-info"></i> {{ room.floor }}
+                                            {% else %}
+                                                <span class="text-muted">Non spécifié</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6 class="border-bottom pb-2 mb-3 mt-4">Dates</h6>
+                            
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 40%;">Créée le</th>
+                                        <td>
+                                            <i class="fas fa-calendar text-success"></i>
+                                            {{ room.createdAt|date('d/m/Y à H:i') }}
+                                        </td>
+                                    </tr>
+                                    {% if room.updatedAt %}
+                                        <tr>
+                                            <th>Modifiée le</th>
+                                            <td>
+                                                <i class="fas fa-calendar-alt text-warning"></i>
+                                                {{ room.updatedAt|date('d/m/Y à H:i') }}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if room.equipment or room.description %}
+                        <div class="row mt-4">
+                            {% if room.equipment %}
+                                <div class="col-md-6">
+                                    <h6 class="border-bottom pb-2 mb-3">Équipements</h6>
+                                    <div class="alert alert-light">
+                                        <i class="fas fa-tools text-primary"></i>
+                                        {{ room.equipment|nl2br }}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% if room.description %}
+                                <div class="col-md-{{ room.equipment ? '6' : '12' }}">
+                                    <h6 class="border-bottom pb-2 mb-3">Description</h6>
+                                    <div class="alert alert-light">
+                                        <i class="fas fa-info-circle text-info"></i>
+                                        {{ room.description|nl2br }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

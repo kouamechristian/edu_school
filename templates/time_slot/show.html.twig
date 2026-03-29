@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ time_slot.name }}{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clock me-2"></i> {{ time_slot.name }}
+                    </h4>
+                    <span class="badge {{ time_slot.isActive ? 'bg-success' : 'bg-danger' }}">
+                        {{ time_slot.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-school me-2"></i> Établissement :</strong><br>
+                            <a href="{{ path('admin_school_show', {'id': time_slot.school.id}) }}">
+                                {{ time_slot.school.name }}
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-tag me-2"></i> Type :</strong><br>
+                            <span class="badge bg-{{ time_slot.type == 'cours' ? 'primary' : (time_slot.type == 'pause' ? 'info' : (time_slot.type == 'dejeuner' ? 'warning' : 'success')) }}">
+                                {{ time_slot.typeLabel }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-clock me-2"></i> Début :</strong><br>
+                            <span class="text-muted">{{ time_slot.startTime|date('H:i') }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-clock me-2"></i> Fin :</strong><br>
+                            <span class="text-muted">{{ time_slot.endTime|date('H:i') }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="fas fa-hourglass-half me-2"></i> Durée :</strong><br>
+                            <span class="text-muted">{{ time_slot.duration }} minutes</span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-sort-numeric-up me-2"></i> Ordre :</strong><br>
+                            <span class="text-muted">{{ time_slot.orderNumber }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-palette me-2"></i> Couleur :</strong><br>
+                            {% if time_slot.color %}
+                                <span class="badge" style="background-color: {{ time_slot.color }}; color: white; padding: 8px 12px;">
+                                    {{ time_slot.color }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">Non définie</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="{{ path('admin_time_slot_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Retour
+                        </a>
+                        <a href="{{ path('admin_time_slot_edit', {'id': time_slot.id}) }}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i> Modifier
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

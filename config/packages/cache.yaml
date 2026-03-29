@@ -1,0 +1,23 @@
+framework:
+    cache:
+        # Default cache adapter (filesystem by default)
+        app: cache.adapter.filesystem
+        
+        # System cache (for framework components)
+        system: cache.adapter.system
+        
+        # Directory where cache files will be stored
+        directory: '%kernel.cache_dir%/pools'
+        
+        # Default PSR-6 provider
+        default_psr6_provider: cache.app
+        
+        # Default Doctrine DBAL provider
+        default_doctrine_dbal_provider: cache.app
+        
+        # Configure cache pools
+        pools:
+            # Cache pool for application data
+            app_cache:
+                adapter: cache.adapter.filesystem
+                default_lifetime: 0  # No expiration by default

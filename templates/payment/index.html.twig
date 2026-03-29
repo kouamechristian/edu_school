@@ -1,0 +1,280 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Paiements{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                        <li class="breadcrumb-item active">Paiements</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">Gestion des Paiements</h4>
+            </div>
+        </div>
+    </div>
+
+    {% if current_school %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="card-title mb-0">
+                                    <i class="mdi mdi-credit-card me-2"></i>
+                                    Paiements - {{ current_school.name }}
+                                </h5>
+                            </div>
+                            <div class="col-auto">
+                                <a href="{{ path('admin_payment_new') }}" class="btn btn-primary">
+                                    <i class="mdi mdi-plus me-1"></i>
+                                    Nouveau Paiement
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filtres -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="searchInput" placeholder="Rechercher..." value="{{ search_term }}">
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="statusFilter">
+                                    <option value="">Tous les statuts</option>
+                                    <option value="en_attente" {{ current_status == 'en_attente' ? 'selected' : '' }}>En attente</option>
+                                    <option value="payé" {{ current_status == 'payé' ? 'selected' : '' }}>Payé</option>
+                                    <option value="partiellement_payé" {{ current_status == 'partiellement_payé' ? 'selected' : '' }}>Partiellement payé</option>
+                                    <option value="annulé" {{ current_status == 'annulé' ? 'selected' : '' }}>Annulé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="methodFilter">
+                                    <option value="">Toutes méthodes</option>
+                                    <option value="espèces" {{ current_method == 'espèces' ? 'selected' : '' }}>Espèces</option>
+                                    <option value="chèque" {{ current_method == 'chèque' ? 'selected' : '' }}>Chèque</option>
+                                    <option value="virement" {{ current_method == 'virement' ? 'selected' : '' }}>Virement</option>
+                                    <option value="carte" {{ current_method == 'carte' ? 'selected' : '' }}>Carte</option>
+                                    <option value="mobile_money" {{ current_method == 'mobile_money' ? 'selected' : '' }}>Mobile Money</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-secondary" onclick="applyFilters()">
+                                    <i class="mdi mdi-filter me-1"></i>
+                                    Filtrer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Statistiques -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h4 class="mb-0">{{ stats.total }}</h4>
+                                                <p class="mb-0">Total Paiements</p>
+                                            </div>
+                                            <div class="align-self-center">
+                                                <i class="mdi mdi-credit-card font-24"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h4 class="mb-0">{{ stats.total_amount|number_format(0, ',', ' ') }} FCFA</h4>
+                                                <p class="mb-0">Montant Total</p>
+                                            </div>
+                                            <div class="align-self-center">
+                                                <i class="mdi mdi-cash font-24"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h4 class="mb-0">
+                                                    <a href="{{ path('admin_payment_pending') }}" class="text-white">
+                                                        {{ payments|filter(payment => payment.status == 'en_attente')|length }}
+                                                    </a>
+                                                </h4>
+                                                <p class="mb-0">En Attente</p>
+                                            </div>
+                                            <div class="align-self-center">
+                                                <i class="mdi mdi-clock font-24"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h4 class="mb-0">
+                                                    <a href="{{ path('admin_payment_recent') }}" class="text-white">
+                                                        {{ payments|filter(payment => payment.createdAt >= date('-7 days'))|length }}
+                                                    </a>
+                                                </h4>
+                                                <p class="mb-0">Cette Semaine</p>
+                                            </div>
+                                            <div class="align-self-center">
+                                                <i class="mdi mdi-calendar font-24"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tableau des paiements -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>N° Paiement</th>
+                                        <th>Élève</th>
+                                        <th>Frais</th>
+                                        <th>Montant</th>
+                                        <th>Date</th>
+                                        <th>Méthode</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for payment in payments %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ payment.paymentNumber }}</span>
+                                                {% if payment.reference %}
+                                                    <br><small class="text-muted">{{ payment.reference }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <strong>{{ payment.student.fullName }}</strong>
+                                                <br><small class="text-muted">{{ payment.student.studentNumber }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ payment.fee.name }}</span>
+                                            </td>
+                                            <td>
+                                                <strong>{{ payment.amount|number_format(0, ',', ' ') }} FCFA</strong>
+                                            </td>
+                                            <td>
+                                                <span class="{% if payment.paymentDate >= date('-1 day') %}text-success{% else %}text-muted{% endif %}">
+                                                    {{ payment.paymentDate|date('d/m/Y') }}
+                                                </span>
+                                                <br><small class="text-muted">{{ payment.createdAt|date('H:i') }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark">{{ payment.paymentMethodLabel }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ payment.statusColor }}">
+                                                    {{ payment.statusLabel }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ path('admin_payment_show', {'id': payment.id}) }}" class="btn btn-outline-primary">
+                                                        <i class="mdi mdi-eye"></i>
+                                                    </a>
+                                                    <a href="{{ path('admin_payment_edit', {'id': payment.id}) }}" class="btn btn-outline-secondary">
+                                                        <i class="mdi mdi-pencil"></i>
+                                                    </a>
+                                                    {% if payment.status == 'en_attente' %}
+                                                        <form method="post" action="{{ path('admin_payment_confirm', {'id': payment.id}) }}" class="d-inline">
+                                                            <input type="hidden" name="_token" value="{{ csrf_token('confirm' ~ payment.id) }}">
+                                                            <button type="submit" class="btn btn-outline-success" title="Confirmer">
+                                                                <i class="mdi mdi-check"></i>
+                                                            </button>
+                                                        </form>
+                                                        <form method="post" action="{{ path('admin_payment_cancel', {'id': payment.id}) }}" class="d-inline">
+                                                            <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ payment.id) }}">
+                                                            <button type="submit" class="btn btn-outline-danger" title="Annuler" onclick="return confirm('Êtes-vous sûr de vouloir annuler ce paiement ?')">
+                                                                <i class="mdi mdi-close"></i>
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+                                                    <form method="post" action="{{ path('admin_payment_delete', {'id': payment.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?')">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ payment.id) }}">
+                                                        <button type="submit" class="btn btn-outline-danger">
+                                                            <i class="mdi mdi-delete"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">
+                                                <i class="mdi mdi-information-outline font-24"></i>
+                                                <p class="mb-0">Aucun paiement trouvé</p>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="mdi mdi-school font-48 text-muted mb-3"></i>
+                        <h4 class="text-muted">Sélectionnez un établissement</h4>
+                        <p class="text-muted">Veuillez sélectionner un établissement pour voir les paiements.</p>
+                        <a href="{{ path('admin_school_index') }}" class="btn btn-primary">
+                            <i class="mdi mdi-school me-1"></i>
+                            Gérer les Établissements
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function applyFilters() {
+    const search = document.getElementById('searchInput').value;
+    const status = document.getElementById('statusFilter').value;
+    const method = document.getElementById('methodFilter').value;
+    
+    let url = new URL(window.location.href);
+    url.searchParams.set('search', search);
+    url.searchParams.set('status', status);
+    url.searchParams.set('method', method);
+    
+    window.location.href = url.toString();
+}
+
+// Auto-submit on Enter
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        applyFilters();
+    }
+});
+</script>
+{% endblock %}

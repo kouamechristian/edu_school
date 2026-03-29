@@ -1,0 +1,25 @@
+{# ==================================================================
+   Flash Messages - Version Toast
+   Ce partial est conservé pour la rétrocompatibilité.
+   Les flash messages sont désormais gérés en toasts dans base.html.twig.
+   Si ce fichier est inclus manuellement dans un template, il affiche
+   les messages sous forme d'alertes classiques Bootstrap.
+   ================================================================== #}
+{% for label, messages in app.flashes %}
+    {% for message in messages %}
+        {% set alert_type = label == 'error' ? 'danger' : label %}
+        <div class="alert alert-{{ alert_type }} alert-dismissible fade show animate-in" role="alert">
+            {% if alert_type == 'success' %}
+                <i class="fas fa-check-circle me-2"></i>
+            {% elseif alert_type == 'danger' %}
+                <i class="fas fa-exclamation-circle me-2"></i>
+            {% elseif alert_type == 'warning' %}
+                <i class="fas fa-exclamation-triangle me-2"></i>
+            {% elseif alert_type == 'info' %}
+                <i class="fas fa-info-circle me-2"></i>
+            {% endif %}
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    {% endfor %}
+{% endfor %}

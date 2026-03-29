@@ -1,0 +1,124 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Emploi du Temps - {{ classroom.name }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-calendar-week me-2"></i> Emploi du Temps
+            </h1>
+            <h5 class="text-muted">{{ classroom.fullName }} - {{ classroom.schoolYear.name }}</h5>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ path('admin_course_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Ajouter un Cours
+            </a>
+            <a href="{{ path('admin_classroom_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered schedule-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="80">Horaire</th>
+                            <th>Lundi</th>
+                            <th>Mardi</th>
+                            <th>Mercredi</th>
+                            <th>Jeudi</th>
+                            <th>Vendredi</th>
+                            <th>Samedi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for timeSlot in time_slots %}
+                        <tr class="{{ timeSlot.type != 'cours' ? 'table-light' : '' }}">
+                            <td class="text-center fw-bold">
+                                <span class="badge bg-{{ timeSlot.type == 'cours' ? 'primary' : (timeSlot.type == 'pause' ? 'info' : (timeSlot.type == 'dejeuner' ? 'warning' : 'success')) }}">
+                                    {{ timeSlot.name }}
+                                </span><br>
+                                <small>{{ timeSlot.startTime|date('H:i') }}<br>{{ timeSlot.endTime|date('H:i') }}</small>
+                            </td>
+                            
+                            {% if timeSlot.type == 'cours' %}
+                                {% for day in ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
+                                <td class="schedule-cell">
+                                    {% set found = false %}
+                                    {% for course in schedule[day] %}
+                                        {% if course.timeSlot.id == timeSlot.id %}
+                                            {% set found = true %}
+                                            <div class="course-slot" style="background-color: {{ course.subject.color ?? '#6c757d' }}15; border-left: 4px solid {{ course.subject.color ?? '#6c757d' }};">
+                                                <strong>{{ course.subject.name }}</strong><br>
+                                                <small>
+                                                    <i class="fas fa-user me-1"></i>{{ course.teacher ? course.teacher.fullName : 'Non assigné' }}<br>
+                                                    {% if course.room %}
+                                                        <i class="fas fa-door-closed me-1"></i>{{ course.room.code }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not found %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            {% else %}
+                                <td colspan="6" class="text-center">
+                                    <span class="badge bg-{{ timeSlot.type == 'pause' ? 'info' : (timeSlot.type == 'dejeuner' ? 'warning' : 'success') }}">
+                                        {{ timeSlot.typeLabel }}
+                                    </span>
+                                </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# Légende #}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Légende des Couleurs</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for course in schedule['lundi']|merge(schedule['mardi'])|merge(schedule['mercredi'])|merge(schedule['jeudi'])|merge(schedule['vendredi']) %}
+                    {% if loop.index0 < 5 %}
+                    <div class="col-md-3 mb-2">
+                        <span class="badge" style="background-color: {{ course.subject.color ?? '#6c757d' }}; color: white;">
+                            {{ course.subject.name }}
+                        </span>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.schedule-table {
+    font-size: 0.85rem;
+}
+.schedule-cell {
+    height: 80px;
+    vertical-align: middle;
+    padding: 8px;
+}
+.course-slot {
+    padding: 8px;
+    border-radius: 4px;
+    margin: 2px 0;
+}
+</style>
+{% endblock %}
+
