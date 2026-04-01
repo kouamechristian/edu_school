@@ -11,7 +11,6 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -19,15 +18,20 @@ class PaymentType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $studentField = [
+            'class' => Student::class,
+            'label' => 'Élève',
+            'choice_label' => 'fullName',
+            'attr' => [
+                'class' => 'form-select js-student-select',
+            ],
+        ];
+        if (\is_array($options['student_choices'])) {
+            $studentField['choices'] = $options['student_choices'];
+        }
+
         $builder
-            ->add('student', EntityType::class, [
-                'class' => Student::class,
-                'label' => 'Élève',
-                'choice_label' => 'fullName',
-                'attr' => [
-                    'class' => 'form-select'
-                ]
-            ])
+            ->add('student', EntityType::class, $studentField)
             ->add('fee', EntityType::class, [
                 'class' => Fee::class,
                 'label' => 'Frais',
@@ -76,14 +80,6 @@ class PaymentType extends AbstractType
                     'class' => 'form-select'
                 ]
             ])
-            ->add('reference', TextType::class, [
-                'label' => 'Référence/N° de transaction',
-                'required' => false,
-                'attr' => [
-                    'class' => 'form-control',
-                    'placeholder' => 'Ex: CHQ001234 ou MTN123456789'
-                ]
-            ])
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes',
                 'required' => false,
@@ -100,6 +96,8 @@ class PaymentType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Payment::class,
+            'student_choices' => null,
         ]);
+        $resolver->setAllowedTypes('student_choices', ['null', 'array']);
     }
 }

@@ -1,0 +1,156 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Paiement{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Nouveau Paiement</h1>
+        <div>
+            <a href="{{ path('admin_payment_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-credit-card me-1"></i> Enregistrer un paiement
+            </h6>
+        </div>
+        <div class="card-body">
+            {{ form_start(form) }}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ form_row(form.student) }}
+                        <div class="mt-2" id="studentSummary"
+                             data-summary-url="{{ path('admin_payment_student_summary', {id: 0}) }}"
+                             style="display:none;">
+                            <div class="card border-0 shadow-sm bg-success text-white">
+                                <div class="card-body py-2">
+                                    <div class="row g-2 small">
+                                        <div class="col-md-6"><strong>Nom</strong>: <span data-field="nom">—</span></div>
+                                        <div class="col-md-6"><strong>Prénom</strong>: <span data-field="prenom">—</span></div>
+                                        <div class="col-md-6"><strong>Classe</strong>: <span data-field="classe">—</span></div>
+                                        <div class="col-md-6"><strong>Montant scolarité</strong>: <span data-field="montantScolarite">—</span></div>
+                                        <div class="col-md-6"><strong>Montant payé</strong>: <span data-field="montantPaye">—</span></div>
+                                        <div class="col-md-6"><strong>Montant restant</strong>: <span data-field="montantRestant" class="fw-bold">—</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        {{ form_row(form.fee) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        {{ form_row(form.amount) }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        {{ form_row(form.paymentDate) }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        {{ form_row(form.paymentMethod) }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ form_row(form.status) }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        {# Référence automatique #}
+                        <div class="alert alert-info py-2 mb-0">
+                            <i class="fas fa-info-circle me-1"></i>
+                            La référence / N° de transaction est générée automatiquement.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    {{ form_row(form.notes) }}
+                </div>
+
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-check"></i> Enregistrer
+                </button>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var el = document.querySelector('.js-student-select');
+            if (!el || el.tomselect) return;
+
+            function formatMoneyXof(value) {
+                if (value === null || value === undefined || value === '') return '—';
+                var n = Number(value);
+                if (Number.isNaN(n)) return String(value);
+                return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' F CFA';
+            }
+
+            async function loadStudentSummary(studentId) {
+                var box = document.getElementById('studentSummary');
+                if (!box) return;
+                if (!studentId) {
+                    box.style.display = 'none';
+                    return;
+                }
+                var baseUrl = box.getAttribute('data-summary-url') || '';
+                // ex: /admin/payments/students/0/summary -> /admin/payments/students/{id}/summary
+                var url = baseUrl.replace('/0/', '/' + String(studentId) + '/');
+                try {
+                    var res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    var data = await res.json();
+                    box.style.display = '';
+                    box.querySelector('[data-field="nom"]').textContent = data.nom ?? '—';
+                    box.querySelector('[data-field="prenom"]').textContent = data.prenom ?? '—';
+                    box.querySelector('[data-field="classe"]').textContent = data.classe ?? '—';
+                    box.querySelector('[data-field="montantScolarite"]').textContent = formatMoneyXof(data.montantScolarite);
+                    box.querySelector('[data-field="montantPaye"]').textContent = formatMoneyXof(data.montantPaye);
+                    box.querySelector('[data-field="montantRestant"]').textContent = formatMoneyXof(data.montantRestant);
+                } catch (e) {
+                    // Si l'élève n'existe pas / n'est pas dans l'établissement courant, on masque le bloc
+                    box.style.display = 'none';
+                    box.querySelector('[data-field="nom"]').textContent = '—';
+                    box.querySelector('[data-field="prenom"]').textContent = '—';
+                    box.querySelector('[data-field="classe"]').textContent = '—';
+                    box.querySelector('[data-field="montantScolarite"]').textContent = '—';
+                    box.querySelector('[data-field="montantPaye"]').textContent = '—';
+                    box.querySelector('[data-field="montantRestant"]').textContent = '—';
+                }
+            }
+
+            var ts = new TomSelect(el, {
+                create: false,
+                persist: false,
+                allowEmptyOption: true,
+                placeholder: 'Rechercher un élève...',
+                plugins: ['dropdown_input'],
+                onChange: function (value) {
+                    loadStudentSummary(value);
+                }
+            });
+
+            // Si une valeur est déjà sélectionnée (retour validation, etc.)
+            loadStudentSummary(ts.getValue());
+        });
+    </script>
+{% endblock %}
+
