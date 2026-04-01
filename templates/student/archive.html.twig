@@ -40,8 +40,8 @@
                                     <td>{{ student.firstName }}</td>
                                     <td>{{ student.dateOfBirth ? student.dateOfBirth|date('d/m/Y') : '' }}</td>
                                     <td>
-                                        <span class="badge badge-{{ student.status == 'graduated' ? 'success' : (student.status == 'transferred' ? 'info' : 'warning') }}">
-                                            {{ student.status == 'graduated' ? 'Diplômé' : (student.status == 'transferred' ? 'Transféré' : 'Inactif') }}
+                                        <span class="badge bg-{{ student.statusColor }}">
+                                            {{ student.statusLabel }}
                                         </span>
                                     </td>
                                     <td>{{ student.updatedAt|date('d/m/Y') }}</td>

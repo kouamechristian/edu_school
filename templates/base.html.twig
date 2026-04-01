@@ -692,14 +692,32 @@
                Visible pour admins et directeurs
                ============================================================== #}
             {% if is_granted('ROLE_ADMIN') or (app.user and app.user.userType == 'directeur') %}
+            {% set current_route = app.request.attributes.get('_route') %}
+            {% set finance_active = current_route starts with 'admin_fee'
+                or current_route starts with 'admin_payment'
+                or current_route starts with 'admin_invoice'
+                or current_route starts with 'admin_cash_register'
+                or current_route starts with 'admin_scholarship'
+                or current_route starts with 'admin_payment_plan'
+                or current_route starts with 'admin_financial_transaction'
+            %}
             <div class="nav-section">Finances</div>
 
             <li class="nav-item">
-                <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#financeSubmenu" aria-expanded="false">
+                <a href="#" class="nav-link dropdown-toggle {{ finance_active ? 'active' : '' }}"
+                   data-bs-toggle="collapse"
+                   data-bs-target="#financeSubmenu"
+                   aria-expanded="{{ finance_active ? 'true' : 'false' }}">
                     <i class="fas fa-wallet"></i>
                     <span>Gestion Financière</span>
                 </a>
-                <ul class="collapse" id="financeSubmenu">
+                <ul class="collapse {{ finance_active ? 'show' : '' }}" id="financeSubmenu">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_cash_register_open') }}" class="nav-link {{ current_route starts with 'admin_cash_register' ? 'active' : '' }}">
+                            <i class="fas fa-cash-register"></i>
+                            <span>Ma caisse</span>
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a href="{{ path('admin_fee_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_fee' ? 'active' : '' }}">
                             <i class="fas fa-money-bill"></i>

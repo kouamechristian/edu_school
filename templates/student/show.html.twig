@@ -39,8 +39,8 @@
                             <p><strong>Téléphone :</strong> {{ student.phone ?: 'Non renseigné' }}</p>
                             <p><strong>Email :</strong> {{ student.email ?: 'Non renseigné' }}</p>
                             <p><strong>Statut :</strong> 
-                                <span class="badge badge-{{ student.status == 'active' ? 'success' : (student.status == 'inactive' ? 'warning' : 'info') }}">
-                                    {{ student.status == 'active' ? 'Actif' : (student.status == 'inactive' ? 'Inactif' : (student.status == 'graduated' ? 'Diplômé' : 'Transféré')) }}
+                                <span class="badge bg-{{ student.statusColor }}">
+                                    {{ student.statusLabel }}
                                 </span>
                             </p>
                         </div>
@@ -135,6 +135,203 @@
         </div>
 
         <div class="col-lg-4">
+            {# Situation financière #}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-money-bill-wave me-1"></i> Scolarité
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% set totalTuition = student.totalTuition %}
+                    {% set totalPaid = student.totalPaid %}
+                    {% set remaining = student.remainingTuition %}
+                    {% set percentage = totalTuition > 0 ? ((totalPaid / totalTuition) * 100)|round : 0 %}
+
+                    <div class="text-center mb-3">
+                        <h4 class="font-weight-bold text-primary">{{ totalTuition|number_format(0, ',', ' ') }} FCFA</h4>
+                        <small class="text-muted">Total scolarité</small>
+                    </div>
+
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-{{ percentage >= 100 ? 'success' : (percentage >= 50 ? 'info' : 'warning') }}" 
+                             style="width: {{ percentage }}%"></div>
+                    </div>
+
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <strong class="text-success">{{ totalPaid|number_format(0, ',', ' ') }}</strong>
+                            <br><small class="text-muted">Payé</small>
+                        </div>
+                        <div class="col-6">
+                            <strong class="text-{{ remaining > 0 ? 'danger' : 'success' }}">{{ remaining|number_format(0, ',', ' ') }}</strong>
+                            <br><small class="text-muted">Reste</small>
+                        </div>
+                    </div>
+
+                    {% if student.studentFees|length > 0 %}
+                        <hr>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Frais</th>
+                                        <th class="text-end">Montant</th>
+                                        <th width="40"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sf in student.studentFees %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ sf.fee.name }}</strong>
+                                                <br>
+                                                <span class="badge bg-{{ sf.fee.categoryColor }} badge-sm">{{ sf.fee.categoryLabel }}</span>
+                                                <span class="badge bg-{{ sf.statusColor }} badge-sm">{{ sf.statusLabel }}</span>
+                                            </td>
+                                            <td class="text-end align-middle">
+                                                <strong>{{ sf.amount|number_format(0, ',', ' ') }} F</strong>
+                                                {% if sf.paidAmount > 0 %}
+                                                    <br><small class="text-success">Payé: {{ sf.paidAmount|number_format(0, ',', ' ') }} F</small>
+                                                {% endif %}
+                                            </td>
+                                            <td class="align-middle">
+                                                {% if sf.status == 'non_paye' %}
+                                                    <form method="post" action="{{ path('admin_student_remove_fee', {'id': student.id, 'studentFeeId': sf.id}) }}"
+                                                          onsubmit="return confirm('Retirer ce frais ?');" class="d-inline">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('remove_fee' ~ sf.id) }}">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Retirer">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-2">
+                            <small>Aucun frais affecté</small>
+                        </div>
+                    {% endif %}
+
+                    {# Paiement dynamique (multi-caissière via recordedBy) #}
+                    {% set unpaidFees = student.studentFees|filter(sf => sf.remainingAmount > 0 and sf.fee.isActive) %}
+                    {% if unpaidFees|length > 0 %}
+                        <hr>
+                        <h6 class="text-muted mb-2"><i class="fas fa-cash-register me-1"></i>Encaisser un paiement</h6>
+                        {% if cash_register_open is defined and not cash_register_open %}
+                            <div class="alert alert-warning py-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Votre caisse n’est pas ouverte. Veuillez l’ouvrir avant d’enregistrer un paiement.
+                                <div class="mt-2">
+                                    <a href="{{ path('admin_cash_register_open') }}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-cash-register me-1"></i> Ouvrir ma caisse
+                                    </a>
+                                </div>
+                            </div>
+                        {% else %}
+                        <form method="post" action="{{ path('admin_student_pay', {'id': student.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('pay' ~ student.id) }}">
+                            <div class="mb-2">
+                                <label class="form-label">Frais à payer</label>
+                                <select class="form-select form-select-sm" name="student_fee_id" required>
+                                    {% for sf in unpaidFees %}
+                                        <option value="{{ sf.id }}">
+                                            {{ sf.fee.name }} — Reste: {{ sf.remainingAmount|number_format(0, ',', ' ') }} F
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label">Montant</label>
+                                    <input type="number" name="amount" class="form-control form-control-sm" min="1" step="1" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Méthode</label>
+                                    <select class="form-select form-select-sm" name="payment_method" required>
+                                        <option value="espèces">Espèces</option>
+                                        <option value="mobile_money">Mobile Money</option>
+                                        <option value="chèque">Chèque</option>
+                                        <option value="virement">Virement</option>
+                                        <option value="carte">Carte</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <div class="alert alert-info py-2 mb-0">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    La référence / N° de transaction est générée automatiquement.
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-success w-100 mt-2">
+                                <i class="fas fa-check me-1"></i>Valider le paiement
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% endif %}
+
+                    {# Historique des paiements #}
+                    {% if payments is defined and payments|length > 0 %}
+                        <hr>
+                        <h6 class="text-muted mb-2"><i class="fas fa-receipt me-1"></i>Historique des paiements</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>N°</th>
+                                        <th>Frais</th>
+                                        <th class="text-end">Montant</th>
+                                        <th>Date</th>
+                                        <th>Caissière</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in payments %}
+                                        {% if p.status != 'annulé' %}
+                                            <tr>
+                                                <td><small class="text-muted">{{ p.paymentNumber }}</small></td>
+                                                <td>{{ p.fee ? p.fee.name : '-' }}</td>
+                                                <td class="text-end fw-bold">{{ p.amount|number_format(0, ',', ' ') }} F</td>
+                                                <td>{{ p.paymentDate ? p.paymentDate|date('d/m/Y') : '-' }}</td>
+                                                <td>{{ p.recordedBy ? p.recordedBy.fullName : '-' }}</td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+
+                    {# Ajout de frais (article, autre) #}
+                    {% if available_fees|length > 0 %}
+                        <hr>
+                        <h6 class="text-muted mb-2"><i class="fas fa-plus-circle me-1"></i>Ajouter un frais</h6>
+                        <form method="post" action="{{ path('admin_student_add_fee', {'id': student.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('add_fee' ~ student.id) }}">
+                            <div class="list-group list-group-flush mb-2" style="max-height: 200px; overflow-y: auto;">
+                                {% for fee in available_fees %}
+                                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-2 py-1">
+                                        <div>
+                                            <input type="checkbox" name="fee_ids[]" value="{{ fee.id }}" class="form-check-input me-1">
+                                            {{ fee.name }}
+                                            <span class="badge bg-{{ fee.categoryColor }} ms-1">{{ fee.categoryLabel }}</span>
+                                        </div>
+                                        <small class="text-muted">{{ fee.amount|number_format(0, ',', ' ') }} F</small>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary w-100">
+                                <i class="fas fa-plus me-1"></i>Ajouter les frais sélectionnés
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Actions rapides -->
             <div class="card shadow mb-4">
                 <div class="card-header py-3">

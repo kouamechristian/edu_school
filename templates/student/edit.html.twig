@@ -188,8 +188,8 @@
                 <div class="card-body">
                     <p><strong>Numéro d'élève :</strong> {{ student.studentNumber }}</p>
                     <p><strong>Statut actuel :</strong> 
-                        <span class="badge badge-{{ student.status == 'active' ? 'success' : (student.status == 'inactive' ? 'warning' : 'info') }}">
-                            {{ student.status == 'active' ? 'Actif' : (student.status == 'inactive' ? 'Inactif' : (student.status == 'graduated' ? 'Diplômé' : 'Transféré')) }}
+                        <span class="badge bg-{{ student.statusColor }}">
+                            {{ student.statusLabel }}
                         </span>
                     </p>
                     <p><strong>Créé le :</strong> {{ student.createdAt|date('d/m/Y à H:i') }}</p>

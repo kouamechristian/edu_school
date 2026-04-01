@@ -114,10 +114,8 @@ class StudentType extends AbstractType
             ->add('status', ChoiceType::class, [
                 'label' => 'Statut',
                 'choices' => [
-                    'Actif' => 'active',
-                    'Inactif' => 'inactive',
-                    'Diplômé' => 'graduated',
-                    'Transféré' => 'transferred'
+                    'Affecté' => 'affecte',
+                    'Non affecté' => 'non_affecte',
                 ],
                 'attr' => ['class' => 'form-control']
             ]);

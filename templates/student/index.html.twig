@@ -39,8 +39,8 @@
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Actifs</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.active }}</div>
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Affectés</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.affecte }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-user-check fa-2x text-gray-300"></i>
@@ -55,27 +55,11 @@
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Inactifs</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.inactive }}</div>
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Non affectés</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.non_affecte }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-user-times fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Diplômés</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.graduated }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -102,10 +86,8 @@
                         <label for="status">Statut</label>
                         <select class="form-control" id="status" name="status">
                             <option value="">Tous</option>
-                            <option value="active" {{ status == 'active' ? 'selected' : '' }}>Actif</option>
-                            <option value="inactive" {{ status == 'inactive' ? 'selected' : '' }}>Inactif</option>
-                            <option value="graduated" {{ status == 'graduated' ? 'selected' : '' }}>Diplômé</option>
-                            <option value="transferred" {{ status == 'transferred' ? 'selected' : '' }}>Transféré</option>
+                            <option value="affecte" {{ status == 'affecte' ? 'selected' : '' }}>Affecté</option>
+                                    <option value="non_affecte" {{ status == 'non_affecte' ? 'selected' : '' }}>Non affecté</option>
                         </select>
                     </div>
                 </div>
@@ -149,22 +131,29 @@
                     <thead>
                         <tr>
                             <th>Numéro</th>
-                            <th>Nom</th>
-                            <th>Prénom</th>
-                            <th>Date de naissance</th>
+                            <th>Nom & Prénom</th>
                             <th>Niveau</th>
+                            <th>Date d'inscription</th>
+                            <th class="text-end">Mnt Scolarité</th>
+                            <th class="text-end">Mnt Payé</th>
+                            <th class="text-end">Mnt Restant</th>
                             <th>Statut</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for student in students %}
+                        {% set tuition = tuition_data[student.id] ?? {total: 0, paid: 0, remaining: 0} %}
                         <tr>
                             <td>{{ student.studentNumber }}</td>
-                            <td>{{ student.lastName }}</td>
-                            <td>{{ student.firstName }}</td>
-                            <td>{{ student.dateOfBirth ? student.dateOfBirth|date('d/m/Y') : '' }}</td>
+                            <td>{{ student.lastName }} {{ student.firstName }}</td>
                             <td>{{ student.level ? student.level.name : '' }}</td>
+                            <td>{{ student.createdAt ? student.createdAt|date('d/m/Y') : '' }}</td>
+                            <td class="text-end fw-bold">{{ tuition.total|number_format(0, ',', ' ') }} F</td>
+                            <td class="text-end text-success">{{ tuition.paid|number_format(0, ',', ' ') }} F</td>
+                            <td class="text-end {{ tuition.remaining > 0 ? 'text-danger fw-bold' : 'text-success' }}">
+                                {{ tuition.remaining|number_format(0, ',', ' ') }} F
+                            </td>
                             <td>
                                 <span class="badge bg-{{ student.getStatusColor() }}">
                                     {{ student.getStatusLabel() }}
@@ -191,7 +180,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="7" class="text-center">Aucun élève trouvé</td>
+                            <td colspan="9" class="text-center">Aucun élève trouvé</td>
                         </tr>
                         {% endfor %}
                     </tbody>

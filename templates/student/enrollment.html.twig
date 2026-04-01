@@ -290,6 +290,67 @@
         </div>
     </div>
     {% endif %}
+
+    {# Liste des inscriptions de l'année en cours #}
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list me-2"></i>
+                        Inscriptions de l'année en cours
+                        {% if current_school_year %}
+                            <span class="badge bg-light text-dark ms-2">{{ current_school_year.name }}</span>
+                        {% endif %}
+                    </h6>
+                    <span class="badge bg-primary">{{ enrollments_this_year|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if enrollments_this_year|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Numéro</th>
+                                        <th>Élève</th>
+                                        <th>Niveau</th>
+                                        <th>Classe</th>
+                                        <th>Date d'inscription</th>
+                                        <th>Statut</th>
+                                        <th width="90">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in enrollments_this_year %}
+                                        <tr>
+                                            <td>{{ s.studentNumber }}</td>
+                                            <td class="fw-bold">{{ s.lastName }} {{ s.firstName }}</td>
+                                            <td>{{ s.level ? s.level.name : '-' }}</td>
+                                            <td>{{ s.classroom ? s.classroom.name : '-' }}</td>
+                                            <td>{{ s.createdAt ? s.createdAt|date('d/m/Y') : '-' }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ s.statusColor }}">{{ s.statusLabel }}</span>
+                                            </td>
+                                            <td>
+                                                <a href="{{ path('admin_student_show', {'id': s.id}) }}" class="btn btn-sm btn-outline-primary" title="Voir">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Aucune inscription trouvée pour l'année en cours.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
