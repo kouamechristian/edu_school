@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ma caisse{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Ma caisse</h1>
+        <div>
+            <a href="{{ path('admin_student_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-cash-register me-1"></i> {{ current_school.name }}
+            </h6>
+            {% if cash_register %}
+                <span class="badge bg-success">OUVERTE</span>
+            {% else %}
+                <span class="badge bg-warning text-dark">FERMÉE</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if cash_register %}
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Caissière</th>
+                                <th class="text-end">Solde d'ouverture</th>
+                                <th class="text-end">Encaissements</th>
+                                <th class="text-end">Solde actuel</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold">{{ cash_register.cashier.fullName }}</td>
+                                <td class="text-end">{{ cash_register.openingBalance|number_format(0, ',', ' ') }} F</td>
+                                <td class="text-end text-success">{{ payments_total|number_format(0, ',', ' ') }} F</td>
+                                <td class="text-end fw-bold">{{ current_balance|number_format(0, ',', ' ') }} F</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-muted">
+                    Ouverte le {{ cash_register.openedAt ? cash_register.openedAt|date('d/m/Y à H:i') : '-' }}.
+                </div>
+            {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Votre caisse n’est pas ouverte. Ouvrez votre caisse pour pouvoir enregistrer des paiements.
+                    <div class="mt-2">
+                        <a href="{{ path('admin_cash_register_open') }}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-cash-register me-1"></i> Ouvrir ma caisse
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

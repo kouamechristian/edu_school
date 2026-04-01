@@ -188,6 +188,20 @@ class PaymentRepository extends ServiceEntityRepository
         return (float) ($result ?? 0);
     }
 
+    public function getTotalAmountByCashRegister(int $cashRegisterId): float
+    {
+        $result = $this->createQueryBuilder('p')
+            ->select('SUM(p.amount) as total')
+            ->andWhere('p.cashRegister = :cashRegisterId')
+            ->andWhere('p.status != :cancelled')
+            ->setParameter('cashRegisterId', $cashRegisterId)
+            ->setParameter('cancelled', 'annulé')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($result ?? 0);
+    }
+
     /**
      * Compte les paiements par statut
      */
