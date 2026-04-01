@@ -54,16 +54,16 @@ class Module6Fixtures extends Fixture implements DependentFixtureInterface
     private function createFees(ObjectManager $manager, array $schools, array $levels): void
     {
         $feeTypes = [
-            'Frais de scolarité' => ['obligatoire', 'annuel', 150000],
-            'Frais d\'inscription' => ['obligatoire', 'unique', 25000],
-            'Frais de transport' => ['optionnel', 'mensuel', 15000],
-            'Frais de cantine' => ['optionnel', 'mensuel', 20000],
-            'Frais de bibliothèque' => ['obligatoire', 'annuel', 5000],
-            'Frais d\'uniforme' => ['obligatoire', 'unique', 30000],
-            'Frais de laboratoire' => ['obligatoire', 'trimestriel', 10000],
-            'Frais d\'activités sportives' => ['optionnel', 'trimestriel', 8000],
-            'Frais de pénalité retard' => ['pénalité', 'unique', 5000],
-            'Frais d\'examen' => ['obligatoire', 'unique', 15000],
+            'Frais de scolarité' => ['pour_tous', 'annuel', 150000, 'scolarite'],
+            'Frais d\'inscription' => ['pour_tous', 'unique', 25000, 'scolarite'],
+            'Frais de transport' => ['affecte', 'mensuel', 15000, 'autre_frais'],
+            'Frais de cantine' => ['affecte', 'mensuel', 20000, 'autre_frais'],
+            'Frais de bibliothèque' => ['pour_tous', 'annuel', 5000, 'autre_frais'],
+            'Frais d\'uniforme' => ['pour_tous', 'unique', 30000, 'article'],
+            'Frais de laboratoire' => ['pour_tous', 'trimestriel', 10000, 'scolarite'],
+            'Frais d\'activités sportives' => ['affecte', 'trimestriel', 8000, 'autre_frais'],
+            'Frais de fournitures' => ['non_affecte', 'unique', 5000, 'article'],
+            'Frais d\'examen' => ['pour_tous', 'unique', 15000, 'scolarite'],
         ];
 
         foreach ($schools as $school) {
@@ -76,27 +76,9 @@ class Module6Fixtures extends Fixture implements DependentFixtureInterface
                 $fee->setAmount($data[2]);
                 $fee->setType($data[0]);
                 $fee->setFrequency($data[1]);
+                $fee->setCategory($data[3]);
                 $fee->setDescription("Description pour {$name} - {$school->getName()}");
-                
-                // Dates aléatoires
-                $startDate = new \DateTime();
-                $startDate->modify('-' . mt_rand(0, 365) . ' days');
-                $fee->setStartDate($startDate);
-                
-                $endDate = clone $startDate;
-                $endDate->modify('+' . mt_rand(30, 365) . ' days');
-                $fee->setEndDate($endDate);
-                
-                $dueDate = clone $startDate;
-                $dueDate->modify('+' . mt_rand(1, 30) . ' days');
-                $fee->setDueDate($dueDate);
-                
-                // Remises occasionnelles
-                if (mt_rand(1, 4) === 1) {
-                    $fee->setDiscountPercentage(mt_rand(5, 20));
-                }
-                
-                $fee->setIsActive(mt_rand(1, 10) > 1); // 90% actifs
+                $fee->setIsActive(mt_rand(1, 10) > 1);
                 
                 $manager->persist($fee);
             }
