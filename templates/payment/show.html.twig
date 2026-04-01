@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails Paiement{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Paiement {{ payment.paymentNumber }}</h1>
+        <div>
+            {% if payment.status == 'payé' %}
+                <a href="{{ path('admin_payment_receipt', {'id': payment.id}) }}" class="btn btn-success">
+                    <i class="fas fa-file-pdf"></i> Reçu PDF
+                </a>
+            {% endif %}
+            <a href="{{ path('admin_payment_edit', {'id': payment.id}) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+            <a href="{{ path('admin_payment_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-receipt me-1"></i> Informations du paiement
+            </h6>
+            <span class="badge bg-{{ payment.statusColor }}">{{ payment.statusLabel }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Élève :</strong> {{ payment.student.fullName }} ({{ payment.student.studentNumber }})</p>
+                    <p><strong>Frais :</strong> {{ payment.fee.name }}</p>
+                    <p><strong>Date :</strong> {{ payment.paymentDate ? payment.paymentDate|date('d/m/Y') : '-' }}</p>
+                    <p><strong>Méthode :</strong> {{ payment.paymentMethodLabel }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Montant :</strong> {{ payment.amount|number_format(0, ',', ' ') }} F</p>
+                    <p><strong>Référence :</strong> {{ payment.reference ?: '-' }}</p>
+                    <p><strong>Caissière :</strong> {{ payment.recordedBy ? payment.recordedBy.fullName : '-' }}</p>
+                    <p><strong>Caisse :</strong> {{ payment.cashRegister ? payment.cashRegister.cashier.fullName : '-' }}</p>
+                </div>
+            </div>
+
+            {% if payment.notes %}
+                <hr>
+                <p><strong>Notes :</strong><br>{{ payment.notes|nl2br }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
