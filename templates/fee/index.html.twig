@@ -26,13 +26,13 @@
                         <div class="row align-items-center">
                             <div class="col">
                                 <h5 class="card-title mb-0">
-                                    <i class="mdi mdi-currency-usd me-2"></i>
+                                    <i class="fas fa-money-bill me-2"></i>
                                     Frais - {{ current_school.name }}
                                 </h5>
                             </div>
                             <div class="col-auto">
                                 <a href="{{ path('admin_fee_new') }}" class="btn btn-primary">
-                                    <i class="mdi mdi-plus me-1"></i>
+                                    <i class="fas fa-plus me-1"></i>
                                     Nouveau Frais
                                 </a>
                             </div>
@@ -47,9 +47,17 @@
                             <div class="col-md-2">
                                 <select class="form-select" id="typeFilter">
                                     <option value="">Tous les types</option>
-                                    <option value="obligatoire" {{ current_type == 'obligatoire' ? 'selected' : '' }}>Obligatoire</option>
-                                    <option value="optionnel" {{ current_type == 'optionnel' ? 'selected' : '' }}>Optionnel</option>
-                                    <option value="pénalité" {{ current_type == 'pénalité' ? 'selected' : '' }}>Pénalité</option>
+                                    <option value="pour_tous" {{ current_type == 'pour_tous' ? 'selected' : '' }}>Pour tous</option>
+                                    <option value="affecte" {{ current_type == 'affecte' ? 'selected' : '' }}>Affecté</option>
+                                    <option value="non_affecte" {{ current_type == 'non_affecte' ? 'selected' : '' }}>Non affecté</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" id="categoryFilter">
+                                    <option value="">Toutes catégories</option>
+                                    <option value="scolarite" {{ current_category == 'scolarite' ? 'selected' : '' }}>Scolarité</option>
+                                    <option value="article" {{ current_category == 'article' ? 'selected' : '' }}>Article</option>
+                                    <option value="autre_frais" {{ current_category == 'autre_frais' ? 'selected' : '' }}>Autre frais</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -63,7 +71,7 @@
                             </div>
                             <div class="col-md-2">
                                 <button class="btn btn-outline-secondary" onclick="applyFilters()">
-                                    <i class="mdi mdi-filter me-1"></i>
+                                    <i class="fas fa-filter me-1"></i>
                                     Filtrer
                                 </button>
                             </div>
@@ -80,7 +88,7 @@
                                                 <p class="mb-0">Total Frais</p>
                                             </div>
                                             <div class="align-self-center">
-                                                <i class="mdi mdi-currency-usd font-24"></i>
+                                                <i class="fas fa-money-bill fa-2x"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -95,7 +103,7 @@
                                                 <p class="mb-0">Montant Total</p>
                                             </div>
                                             <div class="align-self-center">
-                                                <i class="mdi mdi-cash font-24"></i>
+                                                <i class="fas fa-coins fa-2x"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -106,15 +114,11 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between">
                                             <div>
-                                                <h4 class="mb-0">
-                                                    <a href="{{ path('admin_fee_overdue') }}" class="text-white">
-                                                        {{ fees|filter(fee => fee.dueDate and fee.dueDate < date())|length }}
-                                                    </a>
-                                                </h4>
-                                                <p class="mb-0">En Retard</p>
+                                                <h4 class="mb-0">{{ fees|filter(fee => fee.isActive)|length }}</h4>
+                                                <p class="mb-0">Frais Actifs</p>
                                             </div>
                                             <div class="align-self-center">
-                                                <i class="mdi mdi-alert font-24"></i>
+                                                <i class="fas fa-check-circle fa-2x"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -125,15 +129,11 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between">
                                             <div>
-                                                <h4 class="mb-0">
-                                                    <a href="{{ path('admin_fee_due_soon') }}" class="text-white">
-                                                        {{ fees|filter(fee => fee.dueDate and fee.dueDate <= date('+7 days'))|length }}
-                                                    </a>
-                                                </h4>
-                                                <p class="mb-0">Échéance Proche</p>
+                                                <h4 class="mb-0">{{ fees|filter(fee => fee.schedules|length > 0)|length }}</h4>
+                                                <p class="mb-0">Avec Échéancier</p>
                                             </div>
                                             <div class="align-self-center">
-                                                <i class="mdi mdi-clock font-24"></i>
+                                                <i class="fas fa-calendar-alt fa-2x"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -148,10 +148,9 @@
                                     <tr>
                                         <th>Code</th>
                                         <th>Nom</th>
-                                        <th>Type</th>
-                                        <th>Fréquence</th>
+                                        <th>Catégorie</th>
                                         <th>Montant</th>
-                                        <th>Échéance</th>
+                                        <th>Échéances</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
@@ -167,28 +166,18 @@
                                                 {% if fee.description %}
                                                     <br><small class="text-muted">{{ fee.description|slice(0, 50) }}{% if fee.description|length > 50 %}...{% endif %}</small>
                                                 {% endif %}
-                                            </td>
+                                            </td>                                           
                                             <td>
-                                                <span class="badge bg-{{ fee.type == 'obligatoire' ? 'primary' : (fee.type == 'optionnel' ? 'info' : 'warning') }}">
-                                                    {{ fee.typeLabel }}
+                                                <span class="badge bg-{{ fee.categoryColor }}">
+                                                    {{ fee.categoryLabel }}
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="badge bg-light text-dark">{{ fee.frequencyLabel }}</span>
-                                            </td>
-                                            <td>
                                                 <strong>{{ fee.amount|number_format(0, ',', ' ') }} FCFA</strong>
-                                                {% if fee.discountPercentage or fee.discountAmount %}
-                                                    <br><small class="text-success">
-                                                        Final: {{ fee.finalAmount|number_format(0, ',', ' ') }} FCFA
-                                                    </small>
-                                                {% endif %}
                                             </td>
                                             <td>
-                                                {% if fee.dueDate %}
-                                                    <span class="{% if fee.dueDate < date() %}text-danger{% elseif fee.dueDate <= date('+7 days') %}text-warning{% else %}text-success{% endif %}">
-                                                        {{ fee.dueDate|date('d/m/Y') }}
-                                                    </span>
+                                                {% if fee.schedules|length > 0 %}
+                                                    <span class="badge bg-info">{{ fee.schedules|length }}</span>
                                                 {% else %}
                                                     <span class="text-muted">-</span>
                                                 {% endif %}
@@ -200,22 +189,22 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="{{ path('admin_fee_show', {'id': fee.id}) }}" class="btn btn-outline-primary">
-                                                        <i class="mdi mdi-eye"></i>
+                                                    <a href="{{ path('admin_fee_show', {'id': fee.id}) }}" class="btn btn-outline-primary" title="Voir">
+                                                        <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="{{ path('admin_fee_edit', {'id': fee.id}) }}" class="btn btn-outline-secondary">
-                                                        <i class="mdi mdi-pencil"></i>
+                                                    <a href="{{ path('admin_fee_edit', {'id': fee.id}) }}" class="btn btn-outline-secondary" title="Modifier">
+                                                        <i class="fas fa-edit"></i>
                                                     </a>
                                                     <form method="post" action="{{ path('admin_fee_toggle', {'id': fee.id}) }}" class="d-inline">
                                                         <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ fee.id) }}">
                                                         <button type="submit" class="btn btn-outline-{{ fee.isActive ? 'warning' : 'success' }}" title="{{ fee.isActive ? 'Désactiver' : 'Activer' }}">
-                                                            <i class="mdi mdi-{{ fee.isActive ? 'pause' : 'play' }}"></i>
+                                                            <i class="fas fa-{{ fee.isActive ? 'pause' : 'play' }}"></i>
                                                         </button>
                                                     </form>
                                                     <form method="post" action="{{ path('admin_fee_delete', {'id': fee.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce frais ?')">
                                                         <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ fee.id) }}">
-                                                        <button type="submit" class="btn btn-outline-danger">
-                                                            <i class="mdi mdi-delete"></i>
+                                                        <button type="submit" class="btn btn-outline-danger" title="Supprimer">
+                                                            <i class="fas fa-trash"></i>
                                                         </button>
                                                     </form>
                                                 </div>
@@ -223,8 +212,8 @@
                                         </tr>
                                     {% else %}
                                         <tr>
-                                            <td colspan="8" class="text-center text-muted py-4">
-                                                <i class="mdi mdi-information-outline font-24"></i>
+                                            <td colspan="9" class="text-center text-muted py-4">
+                                                <i class="fas fa-info-circle fa-2x"></i>
                                                 <p class="mb-0">Aucun frais trouvé</p>
                                             </td>
                                         </tr>
@@ -241,11 +230,11 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body text-center">
-                        <i class="mdi mdi-school font-48 text-muted mb-3"></i>
+                        <i class="fas fa-school fa-3x text-muted mb-3"></i>
                         <h4 class="text-muted">Sélectionnez un établissement</h4>
                         <p class="text-muted">Veuillez sélectionner un établissement pour voir les frais.</p>
                         <a href="{{ path('admin_school_index') }}" class="btn btn-primary">
-                            <i class="mdi mdi-school me-1"></i>
+                            <i class="fas fa-school me-1"></i>
                             Gérer les Établissements
                         </a>
                     </div>
@@ -259,11 +248,13 @@
 function applyFilters() {
     const search = document.getElementById('searchInput').value;
     const type = document.getElementById('typeFilter').value;
+    const category = document.getElementById('categoryFilter').value;
     const frequency = document.getElementById('frequencyFilter').value;
     
     let url = new URL(window.location.href);
     url.searchParams.set('search', search);
     url.searchParams.set('type', type);
+    url.searchParams.set('category', category);
     url.searchParams.set('frequency', frequency);
     
     window.location.href = url.toString();

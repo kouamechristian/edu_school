@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Modifier le Frais{% endblock %}
+{% block title %}Modifier le Frais - {{ fee.name }}{% endblock %}
 
 {% block body %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-money-bill me-2"></i>Modifier le Frais
+            <i class="fas fa-money-bill me-2"></i>Modifier le Frais: {{ fee.name }}
         </h1>
         <div>
             <a href="{{ path('admin_fee_show', {'id': fee.id}) }}" class="btn btn-info">
@@ -18,143 +18,254 @@
         </div>
     </div>
 
-    <div class="card shadow">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Modifier: {{ fee.name }}</h6>
+    {# Onglets #}
+    <ul class="nav nav-tabs mb-0" id="feeEditTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {{ active_tab != 'schedule' ? 'active' : '' }}" id="fee-tab"
+                    data-bs-toggle="tab" data-bs-target="#fee-pane" type="button" role="tab"
+                    aria-controls="fee-pane" aria-selected="{{ active_tab != 'schedule' ? 'true' : 'false' }}">
+                <i class="fas fa-edit me-1"></i> Informations du Frais
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {{ active_tab == 'schedule' ? 'active' : '' }}" id="schedule-tab"
+                    data-bs-toggle="tab" data-bs-target="#schedule-pane" type="button" role="tab"
+                    aria-controls="schedule-pane" aria-selected="{{ active_tab == 'schedule' ? 'true' : 'false' }}">
+                <i class="fas fa-calendar-alt me-1"></i> Échéancier
+                <span class="badge bg-primary ms-1">{{ fee.schedules|length }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="feeEditTabContent">
+        {# Onglet 1: Formulaire du frais #}
+        <div class="tab-pane fade {{ active_tab != 'schedule' ? 'show active' : '' }}" id="fee-pane" role="tabpanel" aria-labelledby="fee-tab">
+            <div class="card shadow border-top-0 rounded-top-0">
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form_label(form.name) }}
+                                    {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.name) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form_label(form.level) }}
+                                    {{ form_widget(form.level, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.level) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.amount) }}
+                                    {{ form_widget(form.amount, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_errors(form.amount) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.category) }}
+                                    {{ form_widget(form.category, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.category) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.type) }}
+                                    {{ form_widget(form.type, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.type) }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form_label(form.frequency) }}
+                                    {{ form_widget(form.frequency, {'attr': {'class': 'form-select'}}) }}
+                                    {{ form_errors(form.frequency) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    {{ form_label(form.description) }}
+                                    {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 3}}) }}
+                                    {{ form_errors(form.description) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ path('admin_fee_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Enregistrer les modifications
+                            </button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            {{ form_start(form) }}
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.name, 'Nom du frais') }}
-                            {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.name) }}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.code, 'Code du frais') }}
-                            {{ form_widget(form.code, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.code) }}
-                        </div>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.school, 'Établissement') }}
-                            {{ form_widget(form.school, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.school) }}
+        {# Onglet 2: Échéancier #}
+        <div class="tab-pane fade {{ active_tab == 'schedule' ? 'show active' : '' }}" id="schedule-pane" role="tabpanel" aria-labelledby="schedule-tab">
+            <div class="card shadow border-top-0 rounded-top-0">
+                <div class="card-body">
+                    {# Résumé #}
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-center">
+                                <div class="text-muted small">Montant total du frais</div>
+                                <div class="h4 mb-0 text-primary">{{ fee.amount|number_format(0, ',', ' ') }} F</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-center">
+                                <div class="text-muted small">Total des échéances</div>
+                                <div class="h4 mb-0 {% if fee.schedulesTotalAmount == fee.amount|number_format(2, '.', '') %}text-success{% else %}text-warning{% endif %}">
+                                    {{ fee.schedulesTotalAmount|number_format(0, ',', ' ') }} F
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 text-center">
+                                <div class="text-muted small">Différence</div>
+                                {% set diff = fee.amount - fee.schedulesTotalAmount %}
+                                <div class="h4 mb-0 {{ diff == 0 ? 'text-success' : 'text-danger' }}">
+                                    {{ diff|number_format(0, ',', ' ') }} F
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.level, 'Niveau') }}
-                            {{ form_widget(form.level, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.level) }}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.amount, 'Montant') }}
-                            {{ form_widget(form.amount, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.amount) }}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.type, 'Type') }}
-                            {{ form_widget(form.type, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.type) }}
-                        </div>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.frequency, 'Fréquence') }}
-                            {{ form_widget(form.frequency, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.frequency) }}
+                    {% if fee.schedulesTotalAmount != fee.amount and fee.schedules|length > 0 %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Le total des échéances ({{ fee.schedulesTotalAmount|number_format(0, ',', ' ') }} F) ne correspond pas au montant du frais ({{ fee.amount|number_format(0, ',', ' ') }} F).
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.dueDate, 'Date d\'échéance') }}
-                            {{ form_widget(form.dueDate, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.dueDate) }}
-                        </div>
-                    </div>
-                </div>
+                    {% endif %}
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.startDate, 'Date de début') }}
-                            {{ form_widget(form.startDate, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.startDate) }}
+                    {# Liste des échéances existantes #}
+                    {% if fee.schedules|length > 0 %}
+                        <div class="table-responsive mb-4">
+                            <table class="table table-hover table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="80" class="text-center">N° Ordre</th>
+                                        <th>Montant</th>
+                                        <th>Date d'échéance</th>
+                                        <th>Statut</th>
+                                        <th width="80" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for schedule in fee.schedules %}
+                                        <tr>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">{{ schedule.orderNumber }}</span>
+                                            </td>
+                                            <td>
+                                                <strong>{{ schedule.amount|number_format(0, ',', ' ') }} F</strong>
+                                            </td>
+                                            <td>
+                                                <i class="fas fa-calendar me-1 text-muted"></i>
+                                                {{ schedule.dueDate|date('d/m/Y') }}
+                                            </td>
+                                            <td>
+                                                {% if schedule.isOverdue %}
+                                                    <span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>En retard</span>
+                                                {% elseif schedule.isDueSoon %}
+                                                    <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Bientôt</span>
+                                                {% else %}
+                                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>À venir</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <form method="post" action="{{ path('admin_fee_schedule_delete', {'id': fee.id, 'scheduleId': schedule.id}) }}"
+                                                      onsubmit="return confirm('Supprimer cette échéance ?');" class="d-inline">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('schedule_delete' ~ schedule.id) }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th class="text-center">Total</th>
+                                        <th colspan="4">
+                                            <strong>{{ fee.schedulesTotalAmount|number_format(0, ',', ' ') }} F</strong>
+                                            sur {{ fee.amount|number_format(0, ',', ' ') }} F
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.endDate, 'Date de fin') }}
-                            {{ form_widget(form.endDate, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.endDate) }}
+                    {% else %}
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Aucune échéance définie pour ce frais. Ajoutez des échéances ci-dessous.
                         </div>
-                    </div>
-                </div>
+                    {% endif %}
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.discountPercentage, 'Remise (%)') }}
-                            {{ form_widget(form.discountPercentage, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.discountPercentage) }}
+                    {# Formulaire d'ajout d'échéance #}
+                    <div class="card bg-light">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-plus-circle me-1"></i> Ajouter une échéance</h6>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.discountAmount, 'Remise (montant)') }}
-                            {{ form_widget(form.discountAmount, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.discountAmount) }}
-                        </div>
-                    </div>
-                </div>
+                        <div class="card-body">
+                            <form method="post" action="{{ path('admin_fee_schedule_add', {'id': fee.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('schedule_add' ~ fee.id) }}">
+                                <div class="row align-items-end">
+                                    <div class="col-md-3">
+                                        <label for="order_number" class="form-label">N° d'ordre</label>
+                                        <input type="number" class="form-control" id="order_number" name="order_number"
+                                               min="1" value="{{ fee.schedules|length + 1 }}" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="schedule_amount" class="form-label">Montant (FCFA)</label>
+                                        <input type="number" class="form-control" id="schedule_amount" name="amount"
+                                               min="1" step="1" required placeholder="Ex: 50000">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="due_date" class="form-label">Date d'échéance</label>
+                                        <input type="date" class="form-control" id="due_date" name="due_date" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-plus me-1"></i> Ajouter
+                                        </button>
+                                    </div>
+                                </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.description, 'Description') }}
-                            {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': 4}}) }}
-                            {{ form_errors(form.description) }}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {{ form_label(form.isActive, 'Frais actif') }}
-                            {{ form_widget(form.isActive, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.isActive) }}
+                                {% set remaining = fee.amount - fee.schedulesTotalAmount %}
+                                {% if remaining > 0 and fee.schedules|length > 0 %}
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            Montant restant à répartir : <strong>{{ remaining|number_format(0, ',', ' ') }} F</strong>
+                                        </small>
+                                    </div>
+                                {% endif %}
+                            </form>
                         </div>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Enregistrer les modifications
-                    </button>
-                    <a href="{{ path('admin_fee_show', {'id': fee.id}) }}" class="btn btn-info">
-                        <i class="fas fa-eye me-2"></i>Voir les détails
-                    </a>
-                    <a href="{{ path('admin_fee_index') }}" class="btn btn-secondary">
-                        <i class="fas fa-times me-2"></i>Annuler
-                    </a>
-                </div>
-            {{ form_end(form) }}
+            </div>
         </div>
     </div>
 </div>

@@ -149,6 +149,23 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Trouve les élèves actifs par établissement et niveau
+     */
+    public function findActiveBySchoolAndLevel(int $schoolId, int $levelId): array
+    {
+        return $this->createQueryBuilder('s')
+            ->where('s.school = :schoolId')
+            ->andWhere('s.level = :levelId')
+            ->andWhere('s.isActive = true')
+            ->andWhere('s.status = :status')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('levelId', $levelId)
+            ->setParameter('status', 'affecte')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Compte les élèves par classe
      */
     public function countByClassroom(int $classroomId): int
@@ -161,5 +178,47 @@ class StudentRepository extends ServiceEntityRepository
             ->setParameter('active', true)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Élèves actifs de l'établissement avec un reste à payer sur au moins une ligne de frais active.
+     */
+    public function findWithRemainingBalanceBySchool(int $schoolId): array
+    {
+        $idRows = $this->createQueryBuilder('s')
+            ->select('s.id')
+            ->innerJoin('s.studentFees', 'sf')
+            ->innerJoin('sf.fee', 'f')
+            ->where('s.school = :schoolId')
+            ->andWhere('s.isActive = :active')
+            ->andWhere('f.isActive = :feeActive')
+            ->groupBy('s.id')
+            ->having('SUM(sf.amount) - SUM(sf.paidAmount) > 0.0001')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('active', true)
+            ->setParameter('feeActive', true)
+            ->getQuery()
+            ->getScalarResult();
+
+        $ids = [];
+        foreach ($idRows as $row) {
+            $v = (int) current($row);
+            if ($v > 0) {
+                $ids[] = $v;
+            }
+        }
+        $ids = array_values(array_unique($ids));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('s')
+            ->where('s.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->orderBy('s.lastName', 'ASC')
+            ->addOrderBy('s.firstName', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

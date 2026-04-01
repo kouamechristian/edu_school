@@ -35,7 +35,7 @@
                             <p>{{ fee.school.name }}</p>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <strong>Niveau:</strong>
@@ -44,7 +44,7 @@
                         <div class="col-md-6">
                             <strong>Type:</strong>
                             <p>
-                                <span class="badge bg-{{ fee.type == 'obligatoire' ? 'primary' : (fee.type == 'optionnel' ? 'info' : 'warning') }}">
+                                <span class="badge bg-{{ fee.type == 'pour_tous' ? 'primary' : (fee.type == 'affecte' ? 'success' : 'secondary') }}">
                                     {{ fee.typeLabel }}
                                 </span>
                             </p>
@@ -53,61 +53,27 @@
 
                     <div class="row">
                         <div class="col-md-6">
+                            <strong>Catégorie:</strong>
+                            <p>
+                                <span class="badge bg-{{ fee.categoryColor }}">{{ fee.categoryLabel }}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
                             <strong>Fréquence:</strong>
                             <p>
                                 <span class="badge bg-light text-dark">{{ fee.frequencyLabel }}</span>
                             </p>
                         </div>
+                    </div>
+
+                    <div class="row">
                         <div class="col-md-6">
                             <strong>Montant:</strong>
                             <p><strong>{{ fee.amount|number_format(0, ',', ' ') }} FCFA</strong></p>
                         </div>
                     </div>
 
-                    {% if fee.discountPercentage or fee.discountAmount %}
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Remise (%):</strong>
-                                <p>{{ fee.discountPercentage ? fee.discountPercentage ~ '%' : '-' }}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Remise (montant):</strong>
-                                <p>{{ fee.discountAmount ? fee.discountAmount|number_format(0, ',', ' ') ~ ' FCFA' : '-' }}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Montant final:</strong>
-                                <p><strong class="text-success">{{ fee.finalAmount|number_format(0, ',', ' ') }} FCFA</strong></p>
-                            </div>
-                        </div>
-                    {% endif %}
-
                     <div class="row">
-                        <div class="col-md-6">
-                            <strong>Date de début:</strong>
-                            <p>{{ fee.startDate ? fee.startDate|date('d/m/Y') : 'Non définie' }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Date de fin:</strong>
-                            <p>{{ fee.endDate ? fee.endDate|date('d/m/Y') : 'Non définie' }}</p>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Échéance:</strong>
-                            <p>
-                                {% if fee.dueDate %}
-                                    <span class="{% if fee.dueDate < date() %}text-danger{% elseif fee.dueDate <= date('+7 days') %}text-warning{% else %}text-success{% endif %}">
-                                        {{ fee.dueDate|date('d/m/Y') }}
-                                    </span>
-                                {% else %}
-                                    <span class="text-muted">Non définie</span>
-                                {% endif %}
-                            </p>
-                        </div>
                         <div class="col-md-6">
                             <strong>Statut:</strong>
                             <p>
@@ -139,6 +105,63 @@
                     </div>
                 </div>
             </div>
+
+            {# Échéancier #}
+            {% if fee.schedules|length > 0 %}
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-calendar-alt me-2"></i>Échéancier ({{ fee.schedules|length }} échéance(s))
+                        </h6>
+                        <a href="{{ path('admin_fee_edit', {'id': fee.id, 'tab': 'schedule'}) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit me-1"></i> Gérer
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center" width="80">N°</th>
+                                        <th>Montant</th>
+                                        <th>Date d'échéance</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for schedule in fee.schedules %}
+                                        <tr>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">{{ schedule.orderNumber }}</span>
+                                            </td>
+                                            <td><strong>{{ schedule.amount|number_format(0, ',', ' ') }} F</strong></td>
+                                            <td>{{ schedule.dueDate|date('d/m/Y') }}</td>
+                                            <td>
+                                                {% if schedule.isOverdue %}
+                                                    <span class="badge bg-danger">En retard</span>
+                                                {% elseif schedule.isDueSoon %}
+                                                    <span class="badge bg-warning">Bientôt</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">À venir</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th></th>
+                                        <th colspan="3">
+                                            Total: <strong>{{ fee.schedulesTotalAmount|number_format(0, ',', ' ') }} F</strong>
+                                            / {{ fee.amount|number_format(0, ',', ' ') }} F
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
 
         <div class="col-lg-4">
@@ -147,21 +170,25 @@
                     <h6 class="m-0 font-weight-bold text-primary">Actions</h6>
                 </div>
                 <div class="card-body">
-                    <a href="{{ path('admin_fee_edit', {'id': fee.id}) }}" class="btn btn-warning btn-block mb-2">
+                    <a href="{{ path('admin_fee_edit', {'id': fee.id}) }}" class="btn btn-warning btn-block mb-2 w-100">
                         <i class="fas fa-edit me-2"></i>Modifier le frais
                     </a>
-                    
+
+                    <a href="{{ path('admin_fee_edit', {'id': fee.id, 'tab': 'schedule'}) }}" class="btn btn-info btn-block mb-2 w-100">
+                        <i class="fas fa-calendar-alt me-2"></i>Gérer l'échéancier
+                    </a>
+
                     <form method="post" action="{{ path('admin_fee_toggle', {'id': fee.id}) }}" class="mb-2">
                         <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ fee.id) }}">
-                        <button type="submit" class="btn btn-{{ fee.isActive ? 'warning' : 'success' }} btn-block">
+                        <button type="submit" class="btn btn-{{ fee.isActive ? 'warning' : 'success' }} btn-block w-100">
                             <i class="fas fa-{{ fee.isActive ? 'pause' : 'play' }} me-2"></i>
                             {{ fee.isActive ? 'Désactiver' : 'Activer' }}
                         </button>
                     </form>
-                    
+
                     <form method="post" action="{{ path('admin_fee_delete', {'id': fee.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce frais ?');">
                         <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ fee.id) }}">
-                        <button type="submit" class="btn btn-danger btn-block">
+                        <button type="submit" class="btn btn-danger btn-block w-100">
                             <i class="fas fa-trash me-2"></i>Supprimer
                         </button>
                     </form>
@@ -174,17 +201,101 @@
                 </div>
                 <div class="card-body">
                     <div class="row text-center">
-                        <div class="col-6">
+                        <div class="col-4">
+                            <h4 class="text-info">{{ student_fees|length }}</h4>
+                            <p class="mb-0">Élèves affectés</p>
+                        </div>
+                        <div class="col-4">
                             <h4 class="text-primary">{{ fee.payments|length }}</h4>
                             <p class="mb-0">Paiements</p>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <h4 class="text-success">{{ fee.invoices|length }}</h4>
                             <p class="mb-0">Factures</p>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    {# Élèves affectés #}
+    <div class="card shadow mt-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-users me-2"></i>Élèves affectés ({{ student_fees|length }})
+            </h6>
+            {% if fee.type == 'affecte' %}
+                <a href="{{ path('admin_fee_assign', {'id': fee.id}) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-user-plus me-1"></i> Affecter des élèves
+                </a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if student_fees|length == 0 %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {% if fee.type == 'non_affecte' %}
+                        Ce frais est de type « Non affecté » : il ne sera pas attribué automatiquement.
+                    {% elseif fee.type == 'affecte' %}
+                        Aucun élève n'est encore affecté à ce frais.
+                        <a href="{{ path('admin_fee_assign', {'id': fee.id}) }}">Affecter maintenant</a>.
+                    {% else %}
+                        Aucun élève n'est encore inscrit dans ce niveau.
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Élève</th>
+                                <th>Montant</th>
+                                <th>Payé</th>
+                                <th>Reste</th>
+                                <th>Statut</th>
+                                <th width="80">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sf in student_fees %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ path('admin_student_show', {'id': sf.student.id}) }}">
+                                            {{ sf.student.fullName }}
+                                        </a>
+                                        <br><small class="text-muted">{{ sf.student.studentNumber }}</small>
+                                    </td>
+                                    <td>{{ sf.amount|number_format(0, ',', ' ') }} F</td>
+                                    <td>{{ sf.paidAmount|number_format(0, ',', ' ') }} F</td>
+                                    <td>
+                                        <strong class="{{ sf.remainingAmount > 0 ? 'text-danger' : 'text-success' }}">
+                                            {{ sf.remainingAmount|number_format(0, ',', ' ') }} F
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ sf.statusColor }}">{{ sf.statusLabel }}</span>
+                                        <div class="progress mt-1" style="height: 4px;">
+                                            <div class="progress-bar bg-{{ sf.statusColor }}" style="width: {{ sf.paymentPercentage }}%"></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if sf.status == 'non_paye' %}
+                                            <form method="post" action="{{ path('admin_fee_unassign', {'id': fee.id, 'studentFeeId': sf.id}) }}"
+                                                  onsubmit="return confirm('Retirer ce frais pour cet élève ?');" class="d-inline">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('unassign' ~ sf.id) }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Retirer">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
