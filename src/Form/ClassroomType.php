@@ -40,14 +40,6 @@ class ClassroomType extends AbstractType
                     'class' => 'form-control',
                 ],
             ])
-            ->add('code', TextType::class, [
-                'label' => 'Code de la classe',
-                'attr' => [
-                        'class' => 'form-control',
-                    ],
-                'help' => 'Code unique pour identifier la classe',
-            ])
-            
             ->add('level', EntityType::class, [
                 'label' => 'Niveau',
                 'class' => Level::class,

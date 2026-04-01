@@ -24,7 +24,6 @@ class Classroom
     private ?string $name = null;
 
     #[ORM\Column(length: 50, unique: true)]
-    #[Assert\NotBlank(message: 'Le code de la classe est obligatoire')]
     #[Assert\Length(max: 50)]
     private ?string $code = null;
 

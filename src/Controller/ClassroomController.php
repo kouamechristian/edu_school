@@ -44,7 +44,7 @@ class ClassroomController extends AbstractController
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, SchoolContextService $contextService): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, SchoolContextService $contextService, ClassroomRepository $classroomRepository): Response
     {
         $currentSchool = $contextService->getCurrentSchool();
         $currentSchoolYear = $contextService->getCurrentSchoolYear();
@@ -63,7 +63,7 @@ class ClassroomController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            
+            $classroom->setCode($this->generateClassroomCode($classroom, $classroomRepository));
             $entityManager->persist($classroom);
             $entityManager->flush();
 
@@ -131,6 +131,31 @@ class ClassroomController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_classroom_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    private function generateClassroomCode(Classroom $classroom, ClassroomRepository $classroomRepository): string
+    {
+        $levelName = $classroom->getLevel()?->getName() ?? 'CLS';
+        $prefix = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $levelName), 0, 4));
+
+        if (empty($prefix)) {
+            $prefix = 'CLS';
+        }
+
+        $count = $classroomRepository->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->where('c.code LIKE :prefix')
+            ->setParameter('prefix', $prefix . '-%')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        do {
+            $count++;
+            $code = sprintf('%s-%04d', $prefix, $count);
+            $exists = $classroomRepository->findOneBy(['code' => $code]);
+        } while ($exists);
+
+        return $code;
     }
 }
 
