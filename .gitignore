@@ -23,6 +23,10 @@
 /assets/vendor/
 ###< symfony/asset-mapper ###
 
+###> uploads (runtime generated) ###
+/public/uploads/
+###< uploads (runtime generated) ###
+
 ###> ide ###
 /.idea/
 /.vscode/
