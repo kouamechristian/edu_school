@@ -82,6 +82,21 @@ class FeeRepository extends ServiceEntityRepository
     }
 
     /**
+     * Trouve les frais par catégorie
+     */
+    public function findByCategory(string $category): array
+    {
+        return $this->createQueryBuilder('f')
+            ->andWhere('f.category = :category')
+            ->andWhere('f.isActive = :active')
+            ->setParameter('category', $category)
+            ->setParameter('active', true)
+            ->orderBy('f.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Trouve les frais par fréquence
      */
     public function findByFrequency(string $frequency): array
@@ -154,36 +169,51 @@ class FeeRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les frais avec échéance proche
+     * Frais de catégorie "scolarite" actifs pour un niveau donné (auto-affectation)
      */
-    public function findWithDueDateNear(int $days = 7): array
+    public function findScolariteFeesForLevel(School $school, Level $level): array
     {
-        $date = new \DateTime();
-        $date->modify("+{$days} days");
-
         return $this->createQueryBuilder('f')
-            ->andWhere('f.dueDate <= :date')
-            ->andWhere('f.dueDate >= :now')
-            ->andWhere('f.isActive = :active')
-            ->setParameter('date', $date)
-            ->setParameter('now', new \DateTime())
-            ->setParameter('active', true)
-            ->orderBy('f.dueDate', 'ASC')
+            ->where('f.school = :school')
+            ->andWhere('f.level = :level')
+            ->andWhere('f.category = :category')
+            ->andWhere('f.isActive = true')
+            ->setParameter('school', $school)
+            ->setParameter('level', $level)
+            ->setParameter('category', 'scolarite')
             ->getQuery()
             ->getResult();
     }
 
     /**
-     * Trouve les frais en retard
+     * Frais de catégorie "scolarite" sans niveau (applicables à tout l'établissement)
      */
-    public function findOverdue(): array
+    public function findScolariteFeesSchoolWide(School $school): array
     {
         return $this->createQueryBuilder('f')
-            ->andWhere('f.dueDate < :now')
-            ->andWhere('f.isActive = :active')
-            ->setParameter('now', new \DateTime())
-            ->setParameter('active', true)
-            ->orderBy('f.dueDate', 'ASC')
+            ->where('f.school = :school')
+            ->andWhere('f.level IS NULL')
+            ->andWhere('f.category = :category')
+            ->andWhere('f.isActive = true')
+            ->setParameter('school', $school)
+            ->setParameter('category', 'scolarite')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Frais non-scolarité disponibles pour affectation manuelle à un élève
+     */
+    public function findNonScolariteFeesForSchool(School $school): array
+    {
+        return $this->createQueryBuilder('f')
+            ->where('f.school = :school')
+            ->andWhere('f.category != :category')
+            ->andWhere('f.isActive = true')
+            ->setParameter('school', $school)
+            ->setParameter('category', 'scolarite')
+            ->orderBy('f.category', 'ASC')
+            ->addOrderBy('f.name', 'ASC')
             ->getQuery()
             ->getResult();
     }
@@ -220,20 +250,4 @@ class FeeRepository extends ServiceEntityRepository
         return (float) ($result ?? 0);
     }
 
-    /**
-     * Trouve les frais par période
-     */
-    public function findByDateRange(\DateTimeInterface $startDate, \DateTimeInterface $endDate): array
-    {
-        return $this->createQueryBuilder('f')
-            ->andWhere('f.startDate <= :endDate')
-            ->andWhere('f.endDate >= :startDate OR f.endDate IS NULL')
-            ->andWhere('f.isActive = :active')
-            ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate)
-            ->setParameter('active', true)
-            ->orderBy('f.startDate', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
 }

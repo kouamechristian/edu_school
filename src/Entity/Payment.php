@@ -18,7 +18,6 @@ class Payment
     private ?int $id = null;
 
     #[ORM\Column(length: 50, unique: true)]
-    #[Assert\NotBlank(message: 'Le numéro de paiement est obligatoire')]
     #[Assert\Length(max: 50)]
     private ?string $paymentNumber = null;
 
@@ -31,6 +30,10 @@ class Payment
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotBlank(message: 'Le frais est obligatoire')]
     private ?Fee $fee = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?StudentFee $studentFee = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\NotBlank(message: 'Le montant est obligatoire')]
@@ -61,6 +64,10 @@ class Payment
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true)]
     private ?User $recordedBy = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?CashRegister $cashRegister = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
@@ -116,6 +123,17 @@ class Payment
     public function setFee(?Fee $fee): static
     {
         $this->fee = $fee;
+        return $this;
+    }
+
+    public function getStudentFee(): ?StudentFee
+    {
+        return $this->studentFee;
+    }
+
+    public function setStudentFee(?StudentFee $studentFee): static
+    {
+        $this->studentFee = $studentFee;
         return $this;
     }
 
@@ -240,6 +258,17 @@ class Payment
     public function setRecordedBy(?User $recordedBy): static
     {
         $this->recordedBy = $recordedBy;
+        return $this;
+    }
+
+    public function getCashRegister(): ?CashRegister
+    {
+        return $this->cashRegister;
+    }
+
+    public function setCashRegister(?CashRegister $cashRegister): static
+    {
+        $this->cashRegister = $cashRegister;
         return $this;
     }
 

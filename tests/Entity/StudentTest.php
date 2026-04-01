@@ -24,7 +24,7 @@ class StudentTest extends TestCase
     {
         $this->assertNull($this->student->getId());
         $this->assertTrue($this->student->isActive());
-        $this->assertSame('active', $this->student->getStatus());
+        $this->assertSame('affecte', $this->student->getStatus());
         $this->assertInstanceOf(\DateTimeInterface::class, $this->student->getCreatedAt());
     }
 
@@ -44,11 +44,8 @@ class StudentTest extends TestCase
     public function testStatusLabel(): void
     {
         $cases = [
-            'active' => 'Actif',
-            'inactive' => 'Inactif',
-            'suspended' => 'Suspendu',
-            'graduated' => 'Diplômé',
-            'unknown' => 'Inconnu',
+            'affecte' => 'Affecté',
+            'non_affecte' => 'Non affecté',
         ];
 
         foreach ($cases as $status => $expected) {
@@ -59,14 +56,11 @@ class StudentTest extends TestCase
 
     public function testStatusColor(): void
     {
-        $this->student->setStatus('active');
+        $this->student->setStatus('affecte');
         $this->assertSame('success', $this->student->getStatusColor());
 
-        $this->student->setStatus('suspended');
-        $this->assertSame('warning', $this->student->getStatusColor());
-
-        $this->student->setStatus('graduated');
-        $this->assertSame('info', $this->student->getStatusColor());
+        $this->student->setStatus('non_affecte');
+        $this->assertSame('secondary', $this->student->getStatusColor());
     }
 
     public function testGradesCollection(): void

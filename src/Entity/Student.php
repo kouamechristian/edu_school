@@ -75,8 +75,8 @@ class Student
     private bool $isActive = true;
 
     #[ORM\Column(length: 20)]
-    #[Assert\Choice(choices: ['active', 'inactive', 'suspended', 'graduated'], message: 'Le statut doit être valide')]
-    private ?string $status = 'active';
+    #[Assert\Choice(choices: ['affecte', 'non_affecte'], message: 'Le statut doit être Affecté ou Non affecté')]
+    private ?string $status = 'affecte';
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
@@ -110,12 +110,16 @@ class Student
     #[ORM\JoinColumn(name: 'pre_registration_id', referencedColumnName: 'id')]
     private ?PreRegistration $preRegistration = null;
 
+    #[ORM\OneToMany(mappedBy: 'student', targetEntity: StudentFee::class, cascade: ['persist', 'remove'])]
+    private Collection $studentFees;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
         $this->grades = new ArrayCollection();
         $this->schoolGroups = new ArrayCollection();
+        $this->studentFees = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -327,21 +331,17 @@ class Student
     public function getStatusLabel(): string
     {
         return match($this->status) {
-            'active' => 'Actif',
-            'inactive' => 'Inactif',
-            'suspended' => 'Suspendu',
-            'graduated' => 'Diplômé',
-            default => 'Inconnu'
+            'affecte' => 'Affecté',
+            'non_affecte' => 'Non affecté',
+            default => $this->status ?? 'Inconnu'
         };
     }
 
     public function getStatusColor(): string
     {
         return match($this->status) {
-            'active' => 'success',
-            'inactive' => 'secondary',
-            'suspended' => 'warning',
-            'graduated' => 'info',
+            'affecte' => 'success',
+            'non_affecte' => 'secondary',
             default => 'secondary'
         };
     }
@@ -481,6 +481,62 @@ class Student
     {
         $this->preRegistration = $preRegistration;
         return $this;
+    }
+
+    /**
+     * @return Collection<int, StudentFee>
+     */
+    public function getStudentFees(): Collection
+    {
+        return $this->studentFees;
+    }
+
+    public function addStudentFee(StudentFee $studentFee): static
+    {
+        if (!$this->studentFees->contains($studentFee)) {
+            $this->studentFees->add($studentFee);
+            $studentFee->setStudent($this);
+        }
+
+        return $this;
+    }
+
+    public function removeStudentFee(StudentFee $studentFee): static
+    {
+        if ($this->studentFees->removeElement($studentFee)) {
+            if ($studentFee->getStudent() === $this) {
+                $studentFee->setStudent(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getTotalTuition(): float
+    {
+        $total = 0;
+        foreach ($this->studentFees as $sf) {
+            if ($sf->getFee()?->isActive()) {
+                $total += (float) $sf->getAmount();
+            }
+        }
+        return $total;
+    }
+
+    public function getTotalPaid(): float
+    {
+        $total = 0;
+        foreach ($this->studentFees as $sf) {
+            if ($sf->getFee()?->isActive()) {
+                $total += (float) $sf->getPaidAmount();
+            }
+        }
+        return $total;
+    }
+
+    public function getRemainingTuition(): float
+    {
+        return max(0, $this->getTotalTuition() - $this->getTotalPaid());
     }
 
     public function __toString(): string
