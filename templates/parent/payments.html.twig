@@ -1,0 +1,45 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}Mes paiements{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> / Mes paiements</div>
+{% endblock %}
+{% block page_title %}Mes paiements{% endblock %}
+{% block page_subtitle %}Historique des paiements de vos enfants.{% endblock %}
+
+{% block body %}
+{% if payments is empty %}
+    <div class="pp-card pp-reveal">
+        <div class="pp-empty">
+            <i class="fas fa-receipt"></i>
+            <h3 class="pp-section-title">Aucun paiement</h3>
+            <p>Vos paiements apparaîtront ici une fois effectués depuis l'onglet Finances d'un enfant.</p>
+        </div>
+    </div>
+{% else %}
+    <section class="pp-card pp-reveal" style="padding:0;overflow:hidden;">
+        <table class="pp-table">
+            <thead>
+                <tr><th>N°</th><th>Élève</th><th>Frais</th><th class="text-end">Montant</th><th>Date</th><th>Moyen</th><th class="text-center">Statut</th></tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                    <tr>
+                        <td><small>{{ p.paymentNumber }}</small></td>
+                        <td>{{ p.student ? p.student.fullName : '—' }}</td>
+                        <td>{{ p.fee ? p.fee.name : '—' }}</td>
+                        <td class="text-end"><strong>{{ p.amount|number_format(0, ',', ' ') }} F</strong></td>
+                        <td>{{ p.paymentDate ? p.paymentDate|date('d/m/Y') : '—' }}</td>
+                        <td>{{ p.paymentMethodLabel }}</td>
+                        <td class="text-center">
+                            {% set badge = {'success':'green','warning':'amber','danger':'red','info':'sky','secondary':'navy'}[p.statusColor] ?? 'navy' %}
+                            <span class="pp-badge {{ badge }}">{{ p.statusLabel }}</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endif %}
+{% endblock %}

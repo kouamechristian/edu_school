@@ -1,117 +1,56 @@
 {% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
 
 {% block title %}Plages Horaires{% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="h3 mb-3">
-                <i class="fas fa-clock me-2"></i> Gestion des Plages Horaires
-            </h1>
-            {% if current_school %}
-                <p class="text-muted">{{ current_school.name }}</p>
-            {% endif %}
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ path('admin_time_slot_new') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i> Nouvelle Plage Horaire
-            </a>
-        </div>
-    </div>
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Gestion des Plages Horaires',
+        subtitle: current_school ? current_school.name : 'Horaires de l\'établissement',
+        icon: 'fa-clock',
+        color: 'primary',
+        breadcrumb: [ { label: 'Plages horaires' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_time_slot_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouvelle Plage Horaire</a>
+        {% endblock %}
+    {% endembed %}
 
-    {% for message in app.flashes('success') %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
+    {% include '_flash.html.twig' %}
 
-    {% for message in app.flashes('warning') %}
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
-
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Liste des Plages Horaires ({{ time_slots|length }})</h5>
-        </div>
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des plages horaires <span class="badge badge-soft ms-1">{{ time_slots|length }}</span></h6></div>
         <div class="card-body">
             {% if time_slots is empty %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Aucune plage horaire enregistrée. Cliquez sur "Nouvelle Plage Horaire" pour définir les horaires de votre établissement.
-                </div>
+                {{ empty_state('fa-clock', 'Aucune plage horaire', 'Cliquez sur « Nouvelle Plage Horaire » pour définir les horaires de votre établissement.') }}
             {% else %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th>Ordre</th>
-                                <th>Nom</th>
-                                <th>Type</th>
-                                <th>Horaire</th>
-                                <th>Durée</th>
-                                <th>Couleur</th>
-                                <th>Statut</th>
-                                <th width="200">Actions</th>
-                            </tr>
+                            <tr><th>Ordre</th><th>Nom</th><th>Type</th><th>Horaire</th><th>Durée</th><th>Couleur</th><th>Statut</th><th class="text-end" width="160">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for timeSlot in time_slots %}
                             <tr>
-                                <td><span class="badge bg-secondary">{{ timeSlot.orderNumber }}</span></td>
+                                <td><span class="badge badge-soft secondary">{{ timeSlot.orderNumber }}</span></td>
                                 <td><strong>{{ timeSlot.name }}</strong></td>
-                                <td>
-                                    <span class="badge bg-{{ timeSlot.type == 'cours' ? 'primary' : (timeSlot.type == 'pause' ? 'info' : (timeSlot.type == 'dejeuner' ? 'warning' : 'success')) }}">
-                                        {{ timeSlot.typeLabel }}
-                                    </span>
-                                </td>
-                                <td>{{ timeSlot.startTime|date('H:i') }} - {{ timeSlot.endTime|date('H:i') }}</td>
+                                <td><span class="badge bg-{{ timeSlot.type == 'cours' ? 'primary' : (timeSlot.type == 'pause' ? 'info' : (timeSlot.type == 'dejeuner' ? 'warning' : 'success')) }}">{{ timeSlot.typeLabel }}</span></td>
+                                <td>{{ timeSlot.startTime|date('H:i') }} – {{ timeSlot.endTime|date('H:i') }}</td>
                                 <td>{{ timeSlot.duration }} min</td>
-                                <td>
-                                    {% if timeSlot.color %}
-                                        <span class="badge" style="background-color: {{ timeSlot.color }}; color: white;">
-                                            {{ timeSlot.color }}
-                                        </span>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if timeSlot.isActive %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ path('admin_time_slot_show', {'id': timeSlot.id}) }}" 
-                                           class="btn btn-info" title="Voir">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ path('admin_time_slot_edit', {'id': timeSlot.id}) }}" 
-                                           class="btn btn-warning" title="Modifier">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form method="post" action="{{ path('admin_time_slot_toggle', {'id': timeSlot.id}) }}" 
-                                              style="display:inline;">
+                                <td>{% if timeSlot.color %}<span class="badge" style="background-color: {{ timeSlot.color }}; color: #fff;">{{ timeSlot.color }}</span>{% else %}—{% endif %}</td>
+                                <td><span class="badge badge-soft {{ timeSlot.isActive ? 'success' : 'danger' }}">{{ timeSlot.isActive ? 'Active' : 'Inactive' }}</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_time_slot_show', {'id': timeSlot.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
+                                        <a href="{{ path('admin_time_slot_edit', {'id': timeSlot.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        <form method="post" action="{{ path('admin_time_slot_toggle', {'id': timeSlot.id}) }}" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ timeSlot.id) }}">
-                                            <button type="submit" class="btn btn-secondary" 
-                                                    title="{{ timeSlot.isActive ? 'Désactiver' : 'Activer' }}">
-                                                <i class="fas fa-{{ timeSlot.isActive ? 'ban' : 'check' }}"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-outline-secondary" title="{{ timeSlot.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ timeSlot.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
-                                        <form method="post" action="{{ path('admin_time_slot_delete', {'id': timeSlot.id}) }}" 
-                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette plage horaire ?');"
-                                              style="display:inline;">
+                                        <form method="post" action="{{ path('admin_time_slot_delete', {'id': timeSlot.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette plage horaire ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ timeSlot.id) }}">
-                                            <button type="submit" class="btn btn-danger" title="Supprimer">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>
@@ -125,4 +64,3 @@
     </div>
 </div>
 {% endblock %}
-

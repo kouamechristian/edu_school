@@ -1,0 +1,380 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Espace Fondateur{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Espace Fondateur',
+        subtitle: group ? group.name : 'Validation, autorisations et approbations',
+        icon: 'fa-crown',
+        color: 'primary',
+        breadcrumb: [ { label: 'Espace Fondateur' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if group is null %}
+        <div class="alert alert-warning">
+            <i class="fas fa-triangle-exclamation me-2"></i>
+            Aucun groupe d'établissements n'est rattaché à votre compte. Les statistiques par
+            établissement ne peuvent pas être calculées. Contactez un administrateur.
+        </div>
+    {% endif %}
+
+    {# ============================================================
+       STATISTIQUES FINANCIÈRES DU GROUPE
+       ============================================================ #}
+    <div class="row g-4 mb-2">
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100 shadow-sm border-left-primary">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase text-primary fw-bold small mb-1">Chiffre d'affaires</div>
+                        <div class="h4 mb-0 text-gray-800">{{ totaux.revenue|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                        <small class="text-muted">encaissements du groupe</small>
+                    </div>
+                    <i class="fas fa-sack-dollar fa-2x text-gray-300"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100 shadow-sm border-left-info">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase text-info fw-bold small mb-1">Paiements en ligne</div>
+                        <div class="h4 mb-0 text-gray-800">{{ totaux.online|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                        <small class="text-muted">
+                            {{ totaux.revenue > 0 ? (totaux.online / totaux.revenue * 100)|number_format(1, ',', ' ') : '0' }} % du CA
+                        </small>
+                    </div>
+                    <i class="fas fa-globe fa-2x text-gray-300"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100 shadow-sm border-left-success">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase text-success fw-bold small mb-1">Versements approuvés</div>
+                        <div class="h4 mb-0 text-gray-800">{{ totaux.deposits|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                        <small class="text-muted">remontés des caisses</small>
+                    </div>
+                    <i class="fas fa-money-bill-transfer fa-2x text-gray-300"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100 shadow-sm border-left-danger">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase text-danger fw-bold small mb-1">Dépenses</div>
+                        <div class="h4 mb-0 text-gray-800">{{ totaux.expenses|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                        <small class="text-muted">sorties confirmées</small>
+                    </div>
+                    <i class="fas fa-receipt fa-2x text-gray-300"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Solde net + CA du mois #}
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100 shadow-sm border-left-warning">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase text-warning fw-bold small mb-1">CA du mois en cours</div>
+                        <div class="h4 mb-0 text-gray-800">{{ totaux.monthly_revenue|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                        <small class="text-muted">encaissé ce mois-ci</small>
+                    </div>
+                    <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            {% set solde = totaux.revenue - totaux.expenses %}
+            <div class="card h-100 shadow-sm {{ solde >= 0 ? 'border-left-success' : 'border-left-danger' }}">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase fw-bold small mb-1 {{ solde >= 0 ? 'text-success' : 'text-danger' }}">Solde net</div>
+                        <div class="h4 mb-0 text-gray-800">{{ solde|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                        <small class="text-muted">CA − dépenses</small>
+                    </div>
+                    <i class="fas fa-scale-balanced fa-2x text-gray-300"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-around text-center">
+                    <div>
+                        <div class="text-muted small text-uppercase">Établissements</div>
+                        <div class="h4 mb-0 text-gray-800">{{ school_stats|length }}</div>
+                    </div>
+                    <div class="vr"></div>
+                    <div>
+                        <div class="text-muted small text-uppercase">Trésorerie (CA − versements)</div>
+                        <div class="h4 mb-0 text-gray-800">{{ (totaux.revenue - totaux.deposits)|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ============================================================
+       ÉTABLISSEMENT CONNECTÉ : classes + répartition des élèves
+       ============================================================ #}
+    {% set total_status = students_status.affecte + students_status.non_affecte %}
+    {% set total_gender = students_gender.M + students_gender.F %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+            <span class="fw-bold"><i class="fas fa-school text-primary me-2"></i>Établissement connecté</span>
+            {% if current_school_name %}<span class="badge bg-primary-subtle text-primary">{{ current_school_name }}</span>{% endif %}
+        </div>
+        <div class="card-body">
+            {% if current_school_name is null %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-circle-info me-2"></i>
+                    Sélectionnez un établissement dans la barre du haut pour afficher ses statistiques.
+                </div>
+            {% else %}
+            <div class="row g-4">
+                {# Compteurs #}
+                <div class="col-lg-3">
+                    <div class="d-flex flex-column gap-3">
+                        <div class="border rounded-3 p-3 text-center">
+                            <i class="fas fa-chalkboard fa-2x text-primary mb-2"></i>
+                            <div class="h3 mb-0">{{ classes_count }}</div>
+                            <small class="text-muted text-uppercase">Classes</small>
+                        </div>
+                        <div class="border rounded-3 p-3 text-center">
+                            <i class="fas fa-user-graduate fa-2x text-success mb-2"></i>
+                            <div class="h3 mb-0">{{ total_status }}</div>
+                            <small class="text-muted text-uppercase">Élèves</small>
+                        </div>
+                    </div>
+                </div>
+                {# Graphique : répartition par statut #}
+                <div class="col-lg-4">
+                    <h6 class="text-muted small text-uppercase mb-2">Élèves par statut</h6>
+                    <div style="height: 220px;"><canvas id="statusChart"></canvas></div>
+                    <div class="d-flex justify-content-around small mt-2">
+                        <a href="{{ path('admin_student_index', {status: 'affecte'}) }}" class="text-decoration-none text-reset"><i class="fas fa-square text-success"></i> Affectés : <strong>{{ students_status.affecte }}</strong></a>
+                        <a href="{{ path('admin_student_index', {status: 'non_affecte'}) }}" class="text-decoration-none text-reset"><i class="fas fa-square text-warning"></i> Non affectés : <strong>{{ students_status.non_affecte }}</strong></a>
+                    </div>
+                </div>
+                {# Graphique : répartition par genre #}
+                <div class="col-lg-4">
+                    <h6 class="text-muted small text-uppercase mb-2">Élèves par genre</h6>
+                    <div style="height: 220px;"><canvas id="genderChart"></canvas></div>
+                    <div class="d-flex justify-content-around small mt-2">
+                        <a href="{{ path('admin_student_index', {gender: 'M'}) }}" class="text-decoration-none text-reset"><i class="fas fa-square" style="color:#0ea5e9;"></i> Garçons : <strong>{{ students_gender.M }}</strong></a>
+                        <a href="{{ path('admin_student_index', {gender: 'F'}) }}" class="text-decoration-none text-reset"><i class="fas fa-square" style="color:#ec4899;"></i> Filles : <strong>{{ students_gender.F }}</strong></a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ============================================================
+       CHIFFRE D'AFFAIRES PAR ÉTABLISSEMENT
+       ============================================================ #}
+    {% if school_stats is not empty %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white d-flex align-items-center">
+            <i class="fas fa-school text-primary me-2"></i>
+            <span class="fw-bold">Chiffre d'affaires par établissement</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Établissement</th>
+                        <th class="text-end">Chiffre d'affaires</th>
+                        <th class="text-end">Dont en ligne</th>
+                        <th class="text-end">Versements</th>
+                        <th class="text-end">Dépenses</th>
+                        <th class="text-end">Solde net</th>
+                        <th style="width:14%">Part du CA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in school_stats %}
+                    {% set s_solde = s.revenue - s.expenses %}
+                    <tr>
+                        <td class="fw-semibold">{{ s.name }}</td>
+                        <td class="text-end fw-bold">{{ s.revenue|number_format(0, ',', ' ') }} F</td>
+                        <td class="text-end text-info">{{ s.online|number_format(0, ',', ' ') }} F</td>
+                        <td class="text-end text-success">{{ s.deposits|number_format(0, ',', ' ') }} F</td>
+                        <td class="text-end text-danger">{{ s.expenses|number_format(0, ',', ' ') }} F</td>
+                        <td class="text-end fw-semibold {{ s_solde >= 0 ? 'text-success' : 'text-danger' }}">{{ s_solde|number_format(0, ',', ' ') }} F</td>
+                        <td>
+                            {% set part = totaux.revenue > 0 ? (s.revenue / totaux.revenue * 100) : 0 %}
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-primary" role="progressbar"
+                                     style="width: {{ part }}%" aria-valuenow="{{ part }}"
+                                     aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">{{ part|number_format(1, ',', ' ') }} %</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr class="fw-bold">
+                        <td>Total du groupe</td>
+                        <td class="text-end">{{ totaux.revenue|number_format(0, ',', ' ') }} F</td>
+                        <td class="text-end text-info">{{ totaux.online|number_format(0, ',', ' ') }} F</td>
+                        <td class="text-end text-success">{{ totaux.deposits|number_format(0, ',', ' ') }} F</td>
+                        <td class="text-end text-danger">{{ totaux.expenses|number_format(0, ',', ' ') }} F</td>
+                        <td class="text-end {{ (totaux.revenue - totaux.expenses) >= 0 ? 'text-success' : 'text-danger' }}">{{ (totaux.revenue - totaux.expenses)|number_format(0, ',', ' ') }} F</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ============================================================
+       ACTIONS À TRAITER
+       ============================================================ #}
+    <h5 class="mb-3"><i class="fas fa-list-check text-primary me-2"></i>Actions à traiter</h5>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <a href="{{ path('fondateur_validations') }}" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-left-primary">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase text-primary fw-bold small mb-1">Valider une caisse</div>
+                            <div class="h4 mb-0 text-gray-800">{{ caisses_a_valider }}</div>
+                            <small class="text-muted">caisse(s) en attente de validation</small>
+                        </div>
+                        <i class="fas fa-cash-register fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ path('fondateur_autorisations') }}" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-left-warning">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase text-warning fw-bold small mb-1">Autorisation de dépense</div>
+                            <div class="h4 mb-0 text-gray-800">{{ caisses_a_autoriser }}</div>
+                            <small class="text-muted">caisse(s) non autorisée(s)</small>
+                        </div>
+                        <i class="fas fa-key fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ path('fondateur_versements') }}" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-left-success">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase text-success fw-bold small mb-1">Approuver les versements</div>
+                            <div class="h4 mb-0 text-gray-800">{{ versements_en_attente }}</div>
+                            <small class="text-muted">versement(s) en attente</small>
+                        </div>
+                        <i class="fas fa-money-bill-transfer fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-info    { border-left: 0.25rem solid #36b9cc !important; }
+.border-left-danger  { border-left: 0.25rem solid #e74a3b !important; }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+{% if current_school_name %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+    'use strict';
+    var isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    var gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+    Chart.defaults.color = isDark ? '#c7c8cc' : '#5a5c69';
+
+    // Liens vers la liste des élèves filtrée (l'index est déjà scopé à l'école courante).
+    var statusUrls = [
+        {{ path('admin_student_index', {status: 'affecte'})|json_encode|raw }},
+        {{ path('admin_student_index', {status: 'non_affecte'})|json_encode|raw }}
+    ];
+    var genderUrls = [
+        {{ path('admin_student_index', {gender: 'M'})|json_encode|raw }},
+        {{ path('admin_student_index', {gender: 'F'})|json_encode|raw }}
+    ];
+
+    // Construit les options d'un graphique en barres cliquable vers `urls`.
+    function buildBarOptions(urls) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gridColor } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { footer: function () { return 'Cliquer pour voir la liste'; } } }
+            },
+            onClick: function (evt, elements) {
+                if (elements.length) {
+                    window.location.href = urls[elements[0].index];
+                }
+            },
+            onHover: function (evt, elements) {
+                evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+            }
+        };
+    }
+
+    /* Répartition des élèves par statut */
+    new Chart(document.getElementById('statusChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Affectés', 'Non affectés'],
+            datasets: [{
+                label: "Nombre d'élèves",
+                data: [{{ students_status.affecte }}, {{ students_status.non_affecte }}],
+                backgroundColor: ['#10b981', '#f59e0b'],
+                borderRadius: 6,
+                borderWidth: 0,
+                maxBarThickness: 70
+            }]
+        },
+        options: buildBarOptions(statusUrls)
+    });
+
+    /* Répartition des élèves par genre */
+    new Chart(document.getElementById('genderChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Garçons', 'Filles'],
+            datasets: [{
+                label: "Nombre d'élèves",
+                data: [{{ students_gender.M }}, {{ students_gender.F }}],
+                backgroundColor: ['#0ea5e9', '#ec4899'],
+                borderRadius: 6,
+                borderWidth: 0,
+                maxBarThickness: 70
+            }]
+        },
+        options: buildBarOptions(genderUrls)
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

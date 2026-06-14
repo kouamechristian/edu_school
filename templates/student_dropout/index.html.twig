@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Abandons d'élèves{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Abandons d\'élèves',
+        subtitle: 'Enregistrer et valider les abandons',
+        icon: 'fa-user-xmark',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Élèves', path: path('admin_student_index') },
+            { label: 'Abandons' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_dropout_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Enregistrer un abandon</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des abandons</h6>
+            <span class="badge bg-primary">{{ dropouts|length }}</span>
+        </div>
+        <div class="card-body">
+            {% if dropouts|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Élève</th>
+                                <th>Date d'abandon</th>
+                                <th>Motif</th>
+                                <th>Statut</th>
+                                <th>Enregistré par</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in dropouts %}
+                                <tr>
+                                    <td class="fw-bold">
+                                        {{ d.student.lastName }} {{ d.student.firstName }}
+                                        <small class="d-block text-muted">{{ d.student.matriculeInterne ?: '—' }}</small>
+                                    </td>
+                                    <td>{{ d.dropoutDate ? d.dropoutDate|date('d/m/Y') : '—' }}</td>
+                                    <td class="text-muted">{{ d.reason|length > 60 ? d.reason|slice(0, 60) ~ '…' : d.reason }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ d.statusColor }}">{{ d.statusLabel }}</span>
+                                        {% if d.isValidated and d.validatedBy %}
+                                            <small class="d-block text-muted">{{ d.validatedBy.fullName }} · {{ d.validatedAt ? d.validatedAt|date('d/m/Y') : '' }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ d.recordedBy ? d.recordedBy.fullName : '—' }}</td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ path('admin_student_show', {'id': d.student.id}) }}" class="btn btn-outline-info" title="Voir l'élève"><i class="fas fa-eye"></i></a>
+                                            {% if not d.isValidated %}
+                                                <form method="post" action="{{ path('admin_dropout_validate', {'id': d.id}) }}" class="d-inline" onsubmit="return confirm('Valider cet abandon ? L\'élève sera retiré des effectifs actifs.');">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('validate' ~ d.id) }}">
+                                                    <button type="submit" class="btn btn-outline-success" title="Valider"><i class="fas fa-check"></i></button>
+                                                </form>
+                                            {% endif %}
+                                            <form method="post" action="{{ path('admin_dropout_delete', {'id': d.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer cet abandon ?');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ d.id) }}">
+                                                <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                {{ empty_state('fa-user-xmark', 'Aucun abandon', 'Cliquez sur « Enregistrer un abandon » pour commencer.') }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

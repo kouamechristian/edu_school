@@ -2,9 +2,11 @@
 
 namespace App\Controller;
 
+use App\Repository\ClassroomRepository;
 use App\Repository\LevelRepository;
 use App\Repository\SchoolRepository;
 use App\Repository\SchoolYearRepository;
+use App\Repository\StudentRepository;
 use App\Repository\UserRepository;
 use App\Service\SchoolContextService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,11 +21,18 @@ class HomeController extends AbstractController
         UserRepository $userRepository,
         LevelRepository $levelRepository,
         SchoolRepository $schoolRepository,
-        SchoolYearRepository $schoolYearRepository
+        SchoolYearRepository $schoolYearRepository,
+        StudentRepository $studentRepository,
+        ClassroomRepository $classroomRepository
     ): Response {
         // Rediriger vers login si non connecté
         if (!$this->getUser()) {
             return $this->redirectToRoute('app_login');
+        }
+
+        // Un parent « pur » n'a rien à faire sur le tableau de bord du personnel.
+        if ($this->isGranted('ROLE_PARENT') && !$this->isGranted('ROLE_ENSEIGNANT') && !$this->isGranted('ROLE_INSCRIPTION')) {
+            return $this->redirectToRoute('parent_dashboard');
         }
 
         // Récupérer l'établissement et l'année courante
@@ -41,9 +50,25 @@ class HomeController extends AbstractController
             'users_by_type' => $schoolId ? $userRepository->countByTypeInSchool($schoolId) : $userRepository->countByType(),
         ];
 
-        // Compter par type d'utilisateur
+        // Nombre d'élèves réellement inscrits (entités Student actives).
+        $studentsCount = $schoolId
+            ? $studentRepository->count(['school' => $currentSchool, 'isActive' => true])
+            : $studentRepository->count(['isActive' => true]);
+
+        // Classes + répartition des élèves de l'établissement courant (année en cours).
+        // Ces graphiques n'ont de sens qu'avec un établissement sélectionné.
+        $classesCount = 0;
+        $studentsStatus = ['affecte' => 0, 'non_affecte' => 0];
+        $studentsGender = ['M' => 0, 'F' => 0];
+        if ($schoolId) {
+            $yearId = $currentSchoolYear?->getId();
+            $classesCount = $classroomRepository->countBySchoolAndYear($schoolId, $yearId);
+            $studentsStatus = $studentRepository->countByStatusForSchool($schoolId, $yearId);
+            $studentsGender = $studentRepository->countByGenderForSchool($schoolId, $yearId);
+        }
+
+        // Compter par type d'utilisateur (hors élèves : ce ne sont pas des comptes utilisateurs)
         $userTypes = [
-            'eleves' => 0,
             'enseignants' => 0,
             'personnel' => 0,
             'parents' => 0,
@@ -53,11 +78,8 @@ class HomeController extends AbstractController
         foreach ($stats['users_by_type'] as $stat) {
             $type = $stat['userType'] ?? 'other';
             $count = $stat['count'];
-            
+
             switch ($type) {
-                case 'eleve':
-                    $userTypes['eleves'] = $count;
-                    break;
                 case 'enseignant':
                     $userTypes['enseignants'] = $count;
                     break;
@@ -78,6 +100,10 @@ class HomeController extends AbstractController
             'controller_name' => 'HomeController',
             'stats' => $stats,
             'user_types' => $userTypes,
+            'students_count' => $studentsCount,
+            'classes_count' => $classesCount,
+            'students_status' => $studentsStatus,
+            'students_gender' => $studentsGender,
             'current_school' => $currentSchool,
             'current_school_year' => $currentSchoolYear,
         ]);

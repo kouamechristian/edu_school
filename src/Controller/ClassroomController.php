@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Classroom;
 use App\Form\ClassroomType;
 use App\Repository\ClassroomRepository;
@@ -14,9 +15,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/classrooms', name: 'admin_classroom_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_DIRECTEUR')]
 class ClassroomController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(ClassroomRepository $classroomRepository, SchoolContextService $contextService): Response
     {
@@ -110,10 +113,12 @@ class ClassroomController extends AbstractController
     public function delete(Request $request, Classroom $classroom, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$classroom->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($classroom);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'La classe a été supprimée avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $classroom,
+                'La classe a été supprimée avec succès.',
+                'Suppression impossible : cette classe contient encore des élèves, cours ou évaluations.'
+            );
         }
 
         return $this->redirectToRoute('admin_classroom_index', [], Response::HTTP_SEE_OTHER);

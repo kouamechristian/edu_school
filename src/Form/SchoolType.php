@@ -8,11 +8,14 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\File;
+use Symfony\Component\Validator\Constraints\Regex;
 
 class SchoolType extends AbstractType
 {
@@ -25,8 +28,9 @@ class SchoolType extends AbstractType
             ])
             ->add('code', TextType::class, [
                 'label' => 'Code établissement',
-                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: EPM001'],
-                'help' => 'Code unique pour identifier l\'établissement',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Laisser vide pour génération automatique'],
+                'help' => 'Code unique pour identifier l\'établissement. Généré automatiquement si laissé vide.',
             ])
             ->add('schoolGroup', EntityType::class, [
                 'label' => 'Groupe d\'établissements',
@@ -77,6 +81,51 @@ class SchoolType extends AbstractType
                 'label' => 'Email',
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'placeholder' => 'contact@ecole.com'],
+            ])
+            ->add('logoFile', FileType::class, [
+                'label' => 'Logo de l\'établissement',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'accept' => 'image/*'],
+                'help' => 'Formats acceptés : JPG, PNG, GIF, SVG, WEBP (max 2 Mo).',
+                'constraints' => [
+                    new File(
+                        maxSize: '2M',
+                        mimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'],
+                        mimeTypesMessage: 'Veuillez téléverser une image valide (JPG, PNG, GIF, SVG, WEBP).'
+                    ),
+                ],
+            ])
+            ->add('cachetDirectionFile', FileType::class, [
+                'label' => 'Cachet de la direction',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'accept' => 'image/*'],
+                'help' => 'Image du cachet/tampon officiel de la direction (max 2 Mo).',
+                'constraints' => [
+                    new File(
+                        maxSize: '2M',
+                        mimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'],
+                        mimeTypesMessage: 'Veuillez téléverser une image valide (JPG, PNG, GIF, SVG, WEBP).'
+                    ),
+                ],
+            ])
+            ->add('badgeBackgroundColor', TextType::class, [
+                'label' => 'Couleur de fond du badge',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Ex: #2563eb (laisser vide pour aucune)',
+                    'maxlength' => 20,
+                ],
+                'help' => 'Couleur du badge de l\'établissement au format hexadécimal. Laisser vide pour aucune couleur.',
+                'constraints' => [
+                    new Regex(
+                        pattern: '/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/',
+                        message: 'Veuillez saisir une couleur hexadécimale valide (ex: #2563eb).',
+                        match: true
+                    ),
+                ],
             ])
             ->add('isActive', ChoiceType::class, [
                 'label' => 'Statut',

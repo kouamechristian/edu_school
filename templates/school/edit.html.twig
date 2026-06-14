@@ -3,59 +3,86 @@
 {% block title %}Modifier {{ school.name }}{% endblock %}
 
 {% block body %}
-<div class="container py-4">
+<div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-xl-9">
+            {% embed 'components/page_header.html.twig' with {
+                title: 'Modifier l\'Établissement',
+                subtitle: school.name,
+                icon: 'fa-school',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Établissements', path: path('admin_school_index') },
+                    { label: school.name, path: path('admin_school_show', {'id': school.id}) },
+                    { label: 'Modifier' }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_school_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
             <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="fas fa-edit me-2"></i> Modifier l'Établissement
-                    </h4>
-                </div>
                 <div class="card-body">
                     {{ form_start(form) }}
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.name) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.code) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.name) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.code) }}</div>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.schoolGroup) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.type) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.director) }}</div>
+                        </div>
+                        <div class="mb-3">{{ form_row(form.address) }}</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.phone) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.email) }}</div>
+                        </div>
+                        <div class="mb-3">{{ form_row(form.isActive) }}</div>
 
+                        <hr>
+                        <h6 class="text-muted mb-3"><i class="fas fa-image me-2"></i>Identité visuelle</h6>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                {{ form_row(form.type) }}
+                                {% if school.logo %}
+                                    <div class="mb-2">
+                                        <span class="d-block small text-muted mb-1">Logo actuel</span>
+                                        <img src="{{ asset(school.logo) }}" alt="Logo" style="max-height: 80px;" class="img-thumbnail">
+                                    </div>
+                                {% endif %}
+                                {{ form_row(form.logoFile) }}
                             </div>
                             <div class="col-md-6 mb-3">
-                                {{ form_row(form.director) }}
+                                {% if school.cachetDirection %}
+                                    <div class="mb-2">
+                                        <span class="d-block small text-muted mb-1">Cachet actuel</span>
+                                        <img src="{{ asset(school.cachetDirection) }}" alt="Cachet" style="max-height: 80px;" class="img-thumbnail">
+                                    </div>
+                                {% endif %}
+                                {{ form_row(form.cachetDirectionFile) }}
                             </div>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_row(form.address) }}
-                        </div>
-
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.phone) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.email) }}
+                            <div class="col-md-4 mb-3">
+                                {{ form_label(form.badgeBackgroundColor) }}
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color flex-grow-0"
+                                           value="{{ form.badgeBackgroundColor.vars.value|default('') ?: '#2563eb' }}"
+                                           title="Choisir une couleur"
+                                           oninput="document.getElementById('{{ form.badgeBackgroundColor.vars.id }}').value = this.value">
+                                    {{ form_widget(form.badgeBackgroundColor) }}
+                                </div>
+                                {{ form_help(form.badgeBackgroundColor) }}
+                                {{ form_errors(form.badgeBackgroundColor) }}
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            {{ form_row(form.isActive) }}
-                        </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ path('admin_school_index') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-2"></i> Retour
-                            </a>
-                            <button type="submit" class="btn btn-warning">
-                                <i class="fas fa-save me-2"></i> Modifier
-                            </button>
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_school_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer les modifications</button>
                         </div>
                     {{ form_end(form) }}
                 </div>
@@ -64,4 +91,3 @@
     </div>
 </div>
 {% endblock %}
-

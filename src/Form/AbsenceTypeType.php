@@ -27,10 +27,12 @@ class AbsenceTypeType extends AbstractType
             ])
             ->add('code', TextType::class, [
                 'label' => 'Code',
+                'required' => false,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Ex: ABS_JUST, RETARD, SORTIE',
+                    'placeholder' => 'Laisser vide pour génération automatique',
                 ],
+                'help' => 'Généré automatiquement si laissé vide.',
             ])
             ->add('description', TextareaType::class, [
                 'label' => 'Description',

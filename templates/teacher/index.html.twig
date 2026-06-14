@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Enseignants{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Enseignants',
+        subtitle: 'Matières enseignées par chaque enseignant',
+        icon: 'fa-chalkboard-user',
+        color: 'primary',
+        breadcrumb: [ { label: 'Académique' }, { label: 'Enseignants' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des enseignants <span class="badge badge-soft ms-1">{{ teachers|length }}</span></h6></div>
+        <div class="card-body">
+            {% if teachers is empty %}
+                {{ empty_state('fa-chalkboard-user', 'Aucun enseignant', 'Aucun enseignant n\'est rattaché à cet établissement.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr><th>Enseignant</th><th>Matières enseignées</th><th class="text-end" width="160">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for teacher in teachers %}
+                                <tr>
+                                    <td><strong>{{ teacher.fullName }}</strong>{% if teacher.email %}<br><small class="text-muted">{{ teacher.email }}</small>{% endif %}</td>
+                                    <td>
+                                        {% if teacher.teachingSubjects|length > 0 %}
+                                            {% for subject in teacher.teachingSubjects %}
+                                                <span class="badge bg-{{ subject.color ? 'primary' : 'secondary' }}-subtle text-{{ subject.color ? 'primary' : 'secondary' }}-emphasis">
+                                                    {% if subject.level %}<span class="fw-bold">{{ subject.level.name }}</span> · {% endif %}{{ subject.name }}
+                                                </span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted">Aucune matière attribuée</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ path('admin_teacher_subjects', {'id': teacher.id}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-book me-1"></i> Matières
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

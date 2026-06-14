@@ -56,7 +56,7 @@ class PreRegistrationDocument
     #[ORM\JoinColumn(nullable: false)]
     private ?PreRegistration $preRegistration = null;
 
-    #[ORM\ManyToOne(targetEntity: DocumentType::class)]
+    #[ORM\ManyToOne(targetEntity: DocumentType::class, inversedBy: 'preRegistrationDocuments')]
     #[ORM\JoinColumn(nullable: false)]
     private ?DocumentType $documentType = null;
 

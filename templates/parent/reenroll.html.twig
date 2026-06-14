@@ -1,0 +1,109 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}Réinscription · {{ child.fullName }}{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb">
+        <a href="{{ path('parent_dashboard') }}">Tableau de bord</a> /
+        <a href="{{ path('parent_child_show', {id: child.id}) }}">{{ child.fullName }}</a> /
+        Réinscription
+    </div>
+{% endblock %}
+{% block page_title %}Réinscription de {{ child.fullName }}{% endblock %}
+{% block page_subtitle %}Demande de réinscription pour une nouvelle année scolaire — {{ school.name }}.{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .pp-form .row-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 1.25rem; }
+    @media (max-width:640px){ .pp-form .row-grid { grid-template-columns:1fr; } }
+    .pp-form label { display:block; font-weight:600; color:#1e3a5f; margin-bottom:.35rem; font-size:.88rem; }
+    .pp-form .form-control,
+    .pp-form .form-select {
+        width:100%; border:1px solid #e3e8f0; border-radius:12px;
+        padding:.6rem .9rem; font-size:.95rem; color:#1e3a5f; background:#fff; margin-bottom:1rem;
+    }
+    .pp-form .form-control:focus,
+    .pp-form .form-select:focus { outline:none; border-color:#1e3a5f; box-shadow:0 0 0 3px rgba(30,58,95,.08); }
+    .pp-form .form-help { font-size:.8rem; color:#64748b; margin:-.7rem 0 1rem; }
+    .pp-form .invalid-feedback,
+    .pp-form .form-error { color:#dc2626; font-size:.82rem; margin:-.7rem 0 .9rem; display:block; }
+    .pp-section-title {
+        font-weight:700; color:#1e3a5f; font-size:.95rem; margin:1.4rem 0 1rem;
+        padding-bottom:.5rem; border-bottom:1px solid #eef2f7;
+    }
+    .pp-section-title:first-of-type { margin-top:0; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="pp-grid cols-2" style="align-items:start;">
+    <section class="pp-card pp-reveal" style="grid-column:1 / -1;">
+        <div class="pp-card-title" style="margin-bottom:.4rem;">
+            <i class="fas fa-user-graduate"></i> Formulaire de réinscription
+        </div>
+        <p class="pp-child-sub" style="margin-bottom:1.25rem;">
+            <i class="fas fa-circle-info"></i>
+            Les informations de votre enfant sont pré-remplies. Vérifiez-les, choisissez le
+            <strong>niveau demandé</strong> et l'<strong>année scolaire</strong>, puis validez.
+            La demande sera examinée par le secrétariat.
+        </p>
+
+        {{ form_start(form, {'attr': {'class': 'pp-form', 'novalidate': 'novalidate'}}) }}
+
+            <div class="pp-section-title"><i class="fas fa-graduation-cap"></i> Scolarité demandée</div>
+            <div class="row-grid">
+                <div>{{ form_label(form.requestedLevel) }}{{ form_widget(form.requestedLevel) }}{{ form_errors(form.requestedLevel) }}</div>
+                <div>{{ form_label(form.schoolYear) }}{{ form_widget(form.schoolYear) }}{{ form_errors(form.schoolYear) }}</div>
+                <div>{{ form_label(form.isRepeating) }}{{ form_widget(form.isRepeating) }}{{ form_errors(form.isRepeating) }}</div>
+            </div>
+
+            <div class="pp-section-title"><i class="fas fa-child"></i> Identité de l'élève</div>
+            <div class="row-grid">
+                <div>{{ form_label(form.firstName) }}{{ form_widget(form.firstName) }}{{ form_errors(form.firstName) }}</div>
+                <div>{{ form_label(form.lastName) }}{{ form_widget(form.lastName) }}{{ form_errors(form.lastName) }}</div>
+                <div>{{ form_label(form.dateOfBirth) }}{{ form_widget(form.dateOfBirth) }}{{ form_errors(form.dateOfBirth) }}</div>
+                <div>{{ form_label(form.gender) }}{{ form_widget(form.gender) }}{{ form_errors(form.gender) }}</div>
+                <div>{{ form_label(form.placeOfBirth) }}{{ form_widget(form.placeOfBirth) }}{{ form_errors(form.placeOfBirth) }}</div>
+                <div>{{ form_label(form.nationality) }}{{ form_widget(form.nationality) }}{{ form_errors(form.nationality) }}</div>
+                <div>{{ form_label(form.matriculeNational) }}{{ form_widget(form.matriculeNational) }}{{ form_errors(form.matriculeNational) }}</div>
+                <div>{{ form_label(form.birthCertificateNumber) }}{{ form_widget(form.birthCertificateNumber) }}{{ form_errors(form.birthCertificateNumber) }}</div>
+                <div>{{ form_label(form.cmuNumber) }}{{ form_widget(form.cmuNumber) }}{{ form_errors(form.cmuNumber) }}</div>
+                <div>{{ form_label(form.lastSchoolAttended) }}{{ form_widget(form.lastSchoolAttended) }}{{ form_errors(form.lastSchoolAttended) }}</div>
+            </div>
+            <div>{{ form_label(form.photoFile) }}{{ form_widget(form.photoFile) }}<div class="form-help">{{ form_help(form.photoFile) }}</div>{{ form_errors(form.photoFile) }}</div>
+
+            <div class="pp-section-title"><i class="fas fa-address-book"></i> Coordonnées de l'élève</div>
+            <div class="row-grid">
+                <div>{{ form_label(form.phone) }}{{ form_widget(form.phone) }}{{ form_errors(form.phone) }}</div>
+                <div>{{ form_label(form.email) }}{{ form_widget(form.email) }}{{ form_errors(form.email) }}</div>
+            </div>
+            <div>{{ form_label(form.address) }}{{ form_widget(form.address) }}{{ form_errors(form.address) }}</div>
+
+            <div class="pp-section-title"><i class="fas fa-user-shield"></i> Parent / tuteur & urgence</div>
+            <div class="row-grid">
+                <div>{{ form_label(form.parentName) }}{{ form_widget(form.parentName) }}{{ form_errors(form.parentName) }}</div>
+                <div>{{ form_label(form.parentFunction) }}{{ form_widget(form.parentFunction) }}{{ form_errors(form.parentFunction) }}</div>
+                <div>{{ form_label(form.parentPhone) }}{{ form_widget(form.parentPhone) }}{{ form_errors(form.parentPhone) }}</div>
+                <div>{{ form_label(form.parentEmail) }}{{ form_widget(form.parentEmail) }}{{ form_errors(form.parentEmail) }}</div>
+                <div>{{ form_label(form.emergencyContact) }}{{ form_widget(form.emergencyContact) }}{{ form_errors(form.emergencyContact) }}</div>
+                <div>{{ form_label(form.emergencyPhone) }}{{ form_widget(form.emergencyPhone) }}{{ form_errors(form.emergencyPhone) }}</div>
+            </div>
+            <div>{{ form_label(form.parentAddress) }}{{ form_widget(form.parentAddress) }}{{ form_errors(form.parentAddress) }}</div>
+
+            <div class="pp-section-title"><i class="fas fa-notes-medical"></i> Informations complémentaires</div>
+            <div>{{ form_label(form.medicalInfo) }}{{ form_widget(form.medicalInfo) }}{{ form_errors(form.medicalInfo) }}</div>
+            <div>{{ form_label(form.notes) }}{{ form_widget(form.notes) }}{{ form_errors(form.notes) }}</div>
+
+            <div style="display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+                <button type="submit" class="pp-btn pp-btn-primary">
+                    <i class="fas fa-paper-plane"></i> Envoyer la demande de réinscription
+                </button>
+                <a href="{{ path('parent_child_show', {id: child.id}) }}" class="pp-btn pp-btn-ghost">
+                    <i class="fas fa-arrow-left"></i> Annuler
+                </a>
+            </div>
+
+        {{ form_end(form) }}
+    </section>
+</div>
+{% endblock %}

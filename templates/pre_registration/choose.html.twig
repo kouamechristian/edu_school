@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle Préinscription{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Nouvelle Préinscription',
+        subtitle: 'Choisissez le type de préinscription',
+        icon: 'fa-clipboard-list',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Préinscriptions', path: path('admin_pre_registration_index') },
+            { label: 'Nouvelle' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_pre_registration_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4 justify-content-center">
+        <div class="col-md-5">
+            <a href="{{ path('admin_pre_registration_new') }}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-lift">
+                    <div class="card-body text-center p-5">
+                        <div class="stat-icon mx-auto mb-3" style="font-size:2rem;width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--es-primary-soft,#e7f0ff);color:var(--es-primary,#1e3a5f);">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h5 class="fw-bold text-primary">Nouvel élève</h5>
+                        <p class="text-muted mb-0">L'élève n'a jamais fréquenté l'établissement. Vous remplissez un formulaire vierge.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-5">
+            <a href="{{ path('admin_pre_registration_returning') }}" class="text-decoration-none">
+                <div class="card h-100 border-0 shadow-sm hover-lift">
+                    <div class="card-body text-center p-5">
+                        <div class="stat-icon mx-auto mb-3" style="font-size:2rem;width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--es-success-soft,#e6f6ee);color:var(--es-success,#10b981);">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                        <h5 class="fw-bold text-success">Ancien élève (réinscription)</h5>
+                        <p class="text-muted mb-0">L'élève est déjà dans la base. Saisissez son matricule national : le formulaire se pré-remplit automatiquement.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

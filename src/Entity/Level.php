@@ -35,6 +35,10 @@ class Level
     #[ORM\JoinColumn(nullable: true)]
     private ?School $school = null;
 
+    #[ORM\ManyToOne(targetEntity: Cycle::class, inversedBy: 'levels')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Cycle $cycle = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -111,6 +115,17 @@ class Level
     public function setSchool(?School $school): static
     {
         $this->school = $school;
+        return $this;
+    }
+
+    public function getCycle(): ?Cycle
+    {
+        return $this->cycle;
+    }
+
+    public function setCycle(?Cycle $cycle): static
+    {
+        $this->cycle = $cycle;
         return $this;
     }
 

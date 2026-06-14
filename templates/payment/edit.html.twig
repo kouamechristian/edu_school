@@ -9,36 +9,41 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Modifier Paiement</h1>
-        <a href="{{ path('admin_payment_index') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Retour
-        </a>
-    </div>
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Modifier Paiement',
+        subtitle: payment.paymentNumber,
+        icon: 'fa-edit',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Paiements', path: path('admin_payment_index') },
+            { label: payment.paymentNumber, path: path('admin_payment_show', {'id': payment.id}) },
+            { label: 'Modifier' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_payment_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
 
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-edit me-1"></i> {{ payment.paymentNumber }}
-            </h6>
-        </div>
+    {% include '_flash.html.twig' %}
+
+    <div class="card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-edit me-2"></i>{{ payment.paymentNumber }}</h6></div>
         <div class="card-body">
             {{ form_start(form) }}
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         {{ form_row(form.student) }}
-                        <div class="mt-2" id="studentSummary"
-                             data-summary-url="{{ path('admin_payment_student_summary', {id: 0}) }}"
-                             style="display:none;">
-                            <div class="card border-0 shadow-sm bg-success text-white">
+                        <div class="mt-2" id="studentSummary" data-summary-url="{{ path('admin_payment_student_summary', {id: 0}) }}" style="display:none;">
+                            <div class="card card-accent success mb-0">
                                 <div class="card-body py-2">
                                     <div class="row g-2 small">
-                                        <div class="col-md-6"><strong>Nom</strong>: <span data-field="nom">—</span></div>
-                                        <div class="col-md-6"><strong>Prénom</strong>: <span data-field="prenom">—</span></div>
-                                        <div class="col-md-6"><strong>Classe</strong>: <span data-field="classe">—</span></div>
-                                        <div class="col-md-6"><strong>Montant scolarité</strong>: <span data-field="montantScolarite">—</span></div>
-                                        <div class="col-md-6"><strong>Montant payé</strong>: <span data-field="montantPaye">—</span></div>
-                                        <div class="col-md-6"><strong>Montant restant</strong>: <span data-field="montantRestant" class="fw-bold">—</span></div>
+                                        <div class="col-md-6"><strong>Nom</strong> : <span data-field="nom">—</span></div>
+                                        <div class="col-md-6"><strong>Prénom</strong> : <span data-field="prenom">—</span></div>
+                                        <div class="col-md-6"><strong>Classe</strong> : <span data-field="classe">—</span></div>
+                                        <div class="col-md-6"><strong>Montant scolarité</strong> : <span data-field="montantScolarite">—</span></div>
+                                        <div class="col-md-6"><strong>Montant payé</strong> : <span data-field="montantPaye">—</span></div>
+                                        <div class="col-md-6"><strong>Montant restant</strong> : <span data-field="montantRestant" class="fw-bold text-danger">—</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -54,17 +59,14 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">{{ form_row(form.status) }}</div>
                     <div class="col-md-6 mb-3">
-                        <div class="alert alert-info py-2 mb-0">
-                            <i class="fas fa-info-circle me-1"></i>
-                            La référence / N° de transaction est générée automatiquement.
-                        </div>
+                        <div class="alert alert-info py-2 mb-0"><i class="fas fa-info-circle me-1"></i>La référence / N° de transaction est générée automatiquement.</div>
                     </div>
                 </div>
                 <div class="mb-3">{{ form_row(form.notes) }}</div>
 
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-check"></i> Enregistrer
-                </button>
+                <div class="pt-3 border-top">
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Enregistrer</button>
+                </div>
             {{ form_end(form) }}
         </div>
     </div>
@@ -89,10 +91,7 @@
             async function loadStudentSummary(studentId) {
                 var box = document.getElementById('studentSummary');
                 if (!box) return;
-                if (!studentId) {
-                    box.style.display = 'none';
-                    return;
-                }
+                if (!studentId) { box.style.display = 'none'; return; }
                 var baseUrl = box.getAttribute('data-summary-url') || '';
                 var url = baseUrl.replace('/0/', '/' + String(studentId) + '/');
                 try {
@@ -123,31 +122,10 @@
                 allowEmptyOption: true,
                 placeholder: 'Rechercher un élève...',
                 plugins: ['dropdown_input'],
-                onChange: function (value) {
-                    loadStudentSummary(value);
-                }
+                onChange: function (value) { loadStudentSummary(value); }
             });
 
             loadStudentSummary(ts.getValue());
         });
     </script>
 {% endblock %}
-
-{% block javascripts %}
-    {{ parent() }}
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var el = document.querySelector('.js-student-select');
-            if (!el || el.tomselect) return;
-            new TomSelect(el, {
-                create: false,
-                persist: false,
-                allowEmptyOption: true,
-                placeholder: 'Rechercher un élève...',
-                plugins: ['dropdown_input']
-            });
-        });
-    </script>
-{% endblock %}
-

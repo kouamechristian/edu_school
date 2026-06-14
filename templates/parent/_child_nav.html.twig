@@ -1,0 +1,19 @@
+{# Onglets de navigation d'un enfant — attend `child` et `active` (résumé|notes|absences|finances) #}
+{% set route = app.request.attributes.get('_route') %}
+<nav class="pp-subnav pp-reveal">
+    <a href="{{ path('parent_child_show', {id: child.id}) }}" class="{{ route == 'parent_child_show' ? 'active' : '' }}">
+        <i class="fas fa-id-card"></i> Résumé
+    </a>
+    <a href="{{ path('parent_child_grades', {id: child.id}) }}" class="{{ route == 'parent_child_grades' ? 'active' : '' }}">
+        <i class="fas fa-clipboard-check"></i> Notes
+    </a>
+    <a href="{{ path('parent_child_absences', {id: child.id}) }}" class="{{ route == 'parent_child_absences' ? 'active' : '' }}">
+        <i class="fas fa-calendar-check"></i> Absences
+    </a>
+    <a href="{{ path('parent_child_finance', {id: child.id}) }}" class="{{ route == 'parent_child_finance' ? 'active' : '' }}">
+        <i class="fas fa-wallet"></i> Finances
+    </a>
+    <a href="{{ path('parent_child_schedule', {id: child.id}) }}" class="{{ route == 'parent_child_schedule' ? 'active' : '' }}">
+        <i class="fas fa-calendar-week"></i> Emploi du temps
+    </a>
+</nav>

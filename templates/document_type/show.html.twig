@@ -4,113 +4,68 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Type de Document - {{ document_type.name }}</h1>
-                <div class="btn-group">
-                    <a href="{{ path('admin_document_type_index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour à la liste
-                    </a>
-                    <a href="{{ path('admin_document_type_edit', {'id': document_type.id}) }}" class="btn btn-outline-primary">
-                        <i class="fas fa-edit"></i> Modifier
-                    </a>
+    {% embed 'components/page_header.html.twig' with {
+        title: document_type.name,
+        subtitle: 'Type de document',
+        icon: 'fa-file-alt',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Types de documents', path: path('admin_document_type_index') },
+            { label: document_type.name }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_document_type_edit', {'id': document_type.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+            <a href="{{ path('admin_document_type_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Informations générales</h6></div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Nom</div><div class="info-value">{{ document_type.name }}</div></div>
+                        <div class="info-row"><div class="info-label">Description</div><div class="info-value">{{ document_type.description ?: 'Aucune description' }}</div></div>
+                        <div class="info-row"><div class="info-label">Statut</div><div class="info-value"><span class="badge badge-soft {{ document_type.isActive ? 'success' : 'warning' }}">{{ document_type.isActive ? 'Actif' : 'Inactif' }}</span></div></div>
+                        <div class="info-row"><div class="info-label">Obligatoire</div><div class="info-value"><span class="badge badge-soft {{ document_type.isRequired ? 'danger' : 'secondary' }}">{{ document_type.isRequired ? 'Oui' : 'Non' }}</span></div></div>
+                        <div class="info-row"><div class="info-label">Taille maximale</div><div class="info-value">{{ document_type.formattedMaxFileSize }}</div></div>
+                        <div class="info-row"><div class="info-label">Types MIME autorisés</div><div class="info-value">{% for mimeType in document_type.allowedMimeTypes %}<span class="badge badge-soft info me-1">{{ mimeType }}</span>{% endfor %}</div></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations générales</h5>
-                        </div>
-                        <div class="card-body">
-                            <dl class="row">
-                                <dt class="col-sm-3">Nom :</dt>
-                                <dd class="col-sm-9">{{ document_type.name }}</dd>
-                                
-                                <dt class="col-sm-3">Description :</dt>
-                                <dd class="col-sm-9">{{ document_type.description ?: 'Aucune description' }}</dd>
-                                
-                                <dt class="col-sm-3">Statut :</dt>
-                                <dd class="col-sm-9">
-                                    {% if document_type.isActive %}
-                                        <span class="badge bg-success">Actif</span>
-                                    {% else %}
-                                        <span class="badge bg-warning">Inactif</span>
-                                    {% endif %}
-                                </dd>
-                                
-                                <dt class="col-sm-3">Obligatoire :</dt>
-                                <dd class="col-sm-9">
-                                    {% if document_type.isRequired %}
-                                        <span class="badge bg-danger">Oui</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Non</span>
-                                    {% endif %}
-                                </dd>
-                                
-                                <dt class="col-sm-3">Taille maximale :</dt>
-                                <dd class="col-sm-9">{{ document_type.formattedMaxFileSize }}</dd>
-                                
-                                <dt class="col-sm-3">Types MIME autorisés :</dt>
-                                <dd class="col-sm-9">
-                                    {% for mimeType in document_type.allowedMimeTypes %}
-                                        <span class="badge bg-info me-1">{{ mimeType }}</span>
-                                    {% endfor %}
-                                </dd>
-                            </dl>
-                        </div>
-                    </div>
-
-                    <div class="card mt-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations de création</h5>
-                        </div>
-                        <div class="card-body">
-                            <dl class="row">
-                                <dt class="col-sm-3">Créé le :</dt>
-                                <dd class="col-sm-9">{{ document_type.createdAt|date('d/m/Y à H:i') }}</dd>
-                                
-                                <dt class="col-sm-3">Modifié le :</dt>
-                                <dd class="col-sm-9">{{ document_type.updatedAt|date('d/m/Y à H:i') }}</dd>
-                            </dl>
-                        </div>
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-clock-rotate-left me-2"></i>Informations de création</h6></div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Créé le</div><div class="info-value">{{ document_type.createdAt|date('d/m/Y à H:i') }}</div></div>
+                        <div class="info-row"><div class="info-label">Modifié le</div><div class="info-value">{{ document_type.updatedAt|date('d/m/Y à H:i') }}</div></div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Statistiques</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="text-center">
-                                <h3 class="text-primary">{{ document_type.preRegistrationDocuments|length }}</h3>
-                                <p class="text-muted">Documents uploadés</p>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-lg-4">
+            <div class="card card-accent mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-chart-simple me-2"></i>Statistiques</h6></div>
+                <div class="card-body text-center">
+                    <h3 class="text-primary mb-0">{{ document_type.preRegistrationDocuments|length }}</h3>
+                    <small class="text-muted">Documents uploadés</small>
+                </div>
+            </div>
 
-                    <div class="card mt-3">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Actions</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <a href="{{ path('admin_document_type_edit', {'id': document_type.id}) }}" class="btn btn-primary">
-                                    <i class="fas fa-edit"></i> Modifier
-                                </a>
-                                <form method="post" action="{{ path('admin_document_type_delete', {'id': document_type.id}) }}" 
-                                      onsubmit="return confirm('Supprimer ce type de document ? Cette action est définitive.')">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ document_type.id) }}">
-                                    <button type="submit" class="btn btn-danger w-100">
-                                        <i class="fas fa-trash"></i> Supprimer
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-bolt me-2"></i>Actions</h6></div>
+                <div class="card-body d-grid gap-2">
+                    <a href="{{ path('admin_document_type_edit', {'id': document_type.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+                    <form method="post" action="{{ path('admin_document_type_delete', {'id': document_type.id}) }}" onsubmit="return confirm('Supprimer ce type de document ? Cette action est définitive.')">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ document_type.id) }}">
+                        <button type="submit" class="btn btn-danger w-100"><i class="fas fa-trash me-1"></i> Supprimer</button>
+                    </form>
                 </div>
             </div>
         </div>

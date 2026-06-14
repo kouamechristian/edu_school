@@ -22,7 +22,7 @@ class Absence
     #[Assert\NotBlank(message: 'L\'élève est obligatoire')]
     private ?Student $student = null;
 
-    #[ORM\ManyToOne(targetEntity: AbsenceType::class)]
+    #[ORM\ManyToOne(targetEntity: AbsenceType::class, inversedBy: 'absences')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotBlank(message: 'Le type d\'absence est obligatoire')]
     private ?AbsenceType $absenceType = null;

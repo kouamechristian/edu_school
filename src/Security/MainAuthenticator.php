@@ -48,6 +48,13 @@ class MainAuthenticator extends AbstractLoginFormAuthenticator
             return new RedirectResponse($targetPath);
         }
 
+        // Un parent « pur » (aucun rôle personnel) est dirigé vers son portail.
+        $roles = $token->getRoleNames();
+        $staffRoles = array_diff($roles, ['ROLE_PARENT', 'ROLE_USER']);
+        if (in_array('ROLE_PARENT', $roles, true) && $staffRoles === []) {
+            return new RedirectResponse($this->urlGenerator->generate('parent_dashboard'));
+        }
+
         // Redirect to a default page after successful login
         return new RedirectResponse($this->urlGenerator->generate('app_home'));
     }

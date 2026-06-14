@@ -1,0 +1,70 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Bonjour {{ app.user.firstName|default(app.user.username) }} 👋{% endblock %}
+{% block page_subtitle %}Suivez en un coup d'œil la scolarité de vos enfants.{% endblock %}
+
+{% block body %}
+{% if cards is empty %}
+    <div class="pp-card pp-reveal">
+        <div class="pp-empty">
+            <i class="fas fa-child"></i>
+            <h3 class="pp-section-title">Aucun enfant rattaché à votre compte</h3>
+            <p>Rattachez vous-même un enfant à l'aide de son matricule et de sa date de naissance, ou contactez le secrétariat.</p>
+            <a href="{{ path('parent_link_child') }}" class="pp-btn pp-btn-primary" style="margin-top:1rem;">
+                <i class="fas fa-user-plus"></i> Rattacher un enfant
+            </a>
+        </div>
+    </div>
+{% else %}
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+        <a href="{{ path('parent_link_child') }}" class="pp-btn pp-btn-ghost">
+            <i class="fas fa-user-plus"></i> Rattacher un enfant
+        </a>
+    </div>
+    <div class="pp-grid cols-3">
+        {% for card in cards %}
+            {% set child = card.child %}
+            {% set avg = card.general_average %}
+            {% set ring = avg is not null ? (avg / 20 * 100)|round : 0 %}
+            {% set ring_color = avg is null ? '#94a3b8' : (avg >= 14 ? '#10b981' : (avg >= 10 ? '#f59e0b' : '#ef4444')) %}
+            <article class="pp-card hoverable pp-child-card pp-reveal">
+                <div class="pp-child-top">
+                    <span class="pp-child-avatar">{{ (child.firstName|first ~ child.lastName|first)|upper }}</span>
+                    <div>
+                        <div class="pp-child-name">{{ child.fullName }}</div>
+                        <div class="pp-child-sub">
+                            {% if child.school %}<i class="fas fa-school"></i> {{ child.school.name }}<br>{% endif %}
+                            {{ child.classroom ? child.classroom.name : 'Classe non affectée' }}
+                            {% if card.period %} · {{ card.period.name }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+                    <div class="pp-ring" style="--val:{{ ring }};--ring-color:{{ ring_color }};">
+                        <div class="pp-ring-label">
+                            <div class="num">{{ avg is not null ? avg : '—' }}</div>
+                            <div class="unit">/ 20</div>
+                        </div>
+                    </div>
+                    <div style="flex:1;">
+                        <div class="pp-stat" style="margin-bottom:.5rem;">
+                            <div class="v {{ card.absences > 0 ? 'warn' : '' }}">{{ card.absences }}</div>
+                            <div class="l">Absences</div>
+                        </div>
+                        <div class="pp-stat">
+                            <div class="v {{ card.remaining > 0 ? 'bad' : 'good' }}">{{ card.remaining|number_format(0, ',', ' ') }}</div>
+                            <div class="l">Reste dû</div>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ path('parent_child_show', {id: child.id}) }}" class="pp-btn pp-btn-primary pp-btn-block">
+                    <i class="fas fa-eye"></i> Consulter le dossier
+                </a>
+            </article>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

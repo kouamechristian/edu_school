@@ -2,19 +2,24 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Room;
 use App\Form\RoomType;
 use App\Repository\RoomRepository;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/admin/rooms')]
+#[IsGranted('ROLE_DIRECTEUR')]
 class RoomController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'admin_room_index', methods: ['GET'])]
     public function index(
         RoomRepository $roomRepository,
@@ -116,10 +121,12 @@ class RoomController extends AbstractController
     public function delete(Request $request, Room $room, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$room->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($room);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'La salle a été supprimée avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $room,
+                'La salle a été supprimée avec succès.',
+                'Suppression impossible : cette salle est encore utilisée par des cours ou emplois du temps.'
+            );
         }
 
         return $this->redirectToRoute('admin_room_index', [], Response::HTTP_SEE_OTHER);

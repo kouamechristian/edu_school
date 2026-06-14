@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Approbation des versements{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Approbation des versements',
+        subtitle: 'Approuver ou rejeter les versements effectués par les caisses',
+        icon: 'fa-money-bill-transfer',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Espace Fondateur', path: path('fondateur_index') },
+            { label: 'Versements' }
+        ]
+    } %}
+        {% block actions %}<a href="{{ path('fondateur_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>{% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Versements</h6></div>
+        <div class="card-body">
+            {% if deposits|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr><th>Date</th><th>Caissier</th><th>Référence bordereau</th><th class="text-end">Montant</th><th>Statut</th><th class="text-end">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for d in deposits %}
+                                <tr>
+                                    <td class="text-muted">{{ d.depositDate ? d.depositDate|date('d/m/Y H:i') : '—' }}</td>
+                                    <td>{{ d.cashRegister and d.cashRegister.cashier ? d.cashRegister.cashier.fullName : '—' }}</td>
+                                    <td><span class="badge bg-light text-dark">{{ d.reference }}</span></td>
+                                    <td class="text-end fw-bold">{{ d.amount|number_format(0, ',', ' ') }} F</td>
+                                    <td>
+                                        <span class="badge bg-{{ d.statusColor }}">{{ d.statusLabel }}</span>
+                                        {% if d.status != 'en_attente' and d.approvedBy %}
+                                            <small class="d-block text-muted">{{ d.approvedBy.fullName }} · {{ d.approvedAt ? d.approvedAt|date('d/m/Y') : '' }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if d.status == 'en_attente' %}
+                                            <div class="btn-group btn-group-sm">
+                                                <form method="post" action="{{ path('fondateur_decision_versement', {'id': d.id, 'decision': 'approuver'}) }}" class="d-inline" onsubmit="return confirm('Approuver ce versement ?');">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('versement' ~ d.id) }}">
+                                                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Approuver</button>
+                                                </form>
+                                                <form method="post" action="{{ path('fondateur_decision_versement', {'id': d.id, 'decision': 'rejeter'}) }}" class="d-inline ms-1" onsubmit="return confirm('Rejeter ce versement ? Le montant sera restitué au solde de la caisse.');">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('versement' ~ d.id) }}">
+                                                    <button type="submit" class="btn btn-outline-danger"><i class="fas fa-times me-1"></i> Rejeter</button>
+                                                </form>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted small">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center text-muted py-4"><i class="fas fa-info-circle me-1"></i> Aucun versement.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

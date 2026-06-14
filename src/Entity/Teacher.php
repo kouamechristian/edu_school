@@ -19,7 +19,7 @@ class Teacher
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\OneToOne(targetEntity: Employee::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: Employee::class, inversedBy: 'teacher', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?Employee $employee = null;
 
@@ -47,7 +47,7 @@ class Teacher
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
 
-    #[ORM\ManyToMany(targetEntity: Subject::class, inversedBy: 'teachers')]
+    #[ORM\ManyToMany(targetEntity: Subject::class)]
     #[ORM\JoinTable(
         name: 'teacher_subject',
         joinColumns: [new ORM\JoinColumn(name: 'teacher_id', referencedColumnName: 'id')],
@@ -55,7 +55,7 @@ class Teacher
     )]
     private Collection $subjects;
 
-    #[ORM\ManyToMany(targetEntity: Level::class, inversedBy: 'teachers')]
+    #[ORM\ManyToMany(targetEntity: Level::class)]
     #[ORM\JoinTable(
         name: 'teacher_level',
         joinColumns: [new ORM\JoinColumn(name: 'teacher_id', referencedColumnName: 'id')],
@@ -63,20 +63,12 @@ class Teacher
     )]
     private Collection $levels;
 
-    #[ORM\OneToMany(mappedBy: 'teacher', targetEntity: Course::class)]
-    private Collection $courses;
-
-    #[ORM\OneToMany(mappedBy: 'teacher', targetEntity: Classroom::class)]
-    private Collection $classrooms;
-
     public function __construct()
     {
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
         $this->subjects = new ArrayCollection();
         $this->levels = new ArrayCollection();
-        $this->courses = new ArrayCollection();
-        $this->classrooms = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -237,65 +229,6 @@ class Teacher
         return $this;
     }
 
-    /**
-     * @return Collection<int, Course>
-     */
-    public function getCourses(): Collection
-    {
-        return $this->courses;
-    }
-
-    public function addCourse(Course $course): static
-    {
-        if (!$this->courses->contains($course)) {
-            $this->courses->add($course);
-            $course->setTeacher($this);
-        }
-
-        return $this;
-    }
-
-    public function removeCourse(Course $course): static
-    {
-        if ($this->courses->removeElement($course)) {
-            // set the owning side to null (unless already changed)
-            if ($course->getTeacher() === $this) {
-                $course->setTeacher(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Classroom>
-     */
-    public function getClassrooms(): Collection
-    {
-        return $this->classrooms;
-    }
-
-    public function addClassroom(Classroom $classroom): static
-    {
-        if (!$this->classrooms->contains($classroom)) {
-            $this->classrooms->add($classroom);
-            $classroom->setTeacher($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClassroom(Classroom $classroom): static
-    {
-        if ($this->classrooms->removeElement($classroom)) {
-            // set the owning side to null (unless already changed)
-            if ($classroom->getTeacher() === $this) {
-                $classroom->setTeacher(null);
-            }
-        }
-
-        return $this;
-    }
 
     public function getFullName(): string
     {

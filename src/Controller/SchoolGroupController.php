@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\SchoolGroup;
 use App\Form\SchoolGroupType;
 use App\Repository\SchoolGroupRepository;
@@ -16,6 +17,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class SchoolGroupController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(SchoolGroupRepository $schoolGroupRepository): Response
     {
@@ -80,10 +83,12 @@ class SchoolGroupController extends AbstractController
     public function delete(Request $request, SchoolGroup $schoolGroup, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$schoolGroup->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($schoolGroup);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Le groupe d\'établissements a été supprimé avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $schoolGroup,
+                'Le groupe d\'établissements a été supprimé avec succès.',
+                'Suppression impossible : ce groupe contient encore des établissements. Veuillez d\'abord les détacher ou les supprimer.'
+            );
         }
 
         return $this->redirectToRoute('admin_school_group_index', [], Response::HTTP_SEE_OTHER);

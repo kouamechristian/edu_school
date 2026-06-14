@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Subject;
 use App\Form\SubjectType;
 use App\Repository\SubjectRepository;
@@ -14,9 +15,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/subjects', name: 'admin_subject_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_DIRECTEUR')]
 class SubjectController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(SubjectRepository $subjectRepository, SchoolContextService $contextService): Response
     {
@@ -103,10 +106,12 @@ class SubjectController extends AbstractController
     public function delete(Request $request, Subject $subject, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$subject->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($subject);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'La matière a été supprimée avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $subject,
+                'La matière a été supprimée avec succès.',
+                'Suppression impossible : cette matière est encore utilisée par des cours ou évaluations.'
+            );
         }
 
         return $this->redirectToRoute('admin_subject_index', [], Response::HTTP_SEE_OTHER);

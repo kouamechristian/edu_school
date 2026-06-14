@@ -2,81 +2,60 @@
 
 {% block title %}Nouvelle Évaluation{% endblock %}
 
+{# Surchargés par edit.html.twig #}
+{% block heading %}Nouvelle Évaluation{% endblock %}
+{% block submit_label %}Enregistrer et saisir les notes{% endblock %}
+
 {% block body %}
-<div class="container py-4">
+<div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3">Nouvelle Évaluation</h1>
-                <a href="{{ path('admin_evaluation_index') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Retour
-                </a>
-            </div>
+        <div class="col-xl-10">
+            {% embed 'components/page_header.html.twig' with {
+                title: block('heading'),
+                icon: 'fa-clipboard-list',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Évaluations', path: path('admin_evaluation_index') },
+                    { label: block('heading') }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_evaluation_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
 
             {% include '_flash.html.twig' %}
 
             {% if form.vars.errors|length > 0 %}
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <h6 class="alert-heading">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        <strong>Erreur de validation</strong>
-                    </h6>
-                    <ul class="mb-0">
-                        {% for error in form.vars.errors %}
-                            <li><strong>{{ error.message }}</strong></li>
-                        {% endfor %}
+                <div class="form-error-message">
+                    <strong><i class="fas fa-exclamation-circle me-2"></i>Erreur de validation</strong>
+                    <ul class="mt-2">
+                        {% for error in form.vars.errors %}<li>{{ error.message }}</li>{% endfor %}
                     </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             {% endif %}
 
-            <div class="card shadow-sm">
+            <div class="card">
                 <div class="card-body">
                     {{ form_start(form) }}
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.classroom) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.subject) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.classroom) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.subject) }}</div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.period) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.teacher) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.period) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.teacher) }}</div>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_row(form.name) }}
-                        </div>
-
+                        <div class="mb-3">{{ form_row(form.name) }}</div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.type) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.date) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.type) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.date) }}</div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.maxGrade) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.coefficient) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.maxGrade) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.coefficient) }}</div>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_row(form.description) }}
-                        </div>
-
+                        <div class="mb-3">{{ form_row(form.description) }}</div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <div class="form-check">
@@ -92,14 +71,9 @@
                                 </div>
                             </div>
                         </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ path('admin_evaluation_index') }}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Annuler
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Enregistrer et saisir les notes
-                            </button>
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_evaluation_index') }}" class="btn btn-light"><i class="fas fa-times me-1"></i> Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> {{ block('submit_label') }}</button>
                         </div>
                     {{ form_end(form) }}
                 </div>
@@ -108,4 +82,3 @@
     </div>
 </div>
 {% endblock %}
-

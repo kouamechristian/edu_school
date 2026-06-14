@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Fee;
 use App\Entity\FeeSchedule;
 use App\Entity\StudentFee;
@@ -20,9 +21,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/fees', name: 'admin_fee_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_CAISSE')]
 class FeeController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(Request $request, FeeRepository $feeRepository, SchoolContextService $contextService): Response
     {
@@ -232,9 +235,12 @@ class FeeController extends AbstractController
 
         if ($schedule && $schedule->getFee()->getId() === $fee->getId()
             && $this->isCsrfTokenValid('schedule_delete' . $scheduleId, $request->request->get('_token'))) {
-            $entityManager->remove($schedule);
-            $entityManager->flush();
-            $this->addFlash('success', 'Échéance supprimée.');
+            $this->deleteEntity(
+                $entityManager,
+                $schedule,
+                'Échéance supprimée.',
+                'Suppression impossible : cette échéance est encore liée à des paiements.'
+            );
         }
 
         return $this->redirectToRoute('admin_fee_edit', ['id' => $fee->getId(), 'tab' => 'schedule']);
@@ -317,10 +323,12 @@ class FeeController extends AbstractController
     public function delete(Request $request, Fee $fee, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$fee->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($fee);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Le frais a été supprimé avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $fee,
+                'Le frais a été supprimé avec succès.',
+                'Suppression impossible : ce frais est encore attribué à des élèves ou lié à des paiements.'
+            );
         }
 
         return $this->redirectToRoute('admin_fee_index', [], Response::HTTP_SEE_OTHER);

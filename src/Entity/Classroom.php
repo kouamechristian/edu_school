@@ -42,6 +42,14 @@ class Classroom
     #[Assert\NotBlank(message: 'Le niveau est obligatoire')]
     private ?Level $level = null;
 
+    #[ORM\ManyToOne(targetEntity: Faculty::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Faculty $faculty = null;
+
+    #[ORM\ManyToOne(targetEntity: Round::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Round $round = null;
+
     #[ORM\Column(nullable: true)]
     #[Assert\PositiveOrZero]
     private ?int $capacity = null;
@@ -135,6 +143,28 @@ class Classroom
     public function setLevel(?Level $level): static
     {
         $this->level = $level;
+        return $this;
+    }
+
+    public function getFaculty(): ?Faculty
+    {
+        return $this->faculty;
+    }
+
+    public function setFaculty(?Faculty $faculty): static
+    {
+        $this->faculty = $faculty;
+        return $this;
+    }
+
+    public function getRound(): ?Round
+    {
+        return $this->round;
+    }
+
+    public function setRound(?Round $round): static
+    {
+        $this->round = $round;
         return $this;
     }
 

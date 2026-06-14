@@ -17,10 +17,16 @@ class ContextController extends AbstractController
     #[Route('/switch-school/{id}', name: 'switch_school', methods: ['GET'])]
     public function switchSchool(School $school, SchoolContextService $contextService): Response
     {
+        // L'utilisateur ne peut basculer que vers un établissement auquel il est rattaché.
+        if (!$contextService->isSchoolAllowed($school)) {
+            $this->addFlash('error', "Vous n'avez pas accès à cet établissement.");
+            return $this->redirectToRoute('app_home');
+        }
+
         $contextService->setCurrentSchool($school);
-        
+
         $this->addFlash('success', "Vous avez basculé vers l'établissement : {$school->getName()}");
-        
+
         return $this->redirectToRoute('app_home');
     }
 

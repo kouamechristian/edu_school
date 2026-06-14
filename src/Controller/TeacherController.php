@@ -1,0 +1,74 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\User;
+use App\Form\TeacherSubjectsType;
+use App\Repository\SubjectRepository;
+use App\Repository\UserRepository;
+use App\Service\SchoolContextService;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+
+/**
+ * Espace Enseignants (Académique) : attribution des matières enseignées.
+ */
+#[Route('/admin/teachers', name: 'admin_teacher_')]
+#[IsGranted('ROLE_DIRECTEUR')]
+class TeacherController extends AbstractController
+{
+    #[Route('/', name: 'index', methods: ['GET'])]
+    public function index(UserRepository $userRepository, SchoolContextService $contextService): Response
+    {
+        $school = $contextService->getCurrentSchool();
+
+        $teachers = $school
+            ? $userRepository->findByTypeInSchool('enseignant', $school->getId())
+            : $userRepository->findByType('enseignant');
+
+        return $this->render('teacher/index.html.twig', [
+            'teachers' => $teachers,
+            'current_school' => $school,
+        ]);
+    }
+
+    #[Route('/{id}/subjects', name: 'subjects', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    public function subjects(
+        User $teacher,
+        Request $request,
+        SubjectRepository $subjectRepository,
+        SchoolContextService $contextService,
+        EntityManagerInterface $entityManager,
+    ): Response {
+        if ($teacher->getUserType() !== 'enseignant') {
+            throw $this->createNotFoundException('Cet utilisateur n\'est pas un enseignant.');
+        }
+
+        $school = $contextService->getCurrentSchool();
+        // Matières de l'établissement ; repli sur toutes les matières actives (matières globales).
+        $subjects = $school ? $subjectRepository->findBySchool($school->getId()) : [];
+        if ($subjects === []) {
+            $subjects = $subjectRepository->findActive();
+        }
+
+        $form = $this->createForm(TeacherSubjectsType::class, $teacher, ['subjects' => $subjects]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->flush();
+
+            $this->addFlash('success', sprintf('Matières de %s mises à jour.', $teacher->getFullName()));
+
+            return $this->redirectToRoute('admin_teacher_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('teacher/subjects.html.twig', [
+            'teacher' => $teacher,
+            'form' => $form,
+        ]);
+    }
+}

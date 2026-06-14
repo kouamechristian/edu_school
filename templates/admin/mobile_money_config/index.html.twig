@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Identifiants Mobile Money{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Identifiants Mobile Money',
+        subtitle: 'Clés API de la passerelle de paiement par établissement',
+        icon: 'fa-key',
+        color: 'primary',
+        breadcrumb: [ { label: 'Administration' }, { label: 'Identifiants Mobile Money' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="fas fa-circle-info me-2 fa-lg"></i>
+        <div>Chaque établissement peut avoir ses propres clés API. À défaut de configuration active,
+        les clés globales de l'application (.env) sont utilisées.</div>
+    </div>
+
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Établissements <span class="badge badge-soft ms-1">{{ schools|length }}</span></h6></div>
+        <div class="card-body">
+            {% if schools is empty %}
+                {{ empty_state('fa-school', 'Aucun établissement', 'Créez d\'abord un établissement.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr><th>Établissement</th><th>Fournisseur</th><th>Clé API</th><th class="text-center">Statut</th><th class="text-end">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for school in schools %}
+                                {% set cfg = configs[school.id] ?? null %}
+                                <tr>
+                                    <td><strong>{{ school.name }}</strong></td>
+                                    <td>{{ cfg ? cfg.provider|capitalize : 'GeniusPay' }}</td>
+                                    <td>
+                                        {% if cfg and cfg.apiKey %}
+                                            <code class="small">{{ cfg.apiKey[:10] }}…</code>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if cfg and cfg.isConfigured and cfg.isActive %}
+                                            <span class="badge bg-success">Configuré · actif</span>
+                                        {% elseif cfg and cfg.isConfigured %}
+                                            <span class="badge bg-secondary">Configuré · inactif</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Non configuré</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ path('admin_mobile_money_config_edit', {'id': school.id}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-key me-1"></i> Configurer
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Payment;
 use App\Form\PaymentType;
 use App\Repository\CashRegisterRepository;
@@ -24,9 +25,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/payments', name: 'admin_payment_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_CAISSE')]
 class PaymentController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     private function generatePaymentReference(string $method): string
     {
         $prefix = match ($method) {
@@ -72,11 +75,11 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(Request $request, PaymentRepository $paymentRepository, SchoolContextService $contextService): Response
+    public function index(Request $request, PaymentRepository $paymentRepository, SchoolContextService $contextService, CashRegisterRepository $cashRegisterRepository): Response
     {
         // Récupérer l'établissement courant
         $currentSchool = $contextService->getCurrentSchool();
-        
+
         // Si pas d'établissement sélectionné, afficher un message
         if (!$currentSchool) {
             $this->addFlash('warning', 'Veuillez sélectionner un établissement pour voir les paiements.');
@@ -87,7 +90,19 @@ class PaymentController extends AbstractController
                 'current_method' => null,
                 'search_term' => null,
                 'current_school' => null,
+                'cash_register_open' => false,
+                'cash_register_validated' => false,
             ]);
+        }
+
+        // État de la caisse du caissier courant (pour gérer le bouton "Nouveau paiement").
+        $cashRegisterOpen = false;
+        $cashRegisterValidated = false;
+        $cashier = $this->getUser();
+        if ($cashier instanceof \App\Entity\User) {
+            $cashRegister = $cashRegisterRepository->findOpenForCashier($currentSchool, $cashier);
+            $cashRegisterOpen = (bool) $cashRegister;
+            $cashRegisterValidated = $cashRegister && $cashRegister->isValidated();
         }
 
         // Filtres
@@ -124,6 +139,8 @@ class PaymentController extends AbstractController
             'current_method' => $method,
             'search_term' => $search,
             'current_school' => $currentSchool,
+            'cash_register_open' => $cashRegisterOpen,
+            'cash_register_validated' => $cashRegisterValidated,
         ]);
     }
 
@@ -156,6 +173,11 @@ class PaymentController extends AbstractController
         if (!$cashRegister) {
             $this->addFlash('warning', 'Votre caisse n’est pas ouverte. Veuillez l’ouvrir avant d’enregistrer un paiement.');
             return $this->redirectToRoute('admin_cash_register_open');
+        }
+
+        if (!$cashRegister->isValidated()) {
+            $this->addFlash('warning', 'Votre caisse n’a pas encore été validée par le fondateur. Aucune opération n’est possible tant qu’elle n’est pas validée.');
+            return $this->redirectToRoute('admin_cash_register_index');
         }
 
         $payment = new Payment();
@@ -248,6 +270,38 @@ class PaymentController extends AbstractController
             'montantPaye' => $student->getTotalPaid(),
             'montantRestant' => $student->getRemainingTuition(),
         ]);
+    }
+
+    /**
+     * Frais affectés à un élève (JSON) — alimente le sélecteur de frais en cascade
+     * sur le formulaire de paiement : seuls les frais de l'élève choisi sont proposés.
+     */
+    #[Route('/students/{id}/fees', name: 'student_fees', methods: ['GET'])]
+    public function studentFees(\App\Entity\Student $student, SchoolContextService $contextService): JsonResponse
+    {
+        $currentSchool = $contextService->getCurrentSchool();
+        if (!$currentSchool || $student->getSchool()?->getId() !== $currentSchool->getId()) {
+            return new JsonResponse(['error' => 'Élève introuvable.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $fees = [];
+        foreach ($student->getStudentFees() as $studentFee) {
+            $fee = $studentFee->getFee();
+            // Exclure les frais inactifs et ceux déjà entièrement soldés.
+            if (!$fee || !$fee->isActive() || $studentFee->getRemainingAmount() <= 0) {
+                continue;
+            }
+
+            $fees[] = [
+                'id' => $fee->getId(),
+                'name' => $fee->getName(),
+                'amount' => (float) $studentFee->getAmount(),
+                'paid' => (float) $studentFee->getPaidAmount(),
+                'remaining' => $studentFee->getRemainingAmount(),
+            ];
+        }
+
+        return new JsonResponse(['fees' => $fees]);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
@@ -379,10 +433,12 @@ class PaymentController extends AbstractController
                 }
             }
 
-            $entityManager->remove($payment);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Le paiement a été supprimé avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $payment,
+                'Le paiement a été supprimé avec succès.',
+                'Suppression impossible : ce paiement est encore lié à d\'autres données (reçu, transaction...).'
+            );
         }
 
         return $this->redirectToRoute('admin_payment_index', [], Response::HTTP_SEE_OTHER);

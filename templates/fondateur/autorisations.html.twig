@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Autorisations de dépense{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Autorisations de dépense',
+        subtitle: 'Autoriser une caisse à effectuer des dépenses',
+        icon: 'fa-key',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Espace Fondateur', path: path('fondateur_index') },
+            { label: 'Autorisations' }
+        ]
+    } %}
+        {% block actions %}<a href="{{ path('fondateur_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>{% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Caisses</h6></div>
+        <div class="card-body">
+            {% if cash_registers|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr><th>Caissier</th><th>Établissement</th><th>Statut caisse</th><th>Autorisation dépense</th><th class="text-end">Action</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for cr in cash_registers %}
+                                <tr>
+                                    <td class="fw-bold">{{ cr.cashier ? cr.cashier.fullName : '—' }}</td>
+                                    <td>{{ cr.school ? cr.school.name : '—' }}</td>
+                                    <td><span class="badge bg-{{ cr.status == 'open' ? 'success' : 'secondary' }}">{{ cr.status == 'open' ? 'Ouverte' : 'Fermée' }}</span></td>
+                                    <td>
+                                        {% if cr.expenseAuthorized %}
+                                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Autorisée</span>
+                                            <small class="d-block text-muted">{{ cr.authorizedBy ? cr.authorizedBy.fullName : '' }} · {{ cr.authorizedAt ? cr.authorizedAt|date('d/m/Y') : '' }}</small>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Non autorisée</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <form method="post" action="{{ path('fondateur_autoriser_depense', {'id': cr.id}) }}" class="d-inline"
+                                              onsubmit="return confirm('Confirmer la modification de l’autorisation de dépense ?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('autoriser' ~ cr.id) }}">
+                                            {% if cr.expenseAuthorized %}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-ban me-1"></i> Retirer</button>
+                                            {% else %}
+                                                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-key me-1"></i> Autoriser</button>
+                                            {% endif %}
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center text-muted py-4"><i class="fas fa-info-circle me-1"></i> Aucune caisse.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

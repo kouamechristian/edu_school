@@ -8,21 +8,19 @@
 {% block body %}
 <div class="container-fluid">
     {# ================================================================
-       EN-TÊTE DE PAGE
+       EN-TÊTE DE PAGE (composant réutilisable)
        ================================================================ #}
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-tachometer-alt me-2"></i> Tableau de bord
-        </h1>
-        <div class="d-flex gap-2">
-            <a href="#" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-download me-1"></i> Exporter
-            </a>
-            <a href="#" class="btn btn-primary btn-sm">
-                <i class="fas fa-file-pdf me-1"></i> Générer Rapport
-            </a>
-        </div>
-    </div>
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Tableau de bord',
+        subtitle: 'Vue d\'ensemble de votre établissement',
+        icon: 'fa-gauge-high',
+        color: 'primary'
+    } %}
+        {% block actions %}
+            <a href="#" class="btn btn-outline-primary btn-sm"><i class="fas fa-download me-1"></i> Exporter</a>
+            <a href="#" class="btn btn-primary btn-sm"><i class="fas fa-file-pdf me-1"></i> Générer Rapport</a>
+        {% endblock %}
+    {% endembed %}
 
     {# ================================================================
        MESSAGE DE BIENVENUE
@@ -56,7 +54,7 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            {{ card_stat('Élèves Inscrits', user_types.eleves, 'fa-user-graduate', 'success', null) }}
+            {{ card_stat('Élèves Inscrits', students_count, 'fa-user-graduate', 'success', null) }}
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
@@ -69,131 +67,59 @@
     </div>
 
     {# ================================================================
-       RACCOURCIS RAPIDES SELON LE RÔLE
-       Grille adaptative avec icônes et couleurs
+       ÉLÈVES : classes + répartition par statut et par genre
+       (établissement courant, année en cours) — graphiques cliquables
        ================================================================ #}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 fw-bold text-primary">
-                        <i class="fas fa-bolt me-2"></i>Raccourcis Rapides
-                    </h6>
+    {% if current_school %}
+    {% set total_status = students_status.affecte + students_status.non_affecte %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary">
+                <i class="fas fa-user-graduate me-2"></i>Répartition des élèves
+            </h6>
+            <span class="badge bg-primary-subtle text-primary">
+                {{ current_school.name }}{% if current_school_year %} — {{ current_school_year.name }}{% endif %}
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                {# Compteurs #}
+                <div class="col-lg-3">
+                    <div class="d-flex flex-column gap-3">
+                        <div class="border rounded-3 p-3 text-center">
+                            <i class="fas fa-chalkboard fa-2x text-primary mb-2"></i>
+                            <div class="h3 mb-0">{{ classes_count }}</div>
+                            <small class="text-muted text-uppercase">Classes</small>
+                        </div>
+                        <div class="border rounded-3 p-3 text-center">
+                            <i class="fas fa-user-graduate fa-2x text-success mb-2"></i>
+                            <div class="h3 mb-0">{{ total_status }}</div>
+                            <small class="text-muted text-uppercase">Élèves</small>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {# Raccourcis ADMIN / DIRECTEUR #}
-                        {% if is_granted('ROLE_ADMIN') or (app.user and app.user.userType == 'directeur') %}
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_school_new') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-primary bg-opacity-10 text-primary">
-                                    <i class="fas fa-school"></i>
-                                </div>
-                                <small class="fw-semibold">Nouvel Établissement</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_student_enrollment') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-success bg-opacity-10 text-success">
-                                    <i class="fas fa-user-plus"></i>
-                                </div>
-                                <small class="fw-semibold">Inscrire un Élève</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_evaluation_index') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-info bg-opacity-10 text-info">
-                                    <i class="fas fa-clipboard-list"></i>
-                                </div>
-                                <small class="fw-semibold">Évaluations</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_bulletin_index') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-warning bg-opacity-10 text-warning">
-                                    <i class="fas fa-file-alt"></i>
-                                </div>
-                                <small class="fw-semibold">Bulletins</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_payment_index') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-danger bg-opacity-10 text-danger">
-                                    <i class="fas fa-credit-card"></i>
-                                </div>
-                                <small class="fw-semibold">Paiements</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_absence_index') }}" class="quick-action-card">
-                                <div class="icon-wrapper" style="background:rgba(139,92,246,0.1);color:#8b5cf6;">
-                                    <i class="fas fa-calendar-check"></i>
-                                </div>
-                                <small class="fw-semibold">Absences</small>
-                            </a>
-                        </div>
-                        {% endif %}
-
-                        {# Raccourcis ENSEIGNANT #}
-                        {% if app.user and app.user.userType == 'enseignant' %}
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_evaluation_index') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-primary bg-opacity-10 text-primary">
-                                    <i class="fas fa-clipboard-list"></i>
-                                </div>
-                                <small class="fw-semibold">Mes Évaluations</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_course_index') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-success bg-opacity-10 text-success">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </div>
-                                <small class="fw-semibold">Mes Cours</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('admin_absence_index') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-warning bg-opacity-10 text-warning">
-                                    <i class="fas fa-calendar-times"></i>
-                                </div>
-                                <small class="fw-semibold">Absences</small>
-                            </a>
-                        </div>
-                        {% endif %}
-
-                        {# Raccourcis ÉLÈVE #}
-                        {% if app.user and app.user.userType == 'eleve' %}
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('student_grades') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-primary bg-opacity-10 text-primary">
-                                    <i class="fas fa-book"></i>
-                                </div>
-                                <small class="fw-semibold">Mes Notes</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('student_schedule') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-success bg-opacity-10 text-success">
-                                    <i class="fas fa-calendar"></i>
-                                </div>
-                                <small class="fw-semibold">Emploi du temps</small>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2">
-                            <a href="{{ path('student_absences') }}" class="quick-action-card">
-                                <div class="icon-wrapper bg-info bg-opacity-10 text-info">
-                                    <i class="fas fa-calendar-times"></i>
-                                </div>
-                                <small class="fw-semibold">Mes Absences</small>
-                            </a>
-                        </div>
-                        {% endif %}
+                {# Graphique : répartition par statut #}
+                <div class="col-lg-4">
+                    <h6 class="text-muted small text-uppercase mb-2">Élèves par statut</h6>
+                    <div style="height: 220px;"><canvas id="studentStatusChart"></canvas></div>
+                    <div class="d-flex justify-content-around small mt-2">
+                        <a href="{{ path('admin_student_index', {status: 'affecte'}) }}" class="text-decoration-none text-reset"><i class="fas fa-square text-success"></i> Affectés : <strong>{{ students_status.affecte }}</strong></a>
+                        <a href="{{ path('admin_student_index', {status: 'non_affecte'}) }}" class="text-decoration-none text-reset"><i class="fas fa-square text-warning"></i> Non affectés : <strong>{{ students_status.non_affecte }}</strong></a>
+                    </div>
+                </div>
+                {# Graphique : répartition par genre #}
+                <div class="col-lg-4">
+                    <h6 class="text-muted small text-uppercase mb-2">Élèves par genre</h6>
+                    <div style="height: 220px;"><canvas id="studentGenderChart"></canvas></div>
+                    <div class="d-flex justify-content-around small mt-2">
+                        <a href="{{ path('admin_student_index', {gender: 'M'}) }}" class="text-decoration-none text-reset"><i class="fas fa-square" style="color:#0ea5e9;"></i> Garçons : <strong>{{ students_gender.M }}</strong></a>
+                        <a href="{{ path('admin_student_index', {gender: 'F'}) }}" class="text-decoration-none text-reset"><i class="fas fa-square" style="color:#ec4899;"></i> Filles : <strong>{{ students_gender.F }}</strong></a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    {% endif %}
 
     {# ================================================================
        GRAPHIQUES Chart.js (présences, notes, finances)
@@ -465,7 +391,7 @@
             labels: ['Présents', 'Absents justifiés', 'Absents non justifiés'],
             datasets: [{
                 data: [85, 10, 5],
-                backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b'],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
                 borderWidth: 0
             }]
         },
@@ -488,9 +414,9 @@
                 label: 'Moyenne /20',
                 data: [14.2, 12.8, 15.1, 13.5, 11.9, 16.3],
                 backgroundColor: [
-                    'rgba(78,115,223,0.8)', 'rgba(28,200,138,0.8)',
-                    'rgba(54,185,204,0.8)', 'rgba(246,194,62,0.8)',
-                    'rgba(231,74,59,0.8)', 'rgba(139,92,246,0.8)'
+                    'rgba(30,58,95,0.85)', 'rgba(16,185,129,0.85)',
+                    'rgba(14,165,233,0.85)', 'rgba(245,158,11,0.85)',
+                    'rgba(239,68,68,0.85)', 'rgba(124,58,237,0.85)'
                 ],
                 borderRadius: 4,
                 borderWidth: 0
@@ -517,8 +443,8 @@
                 {
                     label: 'Recettes',
                     data: [45000, 38000, 42000, 35000, 48000, 52000, 41000],
-                    borderColor: '#1cc88a',
-                    backgroundColor: 'rgba(28,200,138,0.1)',
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16,185,129,0.1)',
                     fill: true,
                     tension: 0.4,
                     borderWidth: 2,
@@ -527,8 +453,8 @@
                 {
                     label: 'Dépenses',
                     data: [32000, 28000, 35000, 30000, 33000, 36000, 29000],
-                    borderColor: '#e74a3b',
-                    backgroundColor: 'rgba(231,74,59,0.1)',
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239,68,68,0.1)',
                     fill: true,
                     tension: 0.4,
                     borderWidth: 2,
@@ -559,16 +485,15 @@
     new Chart(document.getElementById('pieChart').getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: ['Élèves', 'Enseignants', 'Personnel', 'Parents', 'Admins'],
+            labels: ['Enseignants', 'Personnel', 'Parents', 'Admins'],
             datasets: [{
                 data: [
-                    {{ user_types.eleves }},
                     {{ user_types.enseignants }},
                     {{ user_types.personnel }},
                     {{ user_types.parents }},
                     {{ user_types.admins }}
                 ],
-                backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+                backgroundColor: ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444'],
                 borderWidth: 0
             }]
         },
@@ -589,17 +514,16 @@
     new Chart(document.getElementById('barChart').getContext('2d'), {
         type: 'bar',
         data: {
-            labels: ['Élèves', 'Enseignants', 'Personnel', 'Parents', 'Admins'],
+            labels: ['Enseignants', 'Personnel', 'Parents', 'Admins'],
             datasets: [{
                 label: "Nombre d'utilisateurs",
                 data: [
-                    {{ user_types.eleves }},
                     {{ user_types.enseignants }},
                     {{ user_types.personnel }},
                     {{ user_types.parents }},
                     {{ user_types.admins }}
                 ],
-                backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+                backgroundColor: ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444'],
                 borderRadius: 4,
                 borderWidth: 0
             }]
@@ -619,6 +543,67 @@
             }
         }
     });
+
+{% if current_school %}
+    /* ── Élèves par statut / genre (barres cliquables vers la liste filtrée) ── */
+    var studentStatusUrls = [
+        {{ path('admin_student_index', {status: 'affecte'})|json_encode|raw }},
+        {{ path('admin_student_index', {status: 'non_affecte'})|json_encode|raw }}
+    ];
+    var studentGenderUrls = [
+        {{ path('admin_student_index', {gender: 'M'})|json_encode|raw }},
+        {{ path('admin_student_index', {gender: 'F'})|json_encode|raw }}
+    ];
+
+    function buildStudentBarOptions(urls) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gridColor } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { footer: function () { return 'Cliquer pour voir la liste'; } } }
+            },
+            onClick: function (evt, elements) {
+                if (elements.length) { window.location.href = urls[elements[0].index]; }
+            },
+            onHover: function (evt, elements) {
+                evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+            }
+        };
+    }
+
+    new Chart(document.getElementById('studentStatusChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Affectés', 'Non affectés'],
+            datasets: [{
+                label: "Nombre d'élèves",
+                data: [{{ students_status.affecte }}, {{ students_status.non_affecte }}],
+                backgroundColor: ['#10b981', '#f59e0b'],
+                borderRadius: 6, borderWidth: 0, maxBarThickness: 70
+            }]
+        },
+        options: buildStudentBarOptions(studentStatusUrls)
+    });
+
+    new Chart(document.getElementById('studentGenderChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Garçons', 'Filles'],
+            datasets: [{
+                label: "Nombre d'élèves",
+                data: [{{ students_gender.M }}, {{ students_gender.F }}],
+                backgroundColor: ['#0ea5e9', '#ec4899'],
+                borderRadius: 6, borderWidth: 0, maxBarThickness: 70
+            }]
+        },
+        options: buildStudentBarOptions(studentGenderUrls)
+    });
+{% endif %}
 })();
 </script>
 {% endblock %}

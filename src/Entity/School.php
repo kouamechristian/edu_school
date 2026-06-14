@@ -24,7 +24,6 @@ class School
     private ?string $name = null;
 
     #[ORM\Column(length: 50, unique: true)]
-    #[Assert\NotBlank(message: 'Le code de l\'établissement est obligatoire')]
     #[Assert\Length(max: 50)]
     private ?string $code = null;
 
@@ -51,6 +50,13 @@ class School
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $logo = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $cachetDirection = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
+    private ?string $badgeBackgroundColor = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
@@ -171,6 +177,28 @@ class School
     public function setLogo(?string $logo): static
     {
         $this->logo = $logo;
+        return $this;
+    }
+
+    public function getCachetDirection(): ?string
+    {
+        return $this->cachetDirection;
+    }
+
+    public function setCachetDirection(?string $cachetDirection): static
+    {
+        $this->cachetDirection = $cachetDirection;
+        return $this;
+    }
+
+    public function getBadgeBackgroundColor(): ?string
+    {
+        return $this->badgeBackgroundColor;
+    }
+
+    public function setBadgeBackgroundColor(?string $badgeBackgroundColor): static
+    {
+        $this->badgeBackgroundColor = $badgeBackgroundColor;
         return $this;
     }
 

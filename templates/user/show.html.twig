@@ -1,197 +1,120 @@
 {% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import avatar, badge_role %}
 
 {% block title %}{{ user.fullName }}{% endblock %}
 
 {% block body %}
-<div class="container py-4">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">
-                        <i class="fas fa-user me-2"></i> {{ user.fullName }}
-                    </h4>
-                    <span class="badge {{ user.isActive ? 'bg-success' : 'bg-danger' }}">
-                        {{ user.isActive ? 'Actif' : 'Inactif' }}
-                    </span>
-                </div>
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: user.fullName,
+        subtitle: '@' ~ user.username,
+        icon: 'fa-user',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Utilisateurs', path: path('admin_user_index') },
+            { label: user.fullName }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_user_edit', {'id': user.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+            <a href="{{ path('admin_user_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            {# Bandeau profil #}
+            <div class="card mb-4">
                 <div class="card-body">
-                    {# Avatar et info de base #}
-                    <div class="text-center mb-4">
-                        <div class="user-avatar" style="width: 80px; height: 80px; font-size: 2rem; margin: 0 auto;">
-                            {{ user.initials }}
-                        </div>
-                        <h3 class="mt-3 mb-1">{{ user.fullName }}</h3>
-                        <p class="text-muted">@{{ user.username }}</p>
-                        {% if user.userType %}
-                            <span class="badge bg-secondary">{{ user.userTypeLabel }}</span>
-                        {% endif %}
-                    </div>
-
-                    <hr>
-
-                    {# Informations de contact #}
-                    <h5 class="mb-3"><i class="fas fa-envelope me-2"></i> Contact</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Email :</strong><br>
-                            <a href="mailto:{{ user.email }}">{{ user.email }}</a>
-                        </div>
-                        {% if user.phone %}
-                        <div class="col-md-6">
-                            <strong>Téléphone :</strong><br>
-                            <span>{{ user.phone }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    {% if user.address %}
-                    <div class="mb-3">
-                        <strong><i class="fas fa-map-marker-alt me-2"></i> Adresse :</strong><br>
-                        <span class="text-muted">{{ user.address|nl2br }}</span>
-                    </div>
-                    {% endif %}
-
-                    <hr>
-
-                    {# Informations personnelles #}
-                    <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i> Informations Personnelles</h5>
-                    <div class="row mb-3">
-                        {% if user.dateOfBirth %}
-                        <div class="col-md-6">
-                            <strong>Date de naissance :</strong><br>
-                            <span class="text-muted">{{ user.dateOfBirth|date('d/m/Y') }}</span>
-                        </div>
-                        {% endif %}
-                        {% if user.gender %}
-                        <div class="col-md-6">
-                            <strong>Genre :</strong><br>
-                            <span class="text-muted">{{ user.gender == 'M' ? 'Masculin' : 'Féminin' }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <hr>
-
-                    {# Groupe d'établissements #}
-                    {% if user.schoolGroup %}
-                    <h5 class="mb-3"><i class="fas fa-sitemap me-2"></i> Groupe d'Établissements</h5>
-                    <div class="mb-3">
-                        <a href="{{ path('admin_school_group_show', {'id': user.schoolGroup.id}) }}" class="badge bg-info">
-                            {{ user.schoolGroup.name }}
-                        </a>
-                    </div>
-                    <hr>
-                    {% endif %}
-
-                    {# Établissements #}
-                    {% if user.schools is not empty %}
-                    <h5 class="mb-3"><i class="fas fa-school me-2"></i> Établissement(s)</h5>
-                    <div class="mb-3">
-                        {% for school in user.schools %}
-                            <span class="badge bg-secondary me-1">{{ school.name }}</span>
-                        {% endfor %}
-                    </div>
-                    <hr>
-                    {% endif %}
-
-                    {# Rôles et permissions #}
-                    <h5 class="mb-3"><i class="fas fa-shield-alt me-2"></i> Rôles et Permissions</h5>
-                    <div class="mb-3">
-                        {% for role in user.roles %}
-                            <span class="badge bg-info me-1">{{ role }}</span>
-                        {% endfor %}
-                    </div>
-
-                    <hr>
-
-                    {# Activité #}
-                    <h5 class="mb-3"><i class="fas fa-history me-2"></i> Activité</h5>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Inscrit le :</strong><br>
-                            <span class="text-muted">{{ user.createdAt|date('d/m/Y à H:i') }}</span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Dernière connexion :</strong><br>
-                            <span class="text-muted">
-                                {% if user.lastLogin %}
-                                    {{ user.lastLogin|date('d/m/Y à H:i') }}
-                                {% else %}
-                                    Jamais connecté
-                                {% endif %}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 d-flex justify-content-between">
-                        <a href="{{ path('admin_user_index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i> Retour
-                        </a>
-                        <div>
-                            <a href="{{ path('admin_user_edit', {'id': user.id}) }}" class="btn btn-warning">
-                                <i class="fas fa-edit me-2"></i> Modifier
-                            </a>
+                    <div class="profile-hero">
+                        {{ avatar(user, 'lg') }}
+                        <div class="flex-grow-1">
+                            <h4 class="mb-1">{{ user.fullName }}</h4>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <span class="badge badge-soft"><i class="fas fa-at me-1"></i>{{ user.username }}</span>
+                                {% if user.userType %}{{ badge_role(user.userType) }}{% endif %}
+                                <span class="badge badge-soft {{ user.isActive ? 'success' : 'danger' }}">{{ user.isActive ? 'Actif' : 'Inactif' }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-address-book me-2"></i>Contact &amp; informations</h6></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Email</div><div class="info-value"><a href="mailto:{{ user.email }}">{{ user.email }}</a></div></div>
+                            {% if user.phone %}<div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">{{ user.phone }}</div></div>{% endif %}
+                            {% if user.dateOfBirth %}<div class="info-row"><div class="info-label">Date de naissance</div><div class="info-value">{{ user.dateOfBirth|date('d/m/Y') }}</div></div>{% endif %}
+                            {% if user.gender %}<div class="info-row"><div class="info-label">Genre</div><div class="info-value">{{ user.gender == 'M' ? 'Masculin' : 'Féminin' }}</div></div>{% endif %}
+                        </div></div>
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Inscrit le</div><div class="info-value">{{ user.createdAt|date('d/m/Y à H:i') }}</div></div>
+                            <div class="info-row"><div class="info-label">Dernière connexion</div><div class="info-value">{% if user.lastLogin %}{{ user.lastLogin|date('d/m/Y à H:i') }}{% else %}Jamais connecté{% endif %}</div></div>
+                        </div></div>
+                    </div>
+                    {% if user.address %}
+                        <div class="info-list mt-2"><div class="info-row"><div class="info-label">Adresse</div><div class="info-value">{{ user.address|nl2br }}</div></div></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if user.schoolGroup or user.schools is not empty %}
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-school me-2"></i>Rattachement</h6></div>
+                <div class="card-body">
+                    {% if user.schoolGroup %}
+                        <div class="mb-3">
+                            <div class="info-label mb-1">Groupe d'établissements</div>
+                            <a href="{{ path('admin_school_group_show', {'id': user.schoolGroup.id}) }}" class="badge badge-soft info">{{ user.schoolGroup.name }}</a>
+                        </div>
+                    {% endif %}
+                    {% if user.schools is not empty %}
+                        <div class="mb-3">
+                            <div class="info-label mb-1">Établissement(s)</div>
+                            {% for school in user.schools %}<span class="badge badge-soft me-1">{{ school.name }}</span>{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div>
+                        <div class="info-label mb-1">Rôles &amp; permissions</div>
+                        {% for role in user.roles %}{% if role != 'ROLE_USER' %}<span class="badge badge-soft secondary me-1">{{ user.getRoleLabel(role) }}</span>{% endif %}{% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
-        <div class="col-md-4">
-            {# Actions rapides #}
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h5 class="mb-0">Actions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        {% if is_granted('ROLE_SUPER_ADMIN') %}
-                        <form method="post" action="{{ path('admin_user_reset_password', {'id': user.id}) }}"
-                              onsubmit="return confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe ?');">
-                            <input type="hidden" name="_token" value="{{ csrf_token('reset-password' ~ user.id) }}">
-                            <button type="submit" class="btn btn-warning w-100">
-                                <i class="fas fa-key me-2"></i> Réinitialiser MDP
-                            </button>
-                        </form>
-                        {% endif %}
-
-                        <form method="post" action="{{ path('admin_user_toggle', {'id': user.id}) }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ user.id) }}">
-                            <button type="submit" class="btn btn-{{ user.isActive ? 'secondary' : 'success' }} w-100">
-                                <i class="fas fa-{{ user.isActive ? 'ban' : 'check' }} me-2"></i>
-                                {{ user.isActive ? 'Désactiver' : 'Activer' }}
-                            </button>
-                        </form>
-
-                        <form method="post" action="{{ path('admin_user_delete', {'id': user.id}) }}"
-                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
-                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ user.id) }}">
-                            <button type="submit" class="btn btn-danger w-100">
-                                <i class="fas fa-trash me-2"></i> Supprimer
-                            </button>
-                        </form>
-                    </div>
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-bolt me-2"></i>Actions</h6></div>
+                <div class="card-body d-grid gap-2">
+                    {% if is_granted('ROLE_SUPER_ADMIN') %}
+                    <form method="post" action="{{ path('admin_user_reset_password', {'id': user.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('reset-password' ~ user.id) }}">
+                        <button type="submit" class="btn btn-warning w-100"><i class="fas fa-key me-1"></i> Réinitialiser MDP</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="{{ path('admin_user_toggle', {'id': user.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ user.id) }}">
+                        <button type="submit" class="btn btn-{{ user.isActive ? 'outline-secondary' : 'success' }} w-100"><i class="fas fa-{{ user.isActive ? 'ban' : 'check' }} me-1"></i> {{ user.isActive ? 'Désactiver' : 'Activer' }}</button>
+                    </form>
+                    <form method="post" action="{{ path('admin_user_delete', {'id': user.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ user.id) }}">
+                        <button type="submit" class="btn btn-danger w-100"><i class="fas fa-trash me-1"></i> Supprimer</button>
+                    </form>
                 </div>
             </div>
 
-            {# Statistiques #}
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Statistiques</h5>
-                </div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-clock-rotate-left me-2"></i>Activité</h6></div>
                 <div class="card-body">
-                    <div class="mb-2">
-                        <i class="fas fa-calendar me-2"></i>
-                        Membre depuis {{ user.createdAt|date('d/m/Y') }}
-                    </div>
-                    <div class="mb-2">
-                        <i class="fas fa-clock me-2"></i>
-                        {% if user.lastLogin %}
-                            Dernière connexion : {{ user.lastLogin|date('d/m/Y') }}
-                        {% else %}
-                            Jamais connecté
-                        {% endif %}
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Membre depuis</div><div class="info-value">{{ user.createdAt|date('d/m/Y') }}</div></div>
+                        <div class="info-row"><div class="info-label">Dernière connexion</div><div class="info-value">{% if user.lastLogin %}{{ user.lastLogin|date('d/m/Y') }}{% else %}Jamais{% endif %}</div></div>
                     </div>
                 </div>
             </div>
@@ -199,4 +122,3 @@
     </div>
 </div>
 {% endblock %}
-

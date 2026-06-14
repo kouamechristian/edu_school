@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Espace Parent{% endblock %} · EDU-SCHOOL</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/parent-portal.css') }}">
+    {% block stylesheets %}{% endblock %}
+</head>
+<body class="pp-body">
+
+    {# ── Navbar ───────────────────────────────────────────────── #}
+    <header class="pp-navbar">
+        <div class="pp-navbar-inner">
+            <a href="{{ path('parent_dashboard') }}" class="pp-brand">
+                <span class="pp-brand-chip"><i class="fas fa-graduation-cap"></i></span>
+                <span>EDU-SCHOOL<small>Espace Parent</small></span>
+            </a>
+
+            <div class="pp-nav-spacer"></div>
+
+            <div class="pp-nav-actions">
+                {% set my_children = parent_children() %}
+
+                {# Sélecteur d'année scolaire (bascule) #}
+                {% set pp_years = parent_school_years() %}
+                {% set pp_year = parent_selected_year() %}
+                {% if pp_years|length > 0 %}
+                <div class="pp-dropdown" data-pp-dropdown>
+                    <button class="pp-nav-btn" type="button" data-pp-toggle>
+                        <i class="fas fa-calendar-days"></i>
+                        <span class="pp-nav-btn-text">{{ pp_year ? pp_year.name : 'Année' }}</span>
+                        <i class="fas fa-chevron-down" style="font-size:.7rem;"></i>
+                    </button>
+                    <div class="pp-dropdown-menu">
+                        <div class="pp-dd-head"><i class="fas fa-calendar-days"></i> Année scolaire</div>
+                        {% for y in pp_years %}
+                            <a href="{{ path('parent_switch_year', {id: y.id}) }}" style="display:flex;align-items:center;">
+                                {{ y.name }}
+                                {% if pp_year and pp_year.id == y.id %}<i class="fas fa-check" style="margin-left:auto;color:#10b981;"></i>{% endif %}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Sélecteur d'enfant #}
+                {% if my_children|length > 0 %}
+                <div class="pp-dropdown" data-pp-dropdown>
+                    <button class="pp-nav-btn" type="button" data-pp-toggle>
+                        <i class="fas fa-child"></i>
+                        <span class="pp-nav-btn-text">Mes enfants</span>
+                        <i class="fas fa-chevron-down" style="font-size:.7rem;"></i>
+                    </button>
+                    <div class="pp-dropdown-menu">
+                        <div class="pp-dd-head"><i class="fas fa-users"></i> Mes enfants</div>
+                        {% for c in my_children %}
+                            <a href="{{ path('parent_child_show', {id: c.id}) }}">
+                                <span class="pp-avatar" style="width:30px;height:30px;font-size:.75rem;background:linear-gradient(135deg,#1e3a5f,#2f5a8a);">
+                                    {{ (c.firstName|first ~ c.lastName|first)|upper }}
+                                </span>
+                                {{ c.fullName }}
+                            </a>
+                        {% endfor %}
+                        <div class="pp-dd-divider"></div>
+                        <a href="{{ path('parent_link_child') }}"><i class="fas fa-user-plus"></i> Rattacher un enfant</a>
+                        <a href="{{ path('parent_dashboard') }}"><i class="fas fa-grip"></i> Tableau de bord</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Menu utilisateur #}
+                <div class="pp-dropdown" data-pp-dropdown>
+                    <button class="pp-nav-btn" type="button" data-pp-toggle style="padding-left:.3rem;">
+                        <span class="pp-avatar">{{ app.user ? app.user.initials : 'PA' }}</span>
+                        <span class="pp-nav-btn-text">{{ app.user ? app.user.firstName|default(app.user.username) : '' }}</span>
+                    </button>
+                    <div class="pp-dropdown-menu">
+                        <div class="pp-dd-head">{{ app.user ? app.user.email : '' }}</div>
+                        <a href="{{ path('parent_dashboard') }}"><i class="fas fa-grip"></i> Tableau de bord</a>
+                        <a href="{{ path('parent_payments') }}"><i class="fas fa-receipt"></i> Mes paiements</a>
+                        <a href="{{ path('parent_link_child') }}"><i class="fas fa-user-plus"></i> Rattacher un enfant</a>
+                        <div class="pp-dd-divider"></div>
+                        <a href="{{ path('app_logout') }}"><i class="fas fa-arrow-right-from-bracket"></i> Déconnexion</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    {# ── Toasts (messages flash) ──────────────────────────────── #}
+    <div class="pp-toasts">
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                {% set t = label == 'error' ? 'error' : (label == 'warning' ? 'warning' : (label == 'info' ? 'info' : 'success')) %}
+                {% set icon = {'success':'fa-circle-check','error':'fa-circle-exclamation','warning':'fa-triangle-exclamation','info':'fa-circle-info'} %}
+                <div class="pp-toast {{ t }}" data-pp-toast>
+                    <i class="fas {{ icon[t] }}"></i><span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    {# ── Contenu ──────────────────────────────────────────────── #}
+    <main class="pp-container">
+        {% block hero %}
+            <section class="pp-hero pp-reveal">
+                {% block breadcrumb %}{% endblock %}
+                <h1>{% block page_title %}Espace Parent{% endblock %}</h1>
+                <p>{% block page_subtitle %}{% endblock %}</p>
+            </section>
+        {% endblock %}
+
+        {% block subnav %}{% endblock %}
+
+        {% block body %}{% endblock %}
+
+        <footer class="pp-footer">
+            &copy; {{ "now"|date("Y") }} EDU-SCHOOL · Espace Parent
+        </footer>
+    </main>
+
+    {# ── Bottom nav (mobile) ──────────────────────────────────── #}
+    {% block bottomnav %}{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        // Dropdowns
+        document.querySelectorAll('[data-pp-dropdown]').forEach(function (dd) {
+            var btn = dd.querySelector('[data-pp-toggle]');
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                document.querySelectorAll('[data-pp-dropdown].open').forEach(function (o) { if (o !== dd) o.classList.remove('open'); });
+                dd.classList.toggle('open');
+            });
+        });
+        document.addEventListener('click', function () {
+            document.querySelectorAll('[data-pp-dropdown].open').forEach(function (o) { o.classList.remove('open'); });
+        });
+
+        // Scroll reveal
+        var reveals = document.querySelectorAll('.pp-reveal');
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+            }, { threshold: 0.08 });
+            reveals.forEach(function (el) { io.observe(el); });
+        } else {
+            reveals.forEach(function (el) { el.classList.add('in'); });
+        }
+
+        // Toasts auto-dismiss
+        document.querySelectorAll('[data-pp-toast]').forEach(function (toast) {
+            setTimeout(function () {
+                toast.style.transition = 'opacity .4s ease, transform .4s ease';
+                toast.style.opacity = '0'; toast.style.transform = 'translateX(20px)';
+                setTimeout(function () { toast.remove(); }, 400);
+            }, 5000);
+        });
+    </script>
+    {% block javascripts %}{% endblock %}
+</body>
+</html>

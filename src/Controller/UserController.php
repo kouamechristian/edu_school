@@ -2,10 +2,12 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
 use App\Service\SchoolContextService;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,6 +20,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class UserController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(Request $request, UserRepository $userRepository, SchoolContextService $contextService): Response
     {
@@ -88,7 +92,16 @@ class UserController extends AbstractController
             }
 
             $entityManager->persist($user);
-            $entityManager->flush();
+
+            try {
+                $entityManager->flush();
+            } catch (UniqueConstraintViolationException $e) {
+                $this->addFlash('error', "Impossible de créer l'utilisateur : une entrée existe déjà avec ces informations (adresse e-mail ou employé déjà associé). Vérifiez l'adresse e-mail et réessayez.");
+                return $this->redirectToRoute('admin_user_new', [], Response::HTTP_SEE_OTHER);
+            } catch (\Throwable $e) {
+                $this->addFlash('error', "Une erreur est survenue lors de la création de l'utilisateur. Veuillez réessayer ou contacter l'administrateur.");
+                return $this->redirectToRoute('admin_user_new', [], Response::HTTP_SEE_OTHER);
+            }
 
             $this->addFlash('success', 'L\'utilisateur a été créé avec succès.');
 
@@ -135,7 +148,15 @@ class UserController extends AbstractController
                 $entityManager->persist($employee);
             }
 
-            $entityManager->flush();
+            try {
+                $entityManager->flush();
+            } catch (UniqueConstraintViolationException $e) {
+                $this->addFlash('error', "Impossible d'enregistrer les modifications : une entrée existe déjà avec ces informations (adresse e-mail ou employé déjà associé).");
+                return $this->redirectToRoute('admin_user_edit', ['id' => $user->getId()], Response::HTTP_SEE_OTHER);
+            } catch (\Throwable $e) {
+                $this->addFlash('error', "Une erreur est survenue lors de la modification de l'utilisateur. Veuillez réessayer ou contacter l'administrateur.");
+                return $this->redirectToRoute('admin_user_edit', ['id' => $user->getId()], Response::HTTP_SEE_OTHER);
+            }
 
             $this->addFlash('success', 'L\'utilisateur a été modifié avec succès.');
 
@@ -158,10 +179,12 @@ class UserController extends AbstractController
                 return $this->redirectToRoute('admin_user_index', [], Response::HTTP_SEE_OTHER);
             }
 
-            $entityManager->remove($user);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'L\'utilisateur a été supprimé avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $user,
+                'L\'utilisateur a été supprimé avec succès.',
+                'Suppression impossible : cet utilisateur est encore lié à des données (paiements, transactions, etc.). Désactivez-le plutôt que de le supprimer.'
+            );
         }
 
         return $this->redirectToRoute('admin_user_index', [], Response::HTTP_SEE_OTHER);

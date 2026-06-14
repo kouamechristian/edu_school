@@ -100,5 +100,24 @@ class ClassroomRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Nombre de classes actives d'un établissement, restreint à l'année si fournie.
+     */
+    public function countBySchoolAndYear(int $schoolId, ?int $yearId = null): int
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->andWhere('c.school = :school')
+            ->andWhere('c.isActive = :active')
+            ->setParameter('school', $schoolId)
+            ->setParameter('active', true);
+
+        if ($yearId !== null) {
+            $qb->andWhere('c.schoolYear = :yearId')->setParameter('yearId', $yearId);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
 }
 

@@ -5,6 +5,7 @@ namespace App\Form;
 use App\Entity\Level;
 use App\Entity\School;
 use App\Entity\Subject;
+use App\Entity\SubjectType as SubjectTypeEntity;
 use App\Service\SchoolContextService;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
@@ -40,14 +41,6 @@ class SubjectType extends AbstractType
                     'placeholder' => 'Ex: Mathématiques',
                 ],
             ])
-            ->add('code', TextType::class, [
-                'label' => 'Code de la matière',
-                'attr' => [
-                    'class' => 'form-control',
-                    'placeholder' => 'Ex: MATH',
-                ],
-                'help' => 'Code unique pour identifier la matière',
-            ])
         
             ->add('level', EntityType::class, [
                 'label' => 'Niveau',
@@ -72,14 +65,14 @@ class SubjectType extends AbstractType
                     return $qb;
                 },
             ])
-            ->add('type', ChoiceType::class, [
+            ->add('type', EntityType::class, [
                 'label' => 'Type de matière',
-                'choices' => [
-                    'Obligatoire' => 'obligatoire',
-                    'Optionnelle' => 'optionnelle',
-                    'Facultative' => 'facultative',
-                ],
+                'class' => SubjectTypeEntity::class,
+                'choice_label' => 'label',
+                'placeholder' => 'Sélectionnez un type',
                 'attr' => ['class' => 'form-select'],
+                'query_builder' => fn ($repository) => $repository->createQueryBuilder('t')
+                    ->orderBy('t.orderNumber', 'ASC'),
             ])
             ->add('coefficient', NumberType::class, [
                 'label' => 'Coefficient',
@@ -99,6 +92,16 @@ class SubjectType extends AbstractType
                     'placeholder' => 'Ex: 4',
                     'min' => 1,
                 ],
+            ])
+            ->add('bulletinOrderNumber', IntegerType::class, [
+                'label' => 'Numéro d\'ordre sur le bulletin',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Ex: 1',
+                    'min' => 0,
+                ],
+                'help' => 'Ordre d\'affichage de la matière sur le bulletin.',
             ])
             ->add('color', ColorType::class, [
                 'label' => 'Couleur (emploi du temps)',

@@ -104,14 +104,14 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve un élève par son numéro
+     * Trouve un élève par son matricule interne
      */
-    public function findByStudentNumber(string $studentNumber): ?Student
+    public function findByMatriculeInterne(string $matriculeInterne): ?Student
     {
         return $this->createQueryBuilder('s')
-            ->andWhere('s.studentNumber = :studentNumber')
+            ->andWhere('s.matriculeInterne = :matriculeInterne')
             ->andWhere('s.isActive = :active')
-            ->setParameter('studentNumber', $studentNumber)
+            ->setParameter('matriculeInterne', $matriculeInterne)
             ->setParameter('active', true)
             ->getQuery()
             ->getOneOrNullResult();
@@ -149,6 +149,66 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Répartition des élèves actifs d'un établissement par statut d'affectation.
+     * Restreint à l'année scolaire si fournie.
+     *
+     * @return array{affecte:int, non_affecte:int}
+     */
+    public function countByStatusForSchool(int $schoolId, ?int $yearId = null): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->select('s.status AS status', 'COUNT(s.id) AS total')
+            ->andWhere('s.school = :schoolId')
+            ->andWhere('s.isActive = :active')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('active', true)
+            ->groupBy('s.status');
+
+        if ($yearId !== null) {
+            $qb->andWhere('s.schoolYear = :yearId')->setParameter('yearId', $yearId);
+        }
+
+        $result = ['affecte' => 0, 'non_affecte' => 0];
+        foreach ($qb->getQuery()->getResult() as $row) {
+            if (array_key_exists($row['status'], $result)) {
+                $result[$row['status']] = (int) $row['total'];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Répartition des élèves actifs d'un établissement par genre (M / F).
+     * Restreint à l'année scolaire si fournie.
+     *
+     * @return array{M:int, F:int}
+     */
+    public function countByGenderForSchool(int $schoolId, ?int $yearId = null): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->select('s.gender AS gender', 'COUNT(s.id) AS total')
+            ->andWhere('s.school = :schoolId')
+            ->andWhere('s.isActive = :active')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('active', true)
+            ->groupBy('s.gender');
+
+        if ($yearId !== null) {
+            $qb->andWhere('s.schoolYear = :yearId')->setParameter('yearId', $yearId);
+        }
+
+        $result = ['M' => 0, 'F' => 0];
+        foreach ($qb->getQuery()->getResult() as $row) {
+            if ($row['gender'] !== null && array_key_exists($row['gender'], $result)) {
+                $result[$row['gender']] = (int) $row['total'];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Trouve les élèves actifs par établissement et niveau
      */
     public function findActiveBySchoolAndLevel(int $schoolId, int $levelId): array
@@ -178,6 +238,142 @@ class StudentRepository extends ServiceEntityRepository
             ->setParameter('active', true)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Trouve les enfants rattachés à un parent via l'adresse e-mail du parent.
+     *
+     * Lien volontairement basé sur le schéma existant (Student.parentEmail ↔ User.email),
+     * sans nouvelle entité. La comparaison est insensible à la casse et aux espaces.
+     * Centraliser ce lien ici (et dans ChildVoter) permet de basculer vers une vraie
+     * relation Doctrine plus tard sans toucher aux contrôleurs.
+     *
+     * @return Student[]
+     */
+    public function findByParentEmail(string $parentEmail): array
+    {
+        $normalized = mb_strtolower(trim($parentEmail));
+
+        if ($normalized === '') {
+            return [];
+        }
+
+        return $this->createQueryBuilder('s')
+            ->andWhere('LOWER(TRIM(s.parentEmail)) = :email')
+            ->andWhere('s.isActive = :active')
+            ->setParameter('email', $normalized)
+            ->setParameter('active', true)
+            ->orderBy('s.lastName', 'ASC')
+            ->addOrderBy('s.firstName', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Retrouve un élève actif par son matricule interne ET sa date de naissance.
+     *
+     * Sert à l'auto-association d'un parent : la double clé (matricule + date de
+     * naissance) fait office de preuve de lien sans exposer d'autres données.
+     * Le matricule est comparé sans espaces ni casse ; la date est comparée au jour.
+     */
+    public function findOneActiveByMatriculeAndBirthDate(string $matricule, \DateTimeInterface $dateOfBirth): ?Student
+    {
+        $normalized = mb_strtolower(trim($matricule));
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return $this->createQueryBuilder('s')
+            ->andWhere('LOWER(TRIM(s.matriculeInterne)) = :matricule')
+            ->andWhere('s.dateOfBirth = :dob')
+            ->andWhere('s.isActive = :active')
+            ->setParameter('matricule', $normalized)
+            ->setParameter('dob', $dateOfBirth->format('Y-m-d'))
+            ->setParameter('active', true)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * Élèves actifs d'une classe, triés par nom.
+     *
+     * @return Student[]
+     */
+    public function findActiveByClassroom(int $classroomId): array
+    {
+        return $this->createQueryBuilder('s')
+            ->andWhere('s.classroom = :classroom')
+            ->andWhere('s.isActive = :active')
+            ->setParameter('classroom', $classroomId)
+            ->setParameter('active', true)
+            ->orderBy('s.lastName', 'ASC')
+            ->addOrderBy('s.firstName', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Retrouve le dernier élève enregistré dans un établissement pour un matricule national.
+     *
+     * Sert à la réinscription d'un ancien élève : on récupère ses données les plus
+     * récentes pour pré-remplir le formulaire de préinscription. Comparaison insensible
+     * à la casse et aux espaces de début/fin.
+     */
+    public function findLatestBySchoolAndNational(int $schoolId, string $matriculeNational): ?Student
+    {
+        $normalized = mb_strtolower(trim($matriculeNational));
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return $this->createQueryBuilder('s')
+            ->leftJoin('s.school', 'school')
+            ->where('school.id = :schoolId')
+            ->andWhere('LOWER(TRIM(s.matriculeNational)) = :mn')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('mn', $normalized)
+            ->orderBy('s.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * Compte le nombre d'inscriptions (enregistrements élève) par matricule national,
+     * pour un établissement donné.
+     *
+     * Le matricule national étant stable d'une année à l'autre, cela permet d'afficher
+     * combien de fois un même élève a été inscrit depuis sa venue dans l'établissement.
+     *
+     * @param string[] $matriculeNationals
+     * @return array<string, int> matricule national => nombre d'inscriptions
+     */
+    public function countBySchoolGroupedByNational(int $schoolId, array $matriculeNationals): array
+    {
+        if ($matriculeNationals === []) {
+            return [];
+        }
+
+        $rows = $this->createQueryBuilder('s')
+            ->select('s.matriculeNational AS mn, COUNT(s.id) AS cnt')
+            ->leftJoin('s.school', 'school')
+            ->where('school.id = :schoolId')
+            ->andWhere('s.matriculeNational IN (:nationals)')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('nationals', $matriculeNationals)
+            ->groupBy('s.matriculeNational')
+            ->getQuery()
+            ->getScalarResult();
+
+        $counts = [];
+        foreach ($rows as $r) {
+            $counts[trim((string) $r['mn'])] = (int) $r['cnt'];
+        }
+
+        return $counts;
     }
 
     /**

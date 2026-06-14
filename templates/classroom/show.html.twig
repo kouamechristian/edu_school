@@ -3,121 +3,72 @@
 {% block title %}{{ classroom.name }}{% endblock %}
 
 {% block body %}
-<div class="container py-4">
-    <div class="row">
-        <div class="col-md-8">
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: classroom.name,
+        subtitle: 'Classe — ' ~ classroom.code,
+        icon: 'fa-door-open',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Classes', path: path('admin_classroom_index') },
+            { label: classroom.name }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_course_schedule', {'id': classroom.id}) }}" class="btn btn-primary"><i class="fas fa-calendar me-1"></i> Emploi du temps</a>
+            <a href="{{ path('admin_classroom_edit', {'id': classroom.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+            <a href="{{ path('admin_classroom_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">
-                        <i class="fas fa-door-open me-2"></i> {{ classroom.name }}
-                    </h4>
-                    <span class="badge {{ classroom.isActive ? 'bg-success' : 'bg-danger' }}">
-                        {{ classroom.isActive ? 'Active' : 'Inactive' }}
-                    </span>
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Informations</h6>
+                    <span class="badge badge-soft {{ classroom.isActive ? 'success' : 'danger' }}">{{ classroom.isActive ? 'Active' : 'Inactive' }}</span>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong><i class="fas fa-barcode me-2"></i> Code :</strong><br>
-                            <span class="text-muted">{{ classroom.code }}</span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong><i class="fas fa-graduation-cap me-2"></i> Niveau :</strong><br>
-                            <span class="badge bg-secondary">{{ classroom.level.name }}</span>
-                        </div>
+                    <div class="row">
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Code</div><div class="info-value">{{ classroom.code }}</div></div>
+                            <div class="info-row"><div class="info-label">Niveau</div><div class="info-value"><span class="badge badge-soft secondary">{{ classroom.level.name }}</span></div></div>
+                            <div class="info-row"><div class="info-label">Filière</div><div class="info-value">{% if classroom.faculty %}<span class="badge badge-soft info">{{ classroom.faculty.libelle }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</div></div>
+                            <div class="info-row"><div class="info-label">Série</div><div class="info-value">{% if classroom.round %}<span class="badge badge-soft info">{{ classroom.round.libelle }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</div></div>
+                            <div class="info-row"><div class="info-label">Établissement</div><div class="info-value"><a href="{{ path('admin_school_show', {'id': classroom.school.id}) }}">{{ classroom.school.name }}</a></div></div>
+                            {% if classroom.mainTeacher %}<div class="info-row"><div class="info-label">Prof. principal</div><div class="info-value"><a href="{{ path('admin_user_show', {'id': classroom.mainTeacher.id}) }}">{{ classroom.mainTeacher.fullName }}</a></div></div>{% endif %}
+                        </div></div>
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Année scolaire</div><div class="info-value">{{ classroom.schoolYear.name }}</div></div>
+                            <div class="info-row"><div class="info-label">Salle</div><div class="info-value">{{ classroom.room ? classroom.room.fullName : 'Non définie' }}</div></div>
+                            <div class="info-row"><div class="info-label">Capacité</div><div class="info-value">{{ classroom.capacity ?? 'Non définie' }} élèves</div></div>
+                        </div></div>
                     </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong><i class="fas fa-school me-2"></i> Établissement :</strong><br>
-                            <a href="{{ path('admin_school_show', {'id': classroom.school.id}) }}">
-                                {{ classroom.school.name }}
-                            </a>
-                        </div>
-                        <div class="col-md-6">
-                            <strong><i class="fas fa-calendar me-2"></i> Année scolaire :</strong><br>
-                            <span class="text-muted">{{ classroom.schoolYear.name }}</span>
-                        </div>
-                    </div>
-
-                    {% if classroom.mainTeacher %}
-                    <div class="mb-3">
-                        <strong><i class="fas fa-chalkboard-teacher me-2"></i> Professeur principal :</strong><br>
-                        <a href="{{ path('admin_user_show', {'id': classroom.mainTeacher.id}) }}">
-                            {{ classroom.mainTeacher.fullName }}
-                        </a>
-                    </div>
-                    {% endif %}
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong><i class="fas fa-door-closed me-2"></i> Salle :</strong><br>
-                            <span class="text-muted">{{ classroom.room ? classroom.room.fullName : 'Non définie' }}</span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong><i class="fas fa-users me-2"></i> Capacité :</strong><br>
-                            <span class="text-muted">{{ classroom.capacity ?? 'Non définie' }} élèves</span>
-                        </div>
-                    </div>
-
                     {% if classroom.description %}
-                    <div class="mb-3">
-                        <strong><i class="fas fa-info-circle me-2"></i> Description :</strong><br>
-                        <span class="text-muted">{{ classroom.description|nl2br }}</span>
-                    </div>
+                        <div class="info-list mt-2"><div class="info-row"><div class="info-label">Description</div><div class="info-value">{{ classroom.description|nl2br }}</div></div></div>
                     {% endif %}
-
-                    <div class="mt-4 d-flex justify-content-between">
-                        <a href="{{ path('admin_classroom_index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i> Retour
-                        </a>
-                        <div>
-                            <a href="{{ path('admin_course_schedule', {'id': classroom.id}) }}" class="btn btn-primary me-2">
-                                <i class="fas fa-calendar me-2"></i> Emploi du temps
-                            </a>
-                            <a href="{{ path('admin_classroom_edit', {'id': classroom.id}) }}" class="btn btn-warning">
-                                <i class="fas fa-edit me-2"></i> Modifier
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Informations</h5>
-                </div>
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-clock-rotate-left me-2"></i>Informations</h6></div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <i class="fas fa-calendar text-success me-2"></i>
-                        Créée le {{ classroom.createdAt|date('d/m/Y') }}
-                    </div>
-                    <div class="mb-3">
-                        <i class="fas fa-calendar-check text-info me-2"></i>
-                        Modifiée le {{ classroom.updatedAt|date('d/m/Y') }}
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Créée le</div><div class="info-value">{{ classroom.createdAt|date('d/m/Y') }}</div></div>
+                        <div class="info-row"><div class="info-label">Modifiée le</div><div class="info-value">{{ classroom.updatedAt|date('d/m/Y') }}</div></div>
                     </div>
                 </div>
             </div>
-
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="mb-0">Actions rapides</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ path('admin_course_new') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i> Ajouter un cours
-                        </a>
-                        <a href="{{ path('admin_subject_index') }}" class="btn btn-info">
-                            <i class="fas fa-book me-2"></i> Voir les matières
-                        </a>
-                    </div>
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-bolt me-2"></i>Actions rapides</h6></div>
+                <div class="card-body d-grid gap-2">
+                    <a href="{{ path('admin_course_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Ajouter un cours</a>
+                    <a href="{{ path('admin_subject_index') }}" class="btn btn-info"><i class="fas fa-book me-1"></i> Voir les matières</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-

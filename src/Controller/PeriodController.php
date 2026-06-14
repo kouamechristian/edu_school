@@ -2,19 +2,24 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Period;
 use App\Form\PeriodType;
 use App\Repository\PeriodRepository;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/admin/periods')]
+#[IsGranted('ROLE_ENSEIGNANT')]
 class PeriodController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'admin_period_index', methods: ['GET'])]
     public function index(
         PeriodRepository $periodRepository,
@@ -116,10 +121,12 @@ class PeriodController extends AbstractController
         EntityManagerInterface $entityManager
     ): Response {
         if ($this->isCsrfTokenValid('delete'.$period->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($period);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'La période a été supprimée avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $period,
+                'La période a été supprimée avec succès.',
+                'Suppression impossible : cette période est encore utilisée par des évaluations, bulletins ou autres données.'
+            );
         }
 
         return $this->redirectToRoute('admin_period_index', [], Response::HTTP_SEE_OTHER);

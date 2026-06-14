@@ -6,14 +6,41 @@ security:
             algorithm: auto
 
     role_hierarchy:
-        ROLE_ADMIN: ROLE_USER
+        # ── Rôles de base (espaces personnels) ──
+        ROLE_PARENT: ROLE_USER
+
+        # ── Rôles opérationnels (personnel) ──
+        ROLE_ENSEIGNANT: ROLE_USER
+        ROLE_EDUCATEUR: ROLE_USER
+        # ROLE_INSCRIPTION : Gestion des élèves uniquement.
+        ROLE_INSCRIPTION: ROLE_USER
+        # ROLE_CORRESPONDANT_FICHIER : ses documents + la Gestion des élèves (via ROLE_INSCRIPTION).
+        ROLE_CORRESPONDANT_FICHIER: [ROLE_INSCRIPTION]
+
+        # ── ROLE_CAISSE est indépendant : il n'est hérité par aucun rôle supérieur.
+        #    Il couvre la Gestion financière (caisse, paiements, factures, frais, bourses,
+        #    plans, transactions) ET la Gestion des élèves (via ROLE_INSCRIPTION). ──
+        ROLE_CAISSE: [ROLE_INSCRIPTION]
+
+        # ── Le directeur : seulement Académique, Notes & Évaluations et Gestion (absences) ──
+        ROLE_DIRECTEUR: [ROLE_ENSEIGNANT, ROLE_EDUCATEUR]
+
+        # ── L'administrateur dispose de tout (sauf la caisse, indépendante) ──
+        ROLE_ADMIN: [ROLE_DIRECTEUR, ROLE_INSCRIPTION, ROLE_CORRESPONDANT_FICHIER]
+
+        # ── Le fondateur supervise (accès complet, limité à ses établissements) ──
+        ROLE_FONDATEUR: [ROLE_ADMIN]
+
+        # ── Le super-administrateur est au sommet de la hiérarchie ──
+        ROLE_SUPER_ADMIN: [ROLE_FONDATEUR]
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         # used to reload user from session & other features (e.g. switch_user)
         app_user_provider:
             entity:
                 class: App\Entity\User
-                property: username
+                # Pas de "property" : on utilise UserRepository::loadUserByIdentifier
+                # qui accepte le nom d'utilisateur OU l'adresse e-mail.
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
@@ -49,6 +76,10 @@ security:
     # Note: Only the *first* access control that matches will be used
     access_control:
          - { path: ^/login$, roles: PUBLIC_ACCESS }
+         # Webhooks externes (passerelle de paiement) : accès public, sécurisés par signature.
+         - { path: ^/webhook, roles: PUBLIC_ACCESS }
+         # Portail Parent : réservé aux parents (et super-admins par héritage).
+         - { path: ^/parent, roles: ROLE_PARENT }
          - { path: ^/, roles: ROLE_USER }
 
 

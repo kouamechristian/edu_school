@@ -4,196 +4,76 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
-                        <li class="breadcrumb-item"><a href="{{ path('admin_absence_index') }}">Absences</a></li>
-                        <li class="breadcrumb-item active">Détails</li>
-                    </ol>
-                </div>
-                <h4 class="page-title">Détails de l'absence</h4>
-            </div>
-        </div>
-    </div>
+    {% set statusMap = {'justified': 'success', 'unjustified': 'danger', 'pending': 'warning'} %}
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Absence — ' ~ absence.student.fullName,
+        subtitle: absence.date|date('d/m/Y'),
+        icon: 'fa-calendar-check',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Absences', path: path('admin_absence_index') },
+            { label: 'Détails' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_absence_edit', {'id': absence.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+            {% if absence.isPendingJustification %}<a href="{{ path('admin_absence_justify', {'id': absence.id}) }}" class="btn btn-success"><i class="fas fa-check-circle me-1"></i> Justifier</a>{% endif %}
+            <a href="{{ path('admin_absence_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
 
-    <div class="row">
+    <div class="row g-4">
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Informations de l'absence</h5>
-                        <div class="btn-group">
-                            <a href="{{ path('admin_absence_edit', {'id': absence.id}) }}" class="btn btn-sm btn-warning">
-                                <i class="mdi mdi-pencil"></i> Modifier
-                            </a>
-                            {% if absence.isPendingJustification %}
-                                <a href="{{ path('admin_absence_justify', {'id': absence.id}) }}" class="btn btn-sm btn-info">
-                                    <i class="mdi mdi-check-circle"></i> Justifier
-                                </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Informations de l'absence</h6></div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
-                            <dl class="row">
-                                <dt class="col-sm-4">Élève :</dt>
-                                <dd class="col-sm-8">
-                                    <strong>{{ absence.student.fullName }}</strong>
-                                    {% if absence.student.classroom %}
-                                        <br><small class="text-muted">{{ absence.student.classroom.name }}</small>
-                                    {% endif %}
-                                </dd>
-
-                                <dt class="col-sm-4">Type :</dt>
-                                <dd class="col-sm-8">
-                                    <span class="badge" style="background-color: {{ absence.absenceType.color ?? '#6c757d' }}">
-                                        {{ absence.absenceType.name }}
-                                    </span>
-                                </dd>
-
-                                <dt class="col-sm-4">Date :</dt>
-                                <dd class="col-sm-8">
-                                    <strong>{{ absence.date|date('d/m/Y') }}</strong>
-                                    {% if absence.startTime and absence.endTime %}
-                                        <br><small class="text-muted">
-                                            {{ absence.startTime|date('H:i') }} - {{ absence.endTime|date('H:i') }}
-                                        </small>
-                                    {% endif %}
-                                </dd>
-
-                                {% if absence.durationInHours %}
-                                    <dt class="col-sm-4">Durée :</dt>
-                                    <dd class="col-sm-8">{{ absence.durationInHours|number_format(1) }} heure(s)</dd>
-                                {% endif %}
-                            </dl>
-                        </div>
-                        <div class="col-md-6">
-                            <dl class="row">
-                                <dt class="col-sm-4">Statut :</dt>
-                                <dd class="col-sm-8">
-                                    {% set statusClass = match(absence.justificationStatus) {
-                                        'justified': 'success',
-                                        'unjustified': 'danger',
-                                        'pending': 'warning',
-                                        default: 'secondary'
-                                    } %}
-                                    <span class="badge bg-{{ statusClass }}">
-                                        {{ absence.justificationStatusLabel }}
-                                    </span>
-                                </dd>
-
-                                <dt class="col-sm-4">Période :</dt>
-                                <dd class="col-sm-8">
-                                    {% if absence.period %}
-                                        {{ absence.period.name }}
-                                    {% else %}
-                                        <span class="text-muted">Non spécifiée</span>
-                                    {% endif %}
-                                </dd>
-
-                                <dt class="col-sm-4">Enregistrée par :</dt>
-                                <dd class="col-sm-8">
-                                    {% if absence.recordedBy %}
-                                        {{ absence.recordedBy.fullName }}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </dd>
-
-                                <dt class="col-sm-4">Date d'enregistrement :</dt>
-                                <dd class="col-sm-8">{{ absence.createdAt|date('d/m/Y H:i') }}</dd>
-                            </dl>
-                        </div>
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Élève</div><div class="info-value"><strong>{{ absence.student.fullName }}</strong>{% if absence.student.classroom %}<br><small class="text-muted">{{ absence.student.classroom.name }}</small>{% endif %}</div></div>
+                            <div class="info-row"><div class="info-label">Type</div><div class="info-value"><span class="badge" style="background-color: {{ absence.absenceType.color ?? '#6c757d' }}; color:#fff;">{{ absence.absenceType.name }}</span></div></div>
+                            <div class="info-row"><div class="info-label">Date</div><div class="info-value"><strong>{{ absence.date|date('d/m/Y') }}</strong>{% if absence.startTime and absence.endTime %}<br><small class="text-muted">{{ absence.startTime|date('H:i') }} – {{ absence.endTime|date('H:i') }}</small>{% endif %}</div></div>
+                            {% if absence.durationInHours %}<div class="info-row"><div class="info-label">Durée</div><div class="info-value">{{ absence.durationInHours|number_format(1) }} heure(s)</div></div>{% endif %}
+                        </div></div>
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Statut</div><div class="info-value"><span class="badge badge-soft {{ statusMap[absence.justificationStatus] ?? 'secondary' }}">{{ absence.justificationStatusLabel }}</span></div></div>
+                            <div class="info-row"><div class="info-label">Période</div><div class="info-value">{% if absence.period %}{{ absence.period.name }}{% else %}<span class="text-muted">Non spécifiée</span>{% endif %}</div></div>
+                            <div class="info-row"><div class="info-label">Enregistrée par</div><div class="info-value">{{ absence.recordedBy ? absence.recordedBy.fullName : '—' }}</div></div>
+                            <div class="info-row"><div class="info-label">Date d'enregistrement</div><div class="info-value">{{ absence.createdAt|date('d/m/Y H:i') }}</div></div>
+                        </div></div>
                     </div>
 
-                    {% if absence.reason %}
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>Motif de l'absence</h6>
-                                <p class="text-muted">{{ absence.reason }}</p>
-                            </div>
-                        </div>
-                    {% endif %}
-
+                    {% if absence.reason %}<div class="mt-3"><h6 class="text-muted">Motif de l'absence</h6><p class="mb-0">{{ absence.reason }}</p></div>{% endif %}
                     {% if absence.justification %}
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>Justification</h6>
-                                <p class="text-muted">{{ absence.justification }}</p>
-                                {% if absence.justifiedBy %}
-                                    <small class="text-muted">
-                                        Justifiée par {{ absence.justifiedBy.fullName }} 
-                                        le {{ absence.justificationDate|date('d/m/Y H:i') }}
-                                    </small>
-                                {% endif %}
-                            </div>
+                        <div class="mt-3"><h6 class="text-muted">Justification</h6><p class="mb-1">{{ absence.justification }}</p>
+                            {% if absence.justifiedBy %}<small class="text-muted">Justifiée par {{ absence.justifiedBy.fullName }} le {{ absence.justificationDate|date('d/m/Y H:i') }}</small>{% endif %}
                         </div>
                     {% endif %}
-
-                    {% if absence.notes %}
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>Notes</h6>
-                                <p class="text-muted">{{ absence.notes }}</p>
-                            </div>
-                        </div>
-                    {% endif %}
+                    {% if absence.notes %}<div class="mt-3"><h6 class="text-muted">Notes</h6><p class="mb-0">{{ absence.notes }}</p></div>{% endif %}
                 </div>
             </div>
         </div>
 
         <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Actions rapides</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ path('admin_absence_edit', {'id': absence.id}) }}" class="btn btn-warning">
-                            <i class="mdi mdi-pencil"></i> Modifier l'absence
-                        </a>
-                        
-                        {% if absence.isPendingJustification %}
-                            <a href="{{ path('admin_absence_justify', {'id': absence.id}) }}" class="btn btn-info">
-                                <i class="mdi mdi-check-circle"></i> Justifier l'absence
-                            </a>
-                        {% endif %}
-
-                        <a href="{{ path('admin_absence_new') }}" class="btn btn-success">
-                            <i class="mdi mdi-plus"></i> Nouvelle absence
-                        </a>
-
-                        <a href="{{ path('admin_absence_index') }}" class="btn btn-secondary">
-                            <i class="mdi mdi-arrow-left"></i> Retour à la liste
-                        </a>
-                    </div>
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-bolt me-2"></i>Actions rapides</h6></div>
+                <div class="card-body d-grid gap-2">
+                    <a href="{{ path('admin_absence_edit', {'id': absence.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier l'absence</a>
+                    {% if absence.isPendingJustification %}<a href="{{ path('admin_absence_justify', {'id': absence.id}) }}" class="btn btn-success"><i class="fas fa-check-circle me-1"></i> Justifier l'absence</a>{% endif %}
+                    <a href="{{ path('admin_absence_new') }}" class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i> Nouvelle absence</a>
+                    <a href="{{ path('admin_absence_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour à la liste</a>
                 </div>
             </div>
 
             {% if absence.absenceType.description %}
-                <div class="card mt-3">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Type d'absence</h5>
-                    </div>
+                <div class="card">
+                    <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-tag me-2"></i>Type d'absence</h6></div>
                     <div class="card-body">
                         <p class="text-muted">{{ absence.absenceType.description }}</p>
-                        
-                        {% if absence.absenceType.requiresJustification %}
-                            <span class="badge bg-warning">Nécessite une justification</span>
-                        {% endif %}
-                        
-                        {% if absence.absenceType.countsAsAbsence %}
-                            <span class="badge bg-info">Compte comme absence</span>
-                        {% endif %}
-                        
-                        {% if absence.absenceType.penaltyPoints %}
-                            <span class="badge bg-danger">{{ absence.absenceType.penaltyPoints }} pts de pénalité</span>
-                        {% endif %}
+                        <div class="d-flex flex-wrap gap-1">
+                            {% if absence.absenceType.requiresJustification %}<span class="badge badge-soft warning">Nécessite une justification</span>{% endif %}
+                            {% if absence.absenceType.countsAsAbsence %}<span class="badge badge-soft info">Compte comme absence</span>{% endif %}
+                            {% if absence.absenceType.penaltyPoints %}<span class="badge badge-soft danger">{{ absence.absenceType.penaltyPoints }} pts de pénalité</span>{% endif %}
+                        </div>
                     </div>
                 </div>
             {% endif %}

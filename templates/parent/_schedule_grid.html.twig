@@ -1,0 +1,76 @@
+{# Grille d'emploi du temps réutilisable. Attend : classroom, schedule, time_slots. #}
+{% if not classroom %}
+    <div class="pp-empty">
+        <i class="fas fa-calendar-xmark"></i>
+        <p>Aucune classe affectée — l'emploi du temps sera disponible après affectation.</p>
+    </div>
+{% elseif time_slots is empty %}
+    <div class="pp-empty">
+        <i class="fas fa-calendar-day"></i>
+        <p>Aucun créneau n'a encore été défini pour cet établissement.</p>
+    </div>
+{% else %}
+    {% set days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
+    {% set day_labels = {'lundi':'Lundi','mardi':'Mardi','mercredi':'Mercredi','jeudi':'Jeudi','vendredi':'Vendredi','samedi':'Samedi'} %}
+    {% set all_courses = (schedule.lundi|default([]))|merge(schedule.mardi|default([]))|merge(schedule.mercredi|default([]))|merge(schedule.jeudi|default([]))|merge(schedule.vendredi|default([]))|merge(schedule.samedi|default([])) %}
+    {% if all_courses|length == 0 %}
+        <div class="pp-child-sub" style="padding:.9rem 1.1rem;background:#f8fafc;border-bottom:1px solid #eef1f6;">
+            <i class="fas fa-circle-info"></i> Aucun cours n'a encore été programmé pour la classe {{ classroom.name }}.
+        </div>
+    {% endif %}
+    <div class="pp-table-scroll" style="overflow-x:auto;">
+        <table class="pp-schedule">
+            <thead>
+                <tr>
+                    <th>Horaire</th>
+                    {% for day in days %}<th>{{ day_labels[day] }}</th>{% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for slot in time_slots %}
+                    <tr class="{{ slot.type != 'cours' ? 'pp-row-break' : '' }}">
+                        <td class="pp-slot-time">
+                            <strong>{{ slot.name }}</strong><br>
+                            <small>{{ slot.startTime|date('H:i') }} – {{ slot.endTime|date('H:i') }}</small>
+                        </td>
+                        {% if slot.type == 'cours' %}
+                            {% for day in days %}
+                                <td class="pp-slot-cell">
+                                    {% set found = false %}
+                                    {% for course in schedule[day] ?? [] %}
+                                        {% if course.timeSlot.id == slot.id %}
+                                            {% set found = true %}
+                                            {% set color = course.subject.color ?? '#1e3a5f' %}
+                                            <div class="pp-course" style="background:{{ color }}14;border-left:3px solid {{ color }};">
+                                                <strong>{{ course.subject.name }}</strong>
+                                                <span><i class="fas fa-user"></i> {{ course.teacher ? course.teacher.fullName : 'Non assigné' }}</span>
+                                                {% if course.room %}<span><i class="fas fa-door-closed"></i> {{ course.room.code }}</span>{% endif %}
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not found %}<span class="pp-empty-cell">—</span>{% endif %}
+                                </td>
+                            {% endfor %}
+                        {% else %}
+                            <td colspan="6" class="pp-slot-break">{{ slot.typeLabel }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+<style>
+    .pp-schedule { width:100%; border-collapse:collapse; font-size:.86rem; min-width:720px; }
+    .pp-schedule th, .pp-schedule td { border:1px solid #eef1f6; padding:.5rem; text-align:center; vertical-align:middle; }
+    .pp-schedule thead th { background:#f4f7fb; color:#1e3a5f; font-weight:600; }
+    .pp-slot-time { white-space:nowrap; background:#fafbfd; color:#1e3a5f; }
+    .pp-slot-time small { color:#8a97a8; }
+    .pp-slot-cell { min-width:120px; height:74px; }
+    .pp-course { text-align:left; padding:.4rem .55rem; border-radius:8px; display:flex; flex-direction:column; gap:.1rem; }
+    .pp-course strong { color:#1e3a5f; }
+    .pp-course span { font-size:.72rem; color:#5a6b80; }
+    .pp-row-break, .pp-slot-break { background:#f8fafc; color:#8a97a8; font-weight:600; }
+    .pp-empty-cell { color:#c2cad6; }
+</style>

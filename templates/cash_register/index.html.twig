@@ -4,64 +4,172 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Ma caisse</h1>
-        <div>
-            <a href="{{ path('admin_student_index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Retour
-            </a>
-        </div>
-    </div>
-
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-cash-register me-1"></i> {{ current_school.name }}
-            </h6>
-            {% if cash_register %}
-                <span class="badge bg-success">OUVERTE</span>
-            {% else %}
-                <span class="badge bg-warning text-dark">FERMÉE</span>
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Ma caisse',
+        subtitle: current_school.name,
+        icon: 'fa-cash-register',
+        color: 'primary',
+        breadcrumb: [ { label: 'Ma caisse' } ]
+    } %}
+        {% block actions %}
+            {% if cash_register and cash_register.isValidated %}
+                <a href="{{ path('admin_cash_register_deposit') }}" class="btn btn-primary"><i class="fas fa-money-bill-transfer me-1"></i> Nouveau versement</a>
             {% endif %}
+            <a href="{{ path('admin_student_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if cash_register and not cash_register.isValidated %}
+        <div class="alert alert-warning d-flex align-items-center">
+            <i class="fas fa-triangle-exclamation me-2 fa-lg"></i>
+            <div>
+                <strong>Caisse en attente de validation.</strong>
+                Tant que le fondateur n'a pas validé votre caisse, vous ne pouvez ni enregistrer de paiement ni effectuer de versement.
+            </div>
         </div>
-        <div class="card-body">
-            {% if cash_register %}
-                <div class="table-responsive">
-                    <table class="table table-bordered mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Caissière</th>
-                                <th class="text-end">Solde d'ouverture</th>
-                                <th class="text-end">Encaissements</th>
-                                <th class="text-end">Solde actuel</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="fw-bold">{{ cash_register.cashier.fullName }}</td>
-                                <td class="text-end">{{ cash_register.openingBalance|number_format(0, ',', ' ') }} F</td>
-                                <td class="text-end text-success">{{ payments_total|number_format(0, ',', ' ') }} F</td>
-                                <td class="text-end fw-bold">{{ current_balance|number_format(0, ',', ' ') }} F</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-3 text-muted">
-                    Ouverte le {{ cash_register.openedAt ? cash_register.openedAt|date('d/m/Y à H:i') : '-' }}.
-                </div>
-            {% else %}
-                <div class="alert alert-warning mb-0">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    Votre caisse n’est pas ouverte. Ouvrez votre caisse pour pouvoir enregistrer des paiements.
-                    <div class="mt-2">
-                        <a href="{{ path('admin_cash_register_open') }}" class="btn btn-sm btn-warning">
-                            <i class="fas fa-cash-register me-1"></i> Ouvrir ma caisse
-                        </a>
+    {% endif %}
+
+    {# ── Caisse en ligne de l'établissement (paiements mobile/passerelle) ── #}
+    {% if online_cash_register %}
+        <div class="card mb-4" style="border-left:4px solid var(--es-info, #0ea5e9);">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-info"><i class="fas fa-mobile-screen-button me-2"></i>Caisse en ligne — Mobile Money / Passerelle</h6>
+                <span class="badge bg-info">AUTOMATIQUE</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-7">
+                        <div class="info-list mb-0">
+                            <div class="info-row"><div class="info-label">Établissement</div><div class="info-value">{{ current_school.name }}</div></div>
+                            <div class="info-row"><div class="info-label">Transactions</div><div class="info-value">{{ online_count }}</div></div>
+                            <div class="info-row"><div class="info-label">Total encaissé en ligne</div><div class="info-value fw-bold text-success">{{ online_total|number_format(0, ',', ' ') }} F</div></div>
+                            <div class="info-row"><div class="info-label">Statut</div><div class="info-value"><span class="badge bg-success">Ouverte</span> <span class="badge bg-success">Validée</span></div></div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> Reçoit automatiquement les paiements effectués en ligne (Mobile Money, carte, virement) via la passerelle. Une seule par établissement.</p>
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <a href="{{ path('admin_mobile_money_log_index') }}" class="btn btn-outline-info btn-sm"><i class="fas fa-list me-1"></i> Voir les transactions</a>
+                        {% endif %}
                     </div>
                 </div>
-            {% endif %}
+            </div>
         </div>
-    </div>
+    {% endif %}
+
+    {% if cash_register %}
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3">
+                <div class="stat-card info h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Solde d'ouverture</div><div class="stat-value" style="font-size:1.1rem;">{{ cash_register.openingBalance|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
+                    <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+                </div></div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card success h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Encaissements</div><div class="stat-value text-success" style="font-size:1.1rem;">{{ payments_total|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
+                    <div class="stat-icon"><i class="fas fa-coins"></i></div>
+                </div></div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card danger h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Versements</div><div class="stat-value text-danger" style="font-size:1.1rem;">{{ deposits_total|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
+                    <div class="stat-icon"><i class="fas fa-money-bill-transfer"></i></div>
+                </div></div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card warning h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Solde actuel</div><div class="stat-value" style="font-size:1.1rem;">{{ current_balance|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
+                    <div class="stat-icon"><i class="fas fa-cash-register"></i></div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-primary"><i class="fas fa-cash-register me-2"></i>État de la caisse</h6>
+                <div>
+                    <span class="badge bg-success">OUVERTE</span>
+                    <span class="badge bg-{{ cash_register.isValidated ? 'success' : 'warning text-dark' }}">{{ cash_register.isValidated ? 'VALIDÉE' : 'NON VALIDÉE' }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="info-list">
+                    <div class="info-row"><div class="info-label">Caissière</div><div class="info-value">{{ cash_register.cashier.fullName }}</div></div>
+                    <div class="info-row"><div class="info-label">Validation</div><div class="info-value">
+                        {% if cash_register.isValidated %}
+                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Validée</span>
+                            {% if cash_register.validatedBy %}<small class="text-muted">par {{ cash_register.validatedBy.fullName }}{% if cash_register.validatedAt %} le {{ cash_register.validatedAt|date('d/m/Y') }}{% endif %}</small>{% endif %}
+                        {% else %}
+                            <span class="badge bg-warning text-dark">En attente de validation</span>
+                        {% endif %}
+                    </div></div>
+                    <div class="info-row"><div class="info-label">Solde d'ouverture</div><div class="info-value">{{ cash_register.openingBalance|number_format(0, ',', ' ') }} F</div></div>
+                    <div class="info-row"><div class="info-label">Total encaissements</div><div class="info-value text-success">+ {{ payments_total|number_format(0, ',', ' ') }} F</div></div>
+                    <div class="info-row"><div class="info-label">Total versements</div><div class="info-value text-danger">- {{ deposits_total|number_format(0, ',', ' ') }} F</div></div>
+                    <div class="info-row"><div class="info-label">Solde actuel</div><div class="info-value fw-bold">{{ current_balance|number_format(0, ',', ' ') }} F</div></div>
+                    <div class="info-row"><div class="info-label">Ouverte le</div><div class="info-value">{{ cash_register.openedAt ? cash_register.openedAt|date('d/m/Y à H:i') : '—' }}</div></div>
+                </div>
+            </div>
+        </div>
+
+        {# Liste des versements #}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-primary"><i class="fas fa-money-bill-transfer me-2"></i>Versements effectués</h6>
+                <span class="badge bg-primary">{{ deposits|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if deposits|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Référence bordereau</th>
+                                    <th class="text-end">Montant versé</th>
+                                    <th>Enregistré par</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for deposit in deposits %}
+                                    <tr>
+                                        <td>{{ deposit.depositDate ? deposit.depositDate|date('d/m/Y à H:i') : '—' }}</td>
+                                        <td><span class="badge bg-light text-dark">{{ deposit.reference }}</span></td>
+                                        <td class="text-end fw-bold text-danger">- {{ deposit.amount|number_format(0, ',', ' ') }} F</td>
+                                        <td>{{ deposit.recordedBy ? deposit.recordedBy.fullName : '—' }}</td>
+                                        <td class="text-muted">{{ deposit.notes ?: '—' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-info-circle me-1"></i> Aucun versement enregistré pour cette caisse.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold text-primary"><i class="fas fa-cash-register me-2"></i>{{ current_school.name }}</h6>
+                <span class="badge bg-warning text-dark">FERMÉE</span>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Votre caisse n'est pas ouverte. Ouvrez votre caisse pour pouvoir enregistrer des paiements.
+                    <div class="mt-2">
+                        <a href="{{ path('admin_cash_register_open') }}" class="btn btn-sm btn-warning"><i class="fas fa-cash-register me-1"></i> Ouvrir ma caisse</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
-

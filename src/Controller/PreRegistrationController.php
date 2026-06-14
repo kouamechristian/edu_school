@@ -2,11 +2,15 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
+use App\Controller\Concern\HandlesFileUpload;
 use App\Entity\PreRegistration;
 use App\Entity\DocumentType;
+use App\Entity\Student;
 use App\Form\PreRegistrationType;
 use App\Repository\PreRegistrationRepository;
 use App\Repository\DocumentTypeRepository;
+use App\Repository\StudentRepository;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -14,11 +18,15 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/admin/pre-registrations', name: 'admin_pre_registration_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_INSCRIPTION')]
 class PreRegistrationController extends AbstractController
 {
+    use HandlesEntityDeletion;
+    use HandlesFileUpload;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(
         Request $request,
@@ -41,21 +49,26 @@ class PreRegistrationController extends AbstractController
 
         $schoolId = $currentSchool->getId();
 
+        // La préinscription est liée à l'année scolaire : on restreint la liste à
+        // l'année courante (toutes années si aucune année n'est sélectionnée).
+        $currentSchoolYear = $contextService->getCurrentSchoolYear();
+        $schoolYearId = $currentSchoolYear?->getId();
+
         // Filtres
         $status = $request->query->get('status');
         $search = $request->query->get('search');
 
-        // Filtrer les préinscriptions selon l'établissement sélectionné
+        // Filtrer les préinscriptions selon l'établissement et l'année courante
         if ($search) {
-            $preRegistrations = $preRegistrationRepository->searchByName($search, $schoolId);
+            $preRegistrations = $preRegistrationRepository->searchByName($search, $schoolId, $schoolYearId);
         } elseif ($status) {
-            $preRegistrations = $preRegistrationRepository->findBySchoolAndStatus($schoolId, $status);
+            $preRegistrations = $preRegistrationRepository->findBySchoolAndStatus($schoolId, $status, $schoolYearId);
         } else {
-            $preRegistrations = $preRegistrationRepository->findBySchool($schoolId);
+            $preRegistrations = $preRegistrationRepository->findBySchool($schoolId, $schoolYearId);
         }
 
-        // Statistiques filtrées par établissement
-        $stats = $preRegistrationRepository->countByStatusInSchool($schoolId);
+        // Statistiques filtrées par établissement et année
+        $stats = $preRegistrationRepository->countByStatusInSchool($schoolId, $schoolYearId);
 
         return $this->render('pre_registration/index.html.twig', [
             'pre_registrations' => $preRegistrations,
@@ -63,6 +76,71 @@ class PreRegistrationController extends AbstractController
             'current_status' => $status,
             'search_term' => $search,
             'current_school' => $currentSchool,
+            'current_school_year' => $currentSchoolYear,
+        ]);
+    }
+
+    /**
+     * Choix du type de préinscription : nouvel élève (formulaire vierge) ou
+     * ancien élève déjà en base (formulaire pré-rempli à partir du matricule national).
+     */
+    #[Route('/choose', name: 'choose', methods: ['GET'])]
+    public function choose(SchoolContextService $contextService): Response
+    {
+        if (!$contextService->getCurrentSchool()) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour créer une préinscription.');
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        return $this->render('pre_registration/choose.html.twig');
+    }
+
+    /**
+     * Réinscription d'un ancien élève : on recherche l'élève par son matricule national
+     * dans l'établissement courant et on pré-remplit le formulaire de préinscription avec
+     * ses données existantes. L'enregistrement réutilise l'action « new » (le formulaire
+     * pré-rempli y est soumis), créant une nouvelle préinscription pour l'année courante.
+     */
+    #[Route('/returning', name: 'returning', methods: ['GET'])]
+    public function returning(
+        Request $request,
+        StudentRepository $studentRepository,
+        EntityManagerInterface $entityManager,
+        SchoolContextService $contextService,
+        \App\Service\PreRegistrationFactory $preRegistrationFactory
+    ): Response {
+        $currentSchool = $contextService->getCurrentSchool();
+        $currentSchoolYear = $contextService->getCurrentSchoolYear();
+
+        if (!$currentSchool) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour créer une préinscription.');
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        $matricule = trim((string) $request->query->get('matricule_national', ''));
+        $student = null;
+        $formView = null;
+
+        if ($matricule !== '') {
+            $student = $studentRepository->findLatestBySchoolAndNational($currentSchool->getId(), $matricule);
+
+            if ($student) {
+                $preRegistration = $preRegistrationFactory->fromStudent($student, $currentSchool, $currentSchoolYear);
+
+                $levels = $entityManager->getRepository(\App\Entity\Level::class)
+                    ->findBy(['school' => $currentSchool], ['name' => 'ASC']);
+
+                $formView = $this->createForm(PreRegistrationType::class, $preRegistration, [
+                    'levels' => $levels,
+                ])->createView();
+            }
+        }
+
+        return $this->render('pre_registration/returning.html.twig', [
+            'matricule_national' => $matricule,
+            'student' => $student,
+            'form' => $formView,
+            'current_school_year' => $currentSchoolYear,
         ]);
     }
 
@@ -70,7 +148,9 @@ class PreRegistrationController extends AbstractController
     public function new(
         Request $request,
         EntityManagerInterface $entityManager,
-        SchoolContextService $contextService
+        SchoolContextService $contextService,
+        \App\Service\MatriculeGenerator $matriculeGenerator,
+        SluggerInterface $slugger
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         $currentSchoolYear = $contextService->getCurrentSchoolYear();
@@ -92,24 +172,24 @@ class PreRegistrationController extends AbstractController
         $levels = $entityManager->getRepository(\App\Entity\Level::class)
             ->findBy(['school' => $currentSchool], ['name' => 'ASC']);
 
-        // Récupérer les années scolaires (priorité à l'année en cours)
-        $schoolYears = $entityManager->getRepository(\App\Entity\SchoolYear::class)
-            ->findBy([], ['startDate' => 'DESC']);
-        
-        // Mettre l'année scolaire en cours en premier
-        if ($currentSchoolYear) {
-            $schoolYears = array_filter($schoolYears, fn($sy) => $sy->getId() !== $currentSchoolYear->getId());
-            array_unshift($schoolYears, $currentSchoolYear);
-        }
-
         // Créer le formulaire avec les options personnalisées
         $form = $this->createForm(PreRegistrationType::class, $preRegistration, [
             'levels' => $levels,
-            'school_years' => $schoolYears,
         ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Matricule interne généré automatiquement par le système.
+            if (!$preRegistration->getMatriculeInterne()) {
+                $preRegistration->setMatriculeInterne(
+                    $matriculeGenerator->generate($entityManager, PreRegistration::class)
+                );
+            }
+
+            if ($photo = $this->uploadFile($form->get('photoFile')->getData(), 'students', $slugger)) {
+                $preRegistration->setPhoto($photo);
+            }
+
             $entityManager->persist($preRegistration);
             $entityManager->flush();
 
@@ -145,12 +225,25 @@ class PreRegistrationController extends AbstractController
     public function edit(
         Request $request,
         PreRegistration $preRegistration,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        SluggerInterface $slugger
     ): Response {
-        $form = $this->createForm(PreRegistrationType::class, $preRegistration);
+        // Niveaux de l'établissement de la préinscription (pour le sélecteur).
+        $levels = $preRegistration->getSchool()
+            ? $entityManager->getRepository(\App\Entity\Level::class)
+                ->findBy(['school' => $preRegistration->getSchool()], ['name' => 'ASC'])
+            : [];
+
+        $form = $this->createForm(PreRegistrationType::class, $preRegistration, [
+            'levels' => $levels,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            if ($photo = $this->uploadFile($form->get('photoFile')->getData(), 'students', $slugger)) {
+                $preRegistration->setPhoto($photo);
+            }
+
             $entityManager->flush();
 
             $this->addFlash('success', 'La préinscription a été modifiée avec succès.');
@@ -314,10 +407,12 @@ class PreRegistrationController extends AbstractController
         EntityManagerInterface $entityManager
     ): Response {
         if ($this->isCsrfTokenValid('delete'.$preRegistration->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($preRegistration);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'La préinscription a été supprimée avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $preRegistration,
+                'La préinscription a été supprimée avec succès.',
+                'Suppression impossible : cette préinscription est encore liée à des documents ou un élève inscrit.'
+            );
         }
 
         return $this->redirectToRoute('admin_pre_registration_index');

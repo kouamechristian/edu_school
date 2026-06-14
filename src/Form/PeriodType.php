@@ -3,9 +3,6 @@
 namespace App\Form;
 
 use App\Entity\Period;
-use App\Entity\School;
-use App\Entity\SchoolYear;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -19,21 +16,6 @@ class PeriodType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('school', EntityType::class, [
-                'label' => 'Établissement',
-                'class' => School::class,
-                'choice_label' => 'name',
-                'attr' => ['class' => 'form-select'],
-                'placeholder' => 'Sélectionnez un établissement',
-                'disabled' => $options['data']->getId() !== null,
-            ])
-            ->add('schoolYear', EntityType::class, [
-                'label' => 'Année scolaire',
-                'class' => SchoolYear::class,
-                'choice_label' => 'name',
-                'attr' => ['class' => 'form-select'],
-                'placeholder' => 'Sélectionnez une année scolaire',
-            ])
             ->add('name', TextType::class, [
                 'label' => 'Nom de la période',
                 'attr' => [
@@ -43,11 +25,12 @@ class PeriodType extends AbstractType
             ])
             ->add('code', TextType::class, [
                 'label' => 'Code',
+                'required' => false,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Ex: T1, S1...',
+                    'placeholder' => 'Laisser vide pour génération automatique',
                 ],
-                'help' => 'Code unique pour identifier la période',
+                'help' => 'Code unique pour identifier la période. Généré automatiquement si laissé vide.',
             ])
             ->add('orderNumber', IntegerType::class, [
                 'label' => 'Numéro d\'ordre',

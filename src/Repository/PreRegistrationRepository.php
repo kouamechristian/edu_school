@@ -30,37 +30,50 @@ class PreRegistrationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les préinscriptions par école
+     * Trouve les préinscriptions par école (et, si fourni, par année scolaire).
+     *
+     * La préinscription étant liée à l'année scolaire, la liste est normalement
+     * restreinte à l'année courante ; $schoolYearId à null retourne toutes les années.
      */
-    public function findBySchool(int $schoolId): array
+    public function findBySchool(int $schoolId, ?int $schoolYearId = null): array
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->where('p.school = :schoolId')
             ->setParameter('schoolId', $schoolId)
-            ->orderBy('p.createdAt', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('p.createdAt', 'DESC');
+
+        if ($schoolYearId) {
+            $qb->andWhere('p.schoolYear = :schoolYearId')
+               ->setParameter('schoolYearId', $schoolYearId);
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     /**
-     * Trouve les préinscriptions par école et statut
+     * Trouve les préinscriptions par école et statut (et, si fourni, par année scolaire).
      */
-    public function findBySchoolAndStatus(int $schoolId, string $status): array
+    public function findBySchoolAndStatus(int $schoolId, string $status, ?int $schoolYearId = null): array
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->where('p.school = :schoolId')
             ->andWhere('p.status = :status')
             ->setParameter('schoolId', $schoolId)
             ->setParameter('status', $status)
-            ->orderBy('p.createdAt', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('p.createdAt', 'DESC');
+
+        if ($schoolYearId) {
+            $qb->andWhere('p.schoolYear = :schoolYearId')
+               ->setParameter('schoolYearId', $schoolYearId);
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     /**
-     * Recherche les préinscriptions par nom ou prénom
+     * Recherche les préinscriptions par nom ou prénom (filtrable par école et année).
      */
-    public function searchByName(string $search, ?int $schoolId = null): array
+    public function searchByName(string $search, ?int $schoolId = null, ?int $schoolYearId = null): array
     {
         $qb = $this->createQueryBuilder('p')
             ->where('p.firstName LIKE :search OR p.lastName LIKE :search')
@@ -70,6 +83,11 @@ class PreRegistrationRepository extends ServiceEntityRepository
         if ($schoolId) {
             $qb->andWhere('p.school = :schoolId')
                ->setParameter('schoolId', $schoolId);
+        }
+
+        if ($schoolYearId) {
+            $qb->andWhere('p.schoolYear = :schoolYearId')
+               ->setParameter('schoolYearId', $schoolYearId);
         }
 
         return $qb->getQuery()->getResult();
@@ -95,17 +113,22 @@ class PreRegistrationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Compte les préinscriptions par statut pour une école
+     * Compte les préinscriptions par statut pour une école (et, si fourni, une année).
      */
-    public function countByStatusInSchool(int $schoolId): array
+    public function countByStatusInSchool(int $schoolId, ?int $schoolYearId = null): array
     {
-        $result = $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->select('p.status, COUNT(p.id) as count')
             ->where('p.school = :schoolId')
             ->setParameter('schoolId', $schoolId)
-            ->groupBy('p.status')
-            ->getQuery()
-            ->getResult();
+            ->groupBy('p.status');
+
+        if ($schoolYearId) {
+            $qb->andWhere('p.schoolYear = :schoolYearId')
+               ->setParameter('schoolYearId', $schoolYearId);
+        }
+
+        $result = $qb->getQuery()->getResult();
 
         $counts = [];
         foreach ($result as $row) {
@@ -129,9 +152,12 @@ class PreRegistrationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les préinscriptions validées prêtes pour l'inscription
+     * Trouve les préinscriptions validées prêtes pour l'inscription.
+     *
+     * L'inscription étant liée à l'année scolaire, on ne propose que les
+     * préinscriptions validées de l'année courante lorsque $schoolYearId est fourni.
      */
-    public function findReadyForEnrollment(?int $schoolId = null): array
+    public function findReadyForEnrollment(?int $schoolId = null, ?int $schoolYearId = null): array
     {
         $qb = $this->createQueryBuilder('p')
             ->where('p.status = :status')
@@ -143,7 +169,48 @@ class PreRegistrationRepository extends ServiceEntityRepository
                ->setParameter('schoolId', $schoolId);
         }
 
+        if ($schoolYearId) {
+            $qb->andWhere('p.schoolYear = :schoolYearId')
+               ->setParameter('schoolYearId', $schoolYearId);
+        }
+
         return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Compte le nombre de préinscriptions par matricule national, pour un établissement.
+     *
+     * Toutes années confondues, mais uniquement les préinscriptions abouties
+     * (statuts « validated » et « enrolled ») : reflète le nombre de préinscriptions
+     * validées/inscrites d'un même élève depuis sa venue dans l'établissement.
+     *
+     * @param string[] $matriculeNationals
+     * @return array<string, int> matricule national => nombre de préinscriptions validées/inscrites
+     */
+    public function countBySchoolGroupedByNational(int $schoolId, array $matriculeNationals): array
+    {
+        if ($matriculeNationals === []) {
+            return [];
+        }
+
+        $rows = $this->createQueryBuilder('p')
+            ->select('p.matriculeNational AS mn, COUNT(p.id) AS cnt')
+            ->where('p.school = :schoolId')
+            ->andWhere('p.matriculeNational IN (:nationals)')
+            ->andWhere('p.status IN (:statuses)')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('nationals', $matriculeNationals)
+            ->setParameter('statuses', ['validated', 'enrolled'])
+            ->groupBy('p.matriculeNational')
+            ->getQuery()
+            ->getScalarResult();
+
+        $counts = [];
+        foreach ($rows as $r) {
+            $counts[trim((string) $r['mn'])] = (int) $r['cnt'];
+        }
+
+        return $counts;
     }
 
     /**

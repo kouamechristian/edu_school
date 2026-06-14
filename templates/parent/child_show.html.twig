@@ -1,0 +1,107 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}{{ child.fullName }}{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> / {{ child.fullName }}</div>
+{% endblock %}
+{% block page_title %}{{ child.fullName }}{% endblock %}
+{% block page_subtitle %}
+    {% if child.school %}{{ child.school.name }} · {% endif %}
+    {{ child.classroom ? child.classroom.name : 'Classe non affectée' }}
+    {% if child.matriculeInterne %} · Matricule {{ child.matriculeInterne }}{% endif %}
+    {% if period %} · {{ period.name }}{% endif %}
+{% endblock %}
+
+{% block subnav %}{% include 'parent/_child_nav.html.twig' with {active: 'résumé'} %}{% endblock %}
+{% block bottomnav %}{% include 'parent/_child_bottomnav.html.twig' %}{% endblock %}
+
+{% block body %}
+{% set avg = academic.general_average %}
+{% set ring = avg is not null ? (avg / 20 * 100)|round : 0 %}
+{% set ring_color = avg is null ? '#94a3b8' : (avg >= 14 ? '#10b981' : (avg >= 10 ? '#f59e0b' : '#ef4444')) %}
+
+{# Réinscription : démarche en ligne pour l'année suivante (ancien élève) #}
+<section class="pp-card pp-reveal" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:.9rem;">
+        <span class="pp-card-title" style="margin:0;"><i class="fas fa-user-graduate"></i> Réinscription</span>
+        <span class="pp-child-sub" style="margin:0;">Inscrivez {{ child.firstName }} pour une nouvelle année scolaire.</span>
+    </div>
+    <a href="{{ path('parent_child_reenroll', {id: child.id}) }}" class="pp-btn pp-btn-primary" style="padding:.45rem 1rem;">
+        <i class="fas fa-paper-plane"></i> Demander la réinscription
+    </a>
+</section>
+
+<div class="pp-grid cols-2">
+    {# Résultats #}
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-header">
+            <span class="pp-card-title"><i class="fas fa-clipboard-check"></i> Résultats</span>
+            <a href="{{ path('parent_child_grades', {id: child.id}) }}" class="pp-btn pp-btn-ghost" style="padding:.35rem .8rem;">Détail</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:1.25rem;">
+            <div class="pp-ring" style="--val:{{ ring }};--ring-color:{{ ring_color }};">
+                <div class="pp-ring-label">
+                    <div class="num">{{ avg is not null ? avg : '—' }}</div>
+                    <div class="unit">/ 20</div>
+                </div>
+            </div>
+            <div style="flex:1;">
+                {% if academic.subjects is empty %}
+                    <p class="pp-child-sub" style="margin:0;">Aucune note publiée pour le moment.</p>
+                {% else %}
+                    {% for row in academic.subjects|slice(0, 4) %}
+                        <div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid #f1f4f9;">
+                            <span style="font-size:.9rem;">{{ row.subject.name }}</span>
+                            <strong>{{ row.average is not null ? row.average ~ '/20' : '—' }}</strong>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {# Assiduité #}
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-header">
+            <span class="pp-card-title"><i class="fas fa-calendar-check"></i> Assiduité</span>
+            <a href="{{ path('parent_child_absences', {id: child.id}) }}" class="pp-btn pp-btn-ghost" style="padding:.35rem .8rem;">Détail</a>
+        </div>
+        <div class="pp-stats" style="grid-template-columns:repeat(4,1fr);">
+            <div class="pp-stat"><div class="v">{{ attendance.total }}</div><div class="l">Total</div></div>
+            <div class="pp-stat"><div class="v good">{{ attendance.justified }}</div><div class="l">Justifiées</div></div>
+            <div class="pp-stat"><div class="v warn">{{ attendance.pending }}</div><div class="l">En attente</div></div>
+            <div class="pp-stat"><div class="v bad">{{ attendance.unjustified }}</div><div class="l">Injustifiées</div></div>
+        </div>
+    </section>
+</div>
+
+{# Finances #}
+<section class="pp-card pp-reveal" style="margin-top:1.1rem;">
+    <div class="pp-card-header">
+        <span class="pp-card-title"><i class="fas fa-wallet"></i> Situation financière</span>
+        <a href="{{ path('parent_child_finance', {id: child.id}) }}" class="pp-btn pp-btn-ghost" style="padding:.35rem .8rem;">Détail</a>
+    </div>
+    {% set total = finance.total_tuition %}
+    {% set paid = finance.total_paid %}
+    {% set pct = total > 0 ? (paid / total * 100)|round : 100 %}
+    <div class="pp-stats" style="margin-bottom:1rem;">
+        <div class="pp-stat"><div class="v">{{ total|number_format(0, ',', ' ') }}</div><div class="l">Frais total</div></div>
+        <div class="pp-stat"><div class="v good">{{ paid|number_format(0, ',', ' ') }}</div><div class="l">Payé</div></div>
+        <div class="pp-stat"><div class="v {{ finance.remaining > 0 ? 'bad' : 'good' }}">{{ finance.remaining|number_format(0, ',', ' ') }}</div><div class="l">Reste à payer</div></div>
+    </div>
+    <div style="height:10px;background:#e6ebf2;border-radius:999px;overflow:hidden;">
+        <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,#10b981,#059669);border-radius:999px;"></div>
+    </div>
+    <div class="pp-child-sub" style="margin-top:.4rem;">{{ pct }}% réglé</div>
+</section>
+
+{# Emploi du temps #}
+<section class="pp-card pp-reveal" style="margin-top:1.1rem;">
+    <div class="pp-card-header">
+        <span class="pp-card-title"><i class="fas fa-calendar-week"></i> Emploi du temps</span>
+        <a href="{{ path('parent_child_schedule', {id: child.id}) }}" class="pp-btn pp-btn-ghost" style="padding:.35rem .8rem;">Détail</a>
+    </div>
+    {% include 'parent/_schedule_grid.html.twig' %}
+</section>
+{% endblock %}

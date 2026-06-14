@@ -1,0 +1,101 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}Absences · {{ child.fullName }}{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> /
+        <a href="{{ path('parent_child_show', {id: child.id}) }}">{{ child.fullName }}</a> / Absences</div>
+{% endblock %}
+{% block page_title %}Assiduité de {{ child.fullName }}{% endblock %}
+{% block page_subtitle %}Suivi des absences {{ period ? '— ' ~ period.name : '' }}.{% endblock %}
+
+{% block subnav %}{% include 'parent/_child_nav.html.twig' with {active: 'absences'} %}{% endblock %}
+{% block bottomnav %}{% include 'parent/_child_bottomnav.html.twig' %}{% endblock %}
+
+{% block body %}
+{% if periods is not empty %}
+<form method="get" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:.6rem;">
+    <label class="pp-child-sub" style="margin:0;">Période</label>
+    <select name="period" onchange="this.form.submit()"
+            style="border:1px solid #e3e8f0;border-radius:999px;padding:.45rem 1rem;font-weight:600;color:#1e3a5f;background:#fff;">
+        {% for p in periods %}
+            <option value="{{ p.id }}" {{ period and period.id == p.id ? 'selected' : '' }}>{{ p.name }}</option>
+        {% endfor %}
+    </select>
+</form>
+{% endif %}
+
+<div class="pp-grid cols-2" style="align-items:start;">
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-chart-pie"></i> Répartition</div>
+        {% if attendance.total == 0 %}
+            <div class="pp-empty" style="padding:1.5rem;"><i class="fas fa-circle-check" style="color:#10b981;"></i><p>Aucune absence enregistrée.</p></div>
+        {% else %}
+            <canvas id="absChart" height="200"></canvas>
+        {% endif %}
+    </section>
+
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-list-check"></i> Synthèse</div>
+        <div class="pp-stats" style="grid-template-columns:repeat(2,1fr);gap:.7rem;">
+            <div class="pp-stat"><div class="v">{{ attendance.total }}</div><div class="l">Total</div></div>
+            <div class="pp-stat"><div class="v good">{{ attendance.justified }}</div><div class="l">Justifiées</div></div>
+            <div class="pp-stat"><div class="v warn">{{ attendance.pending }}</div><div class="l">En attente</div></div>
+            <div class="pp-stat"><div class="v bad">{{ attendance.unjustified }}</div><div class="l">Injustifiées</div></div>
+        </div>
+    </section>
+</div>
+
+<section class="pp-card pp-reveal" style="margin-top:1.1rem;padding:0;overflow:hidden;">
+    <div class="pp-card-header" style="padding:1rem 1.25rem;margin:0;background:#f8fafc;">
+        <span class="pp-card-title">Détail des absences</span>
+    </div>
+    {% if attendance.absences is empty %}
+        <div class="pp-empty"><i class="fas fa-circle-check" style="color:#10b981;"></i><p>Aucune absence sur cette période.</p></div>
+    {% else %}
+        <table class="pp-table">
+            <thead><tr><th>Date</th><th>Type</th><th>Motif</th><th class="text-center">Statut</th></tr></thead>
+            <tbody>
+                {% for absence in attendance.absences %}
+                    <tr>
+                        <td>{{ absence.date ? absence.date|date('d/m/Y') : '—' }}</td>
+                        <td>{{ absence.absenceType ? absence.absenceType.name : '—' }}</td>
+                        <td>{{ absence.reason ?: '—' }}</td>
+                        <td class="text-center">
+                            {% if absence.justified %}
+                                <span class="pp-badge green">{{ absence.justificationStatusLabel }}</span>
+                            {% elseif absence.pendingJustification %}
+                                <span class="pp-badge amber">{{ absence.justificationStatusLabel }}</span>
+                            {% else %}
+                                <span class="pp-badge red">{{ absence.justificationStatusLabel }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block javascripts %}
+{% if attendance.total > 0 %}
+<script>
+    (function () {
+        var ctx = document.getElementById('absChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Justifiées', 'En attente', 'Injustifiées'],
+                datasets: [{
+                    data: [{{ attendance.justified }}, {{ attendance.pending }}, {{ attendance.unjustified }}],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], borderWidth: 0
+                }]
+            },
+            options: { cutout: '62%', plugins: { legend: { position: 'bottom' } }, responsive: true, maintainAspectRatio: true }
+        });
+    })();
+</script>
+{% endif %}
+{% endblock %}

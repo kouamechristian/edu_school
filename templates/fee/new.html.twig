@@ -4,94 +4,66 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
-                        <li class="breadcrumb-item"><a href="{{ path('admin_fee_index') }}">Frais</a></li>
-                        <li class="breadcrumb-item active">Nouveau</li>
-                    </ol>
-                </div>
-                <h4 class="page-title">Nouveau Frais</h4>
-            </div>
-        </div>
-    </div>
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Nouveau Frais',
+        icon: 'fa-money-bill',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Frais', path: path('admin_fee_index') },
+            { label: 'Nouveau' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_fee_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
 
-    <div class="row">
-        <div class="col-12">
+    {% include '_flash.html.twig' %}
+
+    <div class="row justify-content-center">
+        <div class="col-xl-9">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-money-bill me-2"></i>
-                        Créer un nouveau frais
-                    </h5>
-                </div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-money-bill me-2"></i>Créer un nouveau frais</h6></div>
                 <div class="card-body">
                     {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': true}}) }}
+                        <div class="mb-3">
+                            {{ form_label(form.name, null, {'label_attr': {'class': 'form-label'}}) }}
+                            {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.name) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form_label(form.level, null, {'label_attr': {'class': 'form-label'}}) }}
+                            {{ form_widget(form.level, {'attr': {'class': 'form-select'}}) }}
+                            {{ form_errors(form.level) }}
+                        </div>
                         <div class="row">
-                            <div class="col-md-12">
-                                <div class="mb-3">
-                                    {{ form_label(form.name, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.name) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.amount, null, {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.amount, {'attr': {'class': 'form-control'}}) }}
+                                {{ form_errors(form.amount) }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.category, null, {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.category, {'attr': {'class': 'form-select'}}) }}
+                                {{ form_errors(form.category) }}
                             </div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-12">
-                                <div class="mb-3">
-                                    {{ form_label(form.level, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.level, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.level) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.type, null, {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.type, {'attr': {'class': 'form-select'}}) }}
+                                {{ form_errors(form.type) }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.frequency, null, {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.frequency, {'attr': {'class': 'form-select'}}) }}
+                                {{ form_errors(form.frequency) }}
                             </div>
                         </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.amount, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.amount, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.amount) }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.category, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.category, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.category) }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.type, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.type, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.type) }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.frequency, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.frequency, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.frequency) }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="mb-3">
-                                    {{ form_label(form.description, null, {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.description, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.description) }}
-                                </div>
-                            </div>
+                        <div class="mb-3">
+                            {{ form_label(form.description, null, {'label_attr': {'class': 'form-label'}}) }}
+                            {{ form_widget(form.description, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.description) }}
                         </div>
 
                         <div class="alert alert-info">
@@ -99,19 +71,9 @@
                             Après la création du frais, vous pourrez configurer l'échéancier de paiement dans l'onglet « Échéancier » de la page de modification.
                         </div>
 
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="d-flex justify-content-between">
-                                    <a href="{{ path('admin_fee_index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-arrow-left me-1"></i>
-                                        Retour
-                                    </a>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-check me-1"></i>
-                                        Créer le Frais
-                                    </button>
-                                </div>
-                            </div>
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_fee_index') }}" class="btn btn-light"><i class="fas fa-times me-1"></i> Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-check me-1"></i> Créer le Frais</button>
                         </div>
                     {{ form_end(form) }}
                 </div>

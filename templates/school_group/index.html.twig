@@ -1,101 +1,54 @@
 {% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
 
 {% block title %}Groupes d'Établissements{% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="h3 mb-3">
-                <i class="fas fa-sitemap me-2"></i> Gestion des Groupes d'Établissements
-            </h1>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ path('admin_school_group_new') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i> Nouveau Groupe
-            </a>
-        </div>
-    </div>
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Groupes d\'Établissements',
+        subtitle: 'Réseaux et organisations multi-écoles',
+        icon: 'fa-sitemap',
+        color: 'primary',
+        breadcrumb: [ { label: 'Groupes d\'établissements' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_school_group_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau Groupe</a>
+        {% endblock %}
+    {% endembed %}
 
-    {% for message in app.flashes('success') %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
+    {% include '_flash.html.twig' %}
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Liste des Groupes d'Établissements</h5>
-        </div>
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des groupes</h6></div>
         <div class="card-body">
             {% if school_groups is empty %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Aucun groupe enregistré. Cliquez sur "Nouveau Groupe" pour commencer.
-                </div>
+                {{ empty_state('fa-sitemap', 'Aucun groupe', 'Cliquez sur « Nouveau Groupe » pour commencer.') }}
             {% else %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Nom</th>
-                                <th>Description</th>
-                                <th>Établissements</th>
-                                <th>Statut</th>
-                                <th width="200">Actions</th>
-                            </tr>
+                            <tr><th>Code</th><th>Nom</th><th>Description</th><th>Établissements</th><th>Statut</th><th class="text-end" width="160">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for group in school_groups %}
                             <tr>
                                 <td><strong>{{ group.code }}</strong></td>
                                 <td>{{ group.name }}</td>
-                                <td>
-                                    {% if group.description %}
-                                        {{ group.description|length > 50 ? group.description|slice(0, 50) ~ '...' : group.description }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge bg-info">
-                                        {{ group.schools|length }} établissement(s)
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if group.isActive %}
-                                        <span class="badge bg-success">Actif</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Inactif</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ path('admin_school_group_show', {'id': group.id}) }}" 
-                                           class="btn btn-info" title="Voir">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ path('admin_school_group_edit', {'id': group.id}) }}" 
-                                           class="btn btn-warning" title="Modifier">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form method="post" action="{{ path('admin_school_group_toggle', {'id': group.id}) }}" 
-                                              style="display:inline;">
+                                <td class="text-muted">{% if group.description %}{{ group.description|length > 50 ? group.description|slice(0, 50) ~ '...' : group.description }}{% else %}—{% endif %}</td>
+                                <td><span class="badge badge-soft info">{{ group.schools|length }} établissement(s)</span></td>
+                                <td><span class="badge badge-soft {{ group.isActive ? 'success' : 'danger' }}">{{ group.isActive ? 'Actif' : 'Inactif' }}</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_school_group_show', {'id': group.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
+                                        <a href="{{ path('admin_school_group_edit', {'id': group.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        <form method="post" action="{{ path('admin_school_group_toggle', {'id': group.id}) }}" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ group.id) }}">
-                                            <button type="submit" class="btn btn-secondary" 
-                                                    title="{{ group.isActive ? 'Désactiver' : 'Activer' }}">
-                                                <i class="fas fa-{{ group.isActive ? 'ban' : 'check' }}"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-outline-secondary" title="{{ group.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ group.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
-                                        <form method="post" action="{{ path('admin_school_group_delete', {'id': group.id}) }}" 
-                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?');"
-                                              style="display:inline;">
+                                        <form method="post" action="{{ path('admin_school_group_delete', {'id': group.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ group.id) }}">
-                                            <button type="submit" class="btn btn-danger" title="Supprimer">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>
@@ -109,4 +62,3 @@
     </div>
 </div>
 {% endblock %}
-

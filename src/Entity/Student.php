@@ -48,7 +48,31 @@ class Student
     private ?string $gender = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-    private ?string $studentNumber = null;
+    private ?string $matriculeInterne = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $matriculeNational = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $placeOfBirth = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $nationality = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $birthCertificateNumber = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $cmuNumber = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $lastSchoolAttended = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isRepeating = false;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $photo = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $parentName = null;
@@ -58,6 +82,12 @@ class Student
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $parentEmail = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $parentFunction = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $parentAddress = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $emergencyContact = null;
@@ -100,11 +130,18 @@ class Student
     #[ORM\JoinColumn(nullable: true)]
     private ?SchoolYear $schoolYear = null;
 
+    /**
+     * Compte parent rattaché (auto-association via le portail parent).
+     *
+     * Un élève ne peut référencer qu'UN seul parent : c'est la garantie, au niveau
+     * du schéma, qu'un enfant n'est pas rattaché à plusieurs comptes parents à la fois.
+     */
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'children')]
+    #[ORM\JoinColumn(name: 'parent_user_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $parentUser = null;
+
     #[ORM\OneToMany(mappedBy: 'student', targetEntity: Grade::class)]
     private Collection $grades;
-
-    #[ORM\OneToMany(mappedBy: 'student', targetEntity: SchoolGroup::class)]
-    private Collection $schoolGroups;
 
     #[ORM\OneToOne(inversedBy: 'student', targetEntity: PreRegistration::class, cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(name: 'pre_registration_id', referencedColumnName: 'id')]
@@ -118,7 +155,6 @@ class Student
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
         $this->grades = new ArrayCollection();
-        $this->schoolGroups = new ArrayCollection();
         $this->studentFees = new ArrayCollection();
     }
 
@@ -218,14 +254,124 @@ class Student
         return $this;
     }
 
-    public function getStudentNumber(): ?string
+    public function getMatriculeInterne(): ?string
     {
-        return $this->studentNumber;
+        return $this->matriculeInterne;
     }
 
-    public function setStudentNumber(?string $studentNumber): static
+    public function setMatriculeInterne(?string $matriculeInterne): static
     {
-        $this->studentNumber = $studentNumber;
+        $this->matriculeInterne = $matriculeInterne;
+        return $this;
+    }
+
+    public function getMatriculeNational(): ?string
+    {
+        return $this->matriculeNational;
+    }
+
+    public function setMatriculeNational(?string $matriculeNational): static
+    {
+        $this->matriculeNational = $matriculeNational;
+        return $this;
+    }
+
+    public function getPlaceOfBirth(): ?string
+    {
+        return $this->placeOfBirth;
+    }
+
+    public function setPlaceOfBirth(?string $placeOfBirth): static
+    {
+        $this->placeOfBirth = $placeOfBirth;
+        return $this;
+    }
+
+    public function getNationality(): ?string
+    {
+        return $this->nationality;
+    }
+
+    public function setNationality(?string $nationality): static
+    {
+        $this->nationality = $nationality;
+        return $this;
+    }
+
+    public function getBirthCertificateNumber(): ?string
+    {
+        return $this->birthCertificateNumber;
+    }
+
+    public function setBirthCertificateNumber(?string $birthCertificateNumber): static
+    {
+        $this->birthCertificateNumber = $birthCertificateNumber;
+        return $this;
+    }
+
+    public function getCmuNumber(): ?string
+    {
+        return $this->cmuNumber;
+    }
+
+    public function setCmuNumber(?string $cmuNumber): static
+    {
+        $this->cmuNumber = $cmuNumber;
+        return $this;
+    }
+
+    public function getLastSchoolAttended(): ?string
+    {
+        return $this->lastSchoolAttended;
+    }
+
+    public function setLastSchoolAttended(?string $lastSchoolAttended): static
+    {
+        $this->lastSchoolAttended = $lastSchoolAttended;
+        return $this;
+    }
+
+    public function isRepeating(): bool
+    {
+        return $this->isRepeating;
+    }
+
+    public function setIsRepeating(bool $isRepeating): static
+    {
+        $this->isRepeating = $isRepeating;
+        return $this;
+    }
+
+    public function getPhoto(): ?string
+    {
+        return $this->photo;
+    }
+
+    public function setPhoto(?string $photo): static
+    {
+        $this->photo = $photo;
+        return $this;
+    }
+
+    public function getParentFunction(): ?string
+    {
+        return $this->parentFunction;
+    }
+
+    public function setParentFunction(?string $parentFunction): static
+    {
+        $this->parentFunction = $parentFunction;
+        return $this;
+    }
+
+    public function getParentAddress(): ?string
+    {
+        return $this->parentAddress;
+    }
+
+    public function setParentAddress(?string $parentAddress): static
+    {
+        $this->parentAddress = $parentAddress;
         return $this;
     }
 
@@ -412,6 +558,17 @@ class Student
         return $this;
     }
 
+    public function getParentUser(): ?User
+    {
+        return $this->parentUser;
+    }
+
+    public function setParentUser(?User $parentUser): static
+    {
+        $this->parentUser = $parentUser;
+        return $this;
+    }
+
     /**
      * @return Collection<int, Grade>
      */
@@ -436,36 +593,6 @@ class Student
             // set the owning side to null (unless already changed)
             if ($grade->getStudent() === $this) {
                 $grade->setStudent(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, SchoolGroup>
-     */
-    public function getSchoolGroups(): Collection
-    {
-        return $this->schoolGroups;
-    }
-
-    public function addSchoolGroup(SchoolGroup $schoolGroup): static
-    {
-        if (!$this->schoolGroups->contains($schoolGroup)) {
-            $this->schoolGroups->add($schoolGroup);
-            $schoolGroup->setStudent($this);
-        }
-
-        return $this;
-    }
-
-    public function removeSchoolGroup(SchoolGroup $schoolGroup): static
-    {
-        if ($this->schoolGroups->removeElement($schoolGroup)) {
-            // set the owning side to null (unless already changed)
-            if ($schoolGroup->getStudent() === $this) {
-                $schoolGroup->setStudent(null);
             }
         }
 

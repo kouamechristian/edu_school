@@ -28,11 +28,12 @@ class RoomType extends AbstractType
             ])
             ->add('code', TextType::class, [
                 'label' => 'Code',
+                'required' => false,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Ex: S101',
+                    'placeholder' => 'Laisser vide pour génération automatique',
                 ],
-                'help' => 'Code unique pour identifier la salle',
+                'help' => 'Code unique pour identifier la salle. Généré automatiquement si laissé vide.',
             ])
             ->add('capacity', IntegerType::class, [
                 'label' => 'Capacité',

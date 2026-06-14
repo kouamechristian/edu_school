@@ -1,47 +1,44 @@
 {% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
 
 {% block title %}Saisie des Notes{% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-2">Saisie des Notes</h1>
-            <p class="text-muted mb-0">
-                <strong>{{ evaluation.name }}</strong> - 
-                {{ evaluation.classroom.name }} - 
-                {{ evaluation.subject.name }} - 
-                {{ evaluation.period.name }}
-            </p>
-        </div>
-        <a href="{{ path('admin_evaluation_index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Retour
-        </a>
-    </div>
+<div class="container-fluid">
+    {# ── En-tête ── #}
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Saisie des Notes',
+        subtitle: evaluation.name ~ '  ·  ' ~ evaluation.classroom.name ~ '  ·  ' ~ evaluation.subject.name ~ '  ·  ' ~ evaluation.period.name,
+        icon: 'fa-keyboard',
+        color: 'success',
+        breadcrumb: [
+            { label: 'Évaluations', path: path('admin_evaluation_index') },
+            { label: evaluation.name, path: path('admin_evaluation_show', {'id': evaluation.id}) },
+            { label: 'Saisie des notes' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_evaluation_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
 
     {% include '_flash.html.twig' %}
 
-    <div class="row">
-        <div class="col-md-9">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-keyboard"></i> Notes des Élèves
-                    </h5>
-                    <div>
-                        <span class="badge bg-light text-dark">
-                            <i class="fas fa-star"></i> / {{ evaluation.maxGrade }}
-                        </span>
-                        <span class="badge bg-warning text-dark">
-                            Coef: {{ evaluation.coefficient }}
-                        </span>
+    <div class="row g-4">
+        <div class="col-lg-9">
+            <div class="card table-card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-keyboard me-2"></i>Notes des élèves</h6>
+                    <div class="d-flex gap-1">
+                        <span class="badge badge-soft info"><i class="fas fa-star me-1"></i>/ {{ evaluation.maxGrade }}</span>
+                        <span class="badge badge-soft warning">Coef : {{ evaluation.coefficient }}</span>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body">
                     <form method="post">
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
                                     <tr>
                                         <th style="width: 5%;">#</th>
                                         <th style="width: 30%;">Élève</th>
@@ -54,66 +51,39 @@
                                     {% for index, student in students %}
                                         {% set grade = grades[student.id] ?? null %}
                                         <tr>
-                                            <td>{{ index + 1 }}</td>
+                                            <td class="text-muted">{{ index + 1 }}</td>
+                                            <td class="fw-semibold">{{ student.fullName }}</td>
                                             <td>
-                                                <strong>{{ student.fullName }}</strong>
-                                            </td>
-                                            <td>
-                                                <input type="number" 
-                                                       name="grades[{{ student.id }}][value]" 
-                                                       class="form-control form-control-sm" 
-                                                       step="0.25" 
-                                                       min="0" 
+                                                <input type="number" name="grades[{{ student.id }}][value]"
+                                                       class="form-control form-control-sm" step="0.25" min="0"
                                                        max="{{ evaluation.maxGrade }}"
-                                                       value="{{ grade ? grade.value : '' }}"
-                                                       placeholder="Ex: 15.50">
+                                                       value="{{ grade ? grade.value : '' }}" placeholder="Ex : 15.50">
                                             </td>
                                             <td>
-                                                <select name="grades[{{ student.id }}][status]" 
-                                                        class="form-select form-select-sm">
-                                                    <option value="">-</option>
-                                                    <option value="absent" {{ grade and grade.status == 'absent' ? 'selected' : '' }}>
-                                                        Absent
-                                                    </option>
-                                                    <option value="dispense" {{ grade and grade.status == 'dispense' ? 'selected' : '' }}>
-                                                        Dispensé
-                                                    </option>
-                                                    <option value="non_rendu" {{ grade and grade.status == 'non_rendu' ? 'selected' : '' }}>
-                                                        Non rendu
-                                                    </option>
+                                                <select name="grades[{{ student.id }}][status]" class="form-select form-select-sm">
+                                                    <option value="">—</option>
+                                                    <option value="absent" {{ grade and grade.status == 'absent' ? 'selected' : '' }}>Absent</option>
+                                                    <option value="dispense" {{ grade and grade.status == 'dispense' ? 'selected' : '' }}>Dispensé</option>
+                                                    <option value="non_rendu" {{ grade and grade.status == 'non_rendu' ? 'selected' : '' }}>Non rendu</option>
                                                 </select>
                                             </td>
                                             <td>
-                                                <input type="text" 
-                                                       name="grades[{{ student.id }}][comment]" 
-                                                       class="form-control form-control-sm" 
-                                                       value="{{ grade ? grade.comment : '' }}"
-                                                       placeholder="Commentaire...">
+                                                <input type="text" name="grades[{{ student.id }}][comment]"
+                                                       class="form-control form-control-sm"
+                                                       value="{{ grade ? grade.comment : '' }}" placeholder="Commentaire...">
                                             </td>
                                         </tr>
                                     {% else %}
-                                        <tr>
-                                            <td colspan="5" class="text-center py-4">
-                                                <i class="fas fa-info-circle text-muted"></i>
-                                                Aucun élève trouvé dans cette classe.
-                                            </td>
-                                        </tr>
+                                        <tr><td colspan="5">{{ empty_state('fa-user-slash', 'Aucun élève', 'Aucun élève trouvé dans cette classe.') }}</td></tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
 
                         {% if students|length > 0 %}
-                            <div class="card-footer bg-white">
-                                <div class="d-flex justify-content-between">
-                                    <div class="text-muted">
-                                        <i class="fas fa-info-circle"></i>
-                                        <strong>{{ students|length }}</strong> élève(s) dans cette classe
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> Enregistrer toutes les notes
-                                    </button>
-                                </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2">
+                                <div class="text-muted"><i class="fas fa-info-circle me-1"></i><strong>{{ students|length }}</strong> élève(s) dans cette classe</div>
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer toutes les notes</button>
                             </div>
                         {% endif %}
                     </form>
@@ -121,94 +91,50 @@
             </div>
         </div>
 
-        <div class="col-md-3">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0">
-                        <i class="fas fa-info-circle"></i> Informations
-                    </h6>
-                </div>
+        <div class="col-lg-3">
+            {# Informations #}
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Informations</h6></div>
                 <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-6">Date :</dt>
-                        <dd class="col-sm-6">{{ evaluation.date|date('d/m/Y') }}</dd>
-
-                        <dt class="col-sm-6">Type :</dt>
-                        <dd class="col-sm-6">
-                            <span class="badge bg-secondary">{{ evaluation.typeLabel }}</span>
-                        </dd>
-
-                        <dt class="col-sm-6">Note max :</dt>
-                        <dd class="col-sm-6"><strong>{{ evaluation.maxGrade }}</strong></dd>
-
-                        <dt class="col-sm-6">Coefficient :</dt>
-                        <dd class="col-sm-6"><strong>{{ evaluation.coefficient }}</strong></dd>
-
-                        <dt class="col-sm-6">Statut :</dt>
-                        <dd class="col-sm-6">
-                            {% if evaluation.isPublished %}
-                                <span class="badge bg-success">Publiée</span>
-                            {% else %}
-                                <span class="badge bg-warning">Brouillon</span>
-                            {% endif %}
-                        </dd>
-                    </dl>
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Date</div><div class="info-value">{{ evaluation.date|date('d/m/Y') }}</div></div>
+                        <div class="info-row"><div class="info-label">Type</div><div class="info-value"><span class="badge badge-soft secondary">{{ evaluation.typeLabel }}</span></div></div>
+                        <div class="info-row"><div class="info-label">Note max</div><div class="info-value">{{ evaluation.maxGrade }}</div></div>
+                        <div class="info-row"><div class="info-label">Coefficient</div><div class="info-value">{{ evaluation.coefficient }}</div></div>
+                        <div class="info-row"><div class="info-label">Statut</div><div class="info-value">
+                            {% if evaluation.isPublished %}<span class="badge badge-soft success">Publiée</span>{% else %}<span class="badge badge-soft warning">Brouillon</span>{% endif %}
+                        </div></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h6 class="mb-0">
-                        <i class="fas fa-chart-bar"></i> Statistiques
-                    </h6>
-                </div>
+            {# Statistiques #}
+            <div class="card card-accent success mb-3">
+                <div class="card-header"><h6 class="m-0 fw-bold text-success"><i class="fas fa-chart-bar me-2"></i>Statistiques</h6></div>
                 <div class="card-body">
                     {% if statistics.count > 0 %}
-                        <dl class="row mb-0">
-                            <dt class="col-sm-6">Moyenne :</dt>
-                            <dd class="col-sm-6">
-                                <strong class="text-primary">{{ statistics.average|number_format(2, '.', '') }}</strong> / {{ evaluation.maxGrade }}
-                            </dd>
-
-                            <dt class="col-sm-6">Note min :</dt>
-                            <dd class="col-sm-6">
-                                <strong class="text-danger">{{ statistics.min|number_format(2, '.', '') }}</strong>
-                            </dd>
-
-                            <dt class="col-sm-6">Note max :</dt>
-                            <dd class="col-sm-6">
-                                <strong class="text-success">{{ statistics.max|number_format(2, '.', '') }}</strong>
-                            </dd>
-
-                            <dt class="col-sm-6">Notés :</dt>
-                            <dd class="col-sm-6">
-                                <strong>{{ statistics.count }}</strong> / {{ students|length }}
-                            </dd>
-                        </dl>
+                        <div class="info-list">
+                            <div class="info-row"><div class="info-label">Moyenne</div><div class="info-value"><strong class="text-primary">{{ statistics.average|number_format(2, '.', '') }}</strong> / {{ evaluation.maxGrade }}</div></div>
+                            <div class="info-row"><div class="info-label">Note min</div><div class="info-value text-danger fw-bold">{{ statistics.min|number_format(2, '.', '') }}</div></div>
+                            <div class="info-row"><div class="info-label">Note max</div><div class="info-value text-success fw-bold">{{ statistics.max|number_format(2, '.', '') }}</div></div>
+                            <div class="info-row"><div class="info-label">Notés</div><div class="info-value"><strong>{{ statistics.count }}</strong> / {{ students|length }}</div></div>
+                        </div>
                     {% else %}
-                        <p class="text-muted mb-0">
-                            <i class="fas fa-info-circle"></i>
-                            Aucune note saisie pour le moment.
-                        </p>
+                        <p class="text-muted mb-0 small"><i class="fas fa-info-circle me-1"></i>Aucune note saisie pour le moment.</p>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="card shadow-sm mt-3">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="mb-0">
-                        <i class="fas fa-question-circle"></i> Aide
-                    </h6>
-                </div>
+            {# Aide #}
+            <div class="card card-accent warning">
+                <div class="card-header"><h6 class="m-0 fw-bold" style="color:#d97706;"><i class="fas fa-question-circle me-2"></i>Aide</h6></div>
                 <div class="card-body">
-                    <p class="small mb-2">
-                        <strong>Saisie des notes :</strong>
-                    </p>
-                    <ul class="small mb-0">
+                    <p class="small mb-2"><strong>Saisie des notes :</strong></p>
+                    <ul class="small mb-0 ps-3">
                         <li>Saisissez une note OU un statut</li>
                         <li>Utilisez 0.25 pour les quarts de points</li>
                         <li>Laissez vide si pas encore noté</li>
-                        <li>Cliquez sur "Enregistrer" pour sauvegarder</li>
+                        <li>Cliquez sur « Enregistrer » pour sauvegarder</li>
                     </ul>
                 </div>
             </div>
@@ -216,4 +142,3 @@
     </div>
 </div>
 {% endblock %}
-

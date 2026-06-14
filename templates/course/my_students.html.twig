@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes élèves{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Mes élèves',
+        subtitle: 'Élèves de vos classes',
+        icon: 'fa-users',
+        color: 'primary',
+        breadcrumb: [ { label: 'Espace Enseignant' }, { label: 'Mes élèves' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if classrooms is empty %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Aucune classe</h5>
+                <p class="text-muted mb-0">Vous n'enseignez dans aucune classe pour le moment.</p>
+            </div>
+        </div>
+    {% else %}
+        {% for classroom in classrooms %}
+            {% set students = students_by_classroom[classroom.id] ?? [] %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-door-open me-2"></i>{{ classroom.name }}
+                        {% if classroom.level %}<small class="text-muted">— {{ classroom.level.name }}</small>{% endif %}
+                    </h6>
+                    <span class="badge bg-primary">{{ students|length }} élève{{ students|length > 1 ? 's' : '' }}</span>
+                </div>
+                <div class="card-body">
+                    {% if students is empty %}
+                        <div class="text-center text-muted py-3"><i class="fas fa-info-circle me-1"></i> Aucun élève dans cette classe.</div>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr><th width="50">#</th><th>Matricule</th><th>Nom &amp; Prénoms</th><th>Genre</th><th>Date de naissance</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for student in students %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td><span class="text-muted">{{ student.matriculeInterne ?: '—' }}</span></td>
+                                            <td class="fw-semibold">{{ student.lastName }} {{ student.firstName }}</td>
+                                            <td>{{ student.gender == 'F' ? 'Féminin' : (student.gender == 'M' ? 'Masculin' : '—') }}</td>
+                                            <td>{{ student.dateOfBirth ? student.dateOfBirth|date('d/m/Y') : '—' }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

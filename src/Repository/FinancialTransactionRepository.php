@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\FinancialTransaction;
+use App\Entity\SchoolGroup;
 use App\Entity\Student;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -15,6 +16,65 @@ class FinancialTransactionRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, FinancialTransaction::class);
+    }
+
+    /**
+     * Totaux confirmés (entrées / sorties) des établissements d'un groupe.
+     * Scopé via la relation directe transaction -> école.
+     *
+     * @return array{income:float, expense:float}
+     */
+    public function getConfirmedTotalsForGroup(SchoolGroup $group): array
+    {
+        $rows = $this->createQueryBuilder('t')
+            ->select('t.type AS type', 'SUM(t.amount) AS total')
+            ->join('t.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->andWhere('t.status = :confirmed')
+            ->setParameter('group', $group)
+            ->setParameter('confirmed', 'confirmé')
+            ->groupBy('t.type')
+            ->getQuery()
+            ->getResult();
+
+        $totals = ['income' => 0.0, 'expense' => 0.0];
+        foreach ($rows as $row) {
+            if ($row['type'] === 'entrée') {
+                $totals['income'] = (float) $row['total'];
+            } elseif ($row['type'] === 'sortie') {
+                $totals['expense'] = (float) $row['total'];
+            }
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Total des dépenses confirmées (sorties) par établissement d'un groupe.
+     *
+     * @return array<int, float> indexé par identifiant d'école
+     */
+    public function getExpenseBySchoolForGroup(SchoolGroup $group): array
+    {
+        $rows = $this->createQueryBuilder('t')
+            ->select('s.id AS schoolId', 'SUM(t.amount) AS total')
+            ->join('t.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->andWhere('t.type = :expense')
+            ->andWhere('t.status = :confirmed')
+            ->setParameter('group', $group)
+            ->setParameter('expense', 'sortie')
+            ->setParameter('confirmed', 'confirmé')
+            ->groupBy('s.id')
+            ->getQuery()
+            ->getResult();
+
+        $totals = [];
+        foreach ($rows as $row) {
+            $totals[(int) $row['schoolId']] = (float) $row['total'];
+        }
+
+        return $totals;
     }
 
     public function save(FinancialTransaction $entity, bool $flush = false): void

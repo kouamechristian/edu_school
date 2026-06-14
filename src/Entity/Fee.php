@@ -70,9 +70,6 @@ class Fee
     #[ORM\OneToMany(mappedBy: 'fee', targetEntity: Payment::class)]
     private Collection $payments;
 
-    #[ORM\OneToMany(mappedBy: 'fee', targetEntity: Invoice::class)]
-    private Collection $invoices;
-
     #[ORM\OneToMany(mappedBy: 'fee', targetEntity: StudentFee::class, cascade: ['persist', 'remove'])]
     private Collection $studentFees;
 
@@ -85,7 +82,6 @@ class Fee
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
         $this->payments = new ArrayCollection();
-        $this->invoices = new ArrayCollection();
         $this->studentFees = new ArrayCollection();
         $this->schedules = new ArrayCollection();
     }
@@ -297,35 +293,6 @@ class Fee
         if ($this->payments->removeElement($payment)) {
             if ($payment->getFee() === $this) {
                 $payment->setFee(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Invoice>
-     */
-    public function getInvoices(): Collection
-    {
-        return $this->invoices;
-    }
-
-    public function addInvoice(Invoice $invoice): static
-    {
-        if (!$this->invoices->contains($invoice)) {
-            $this->invoices->add($invoice);
-            $invoice->setFee($this);
-        }
-
-        return $this;
-    }
-
-    public function removeInvoice(Invoice $invoice): static
-    {
-        if ($this->invoices->removeElement($invoice)) {
-            if ($invoice->getFee() === $this) {
-                $invoice->setFee(null);
             }
         }
 

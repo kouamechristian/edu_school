@@ -1,67 +1,44 @@
 {% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state, avatar, badge_role %}
 
 {% block title %}Gestion des Utilisateurs{% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="h3 mb-3">
-                <i class="fas fa-users me-2"></i> Gestion des Utilisateurs
-            </h1>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ path('admin_user_new') }}" class="btn btn-primary">
-                <i class="fas fa-user-plus me-2"></i> Nouvel Utilisateur
-            </a>
-        </div>
-    </div>
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Gestion des Utilisateurs',
+        subtitle: 'Comptes, rôles et accès',
+        icon: 'fa-users',
+        color: 'primary',
+        breadcrumb: [ { label: 'Utilisateurs' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_user_new') }}" class="btn btn-primary"><i class="fas fa-user-plus me-1"></i> Nouvel Utilisateur</a>
+        {% endblock %}
+    {% endembed %}
 
-    {% for message in app.flashes('success') %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
+    {% include '_flash.html.twig' %}
 
-    {% for message in app.flashes('error') %}
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
-
-    {# Statistiques #}
     {% if stats is defined and stats is not empty %}
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Statistiques par type</h5>
-                    <div class="row">
-                        {% for stat in stats %}
-                        <div class="col-md-2 text-center">
-                            <div class="p-3 border rounded">
-                                <h3 class="text-primary mb-0">{{ stat.count }}</h3>
-                                <small class="text-muted text-capitalize">{{ stat.userType ?? 'Non défini' }}</small>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+    <div class="row g-3 mb-4">
+        {% for stat in stats %}
+        <div class="col-6 col-md-2">
+            <div class="stat-card primary h-100"><div class="card-body">
+                <div class="stat-value">{{ stat.count }}</div>
+                <div class="stat-label text-capitalize">{{ stat.userType ?? 'Non défini' }}</div>
+            </div></div>
         </div>
+        {% endfor %}
     </div>
     {% endif %}
 
     {# Filtres #}
-    <div class="card mb-4">
+    <div class="card filter-card mb-4">
         <div class="card-body">
-            <form method="get" action="{{ path('admin_user_index') }}" class="row g-3">
+            <form method="get" action="{{ path('admin_user_index') }}" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label">Rechercher</label>
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Nom, email..." value="{{ search_term ?? '' }}">
+                    <input type="text" name="search" class="form-control" placeholder="Nom, email..." value="{{ search_term ?? '' }}">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Type d'utilisateur</label>
@@ -75,131 +52,59 @@
                         <option value="parent" {{ current_type == 'parent' ? 'selected' : '' }}>Parent</option>
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-filter me-2"></i> Filtrer
-                    </button>
-                    <a href="{{ path('admin_user_index') }}" class="btn btn-secondary">
-                        <i class="fas fa-redo me-2"></i> Réinitialiser
-                    </a>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                    <a href="{{ path('admin_user_index') }}" class="btn btn-light"><i class="fas fa-redo me-1"></i> Réinitialiser</a>
                 </div>
             </form>
         </div>
     </div>
 
-    {# Liste des utilisateurs #}
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Liste des Utilisateurs ({{ users|length }})</h5>
-        </div>
+    {# Liste #}
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des utilisateurs <span class="badge badge-soft ms-1">{{ users|length }}</span></h6></div>
         <div class="card-body">
             {% if users is empty %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Aucun utilisateur trouvé.
-                </div>
+                {{ empty_state('fa-users', 'Aucun utilisateur', 'Aucun utilisateur ne correspond à vos critères.') }}
             {% else %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th>Utilisateur</th>
-                                <th>Email</th>
-                                <th>Type</th>
-                                <th>Groupe</th>
-                                <th>Établissement(s)</th>
-                                <th>Rôles</th>
-                                <th>Dernière connexion</th>
-                                <th>Statut</th>
-                                <th width="220">Actions</th>
-                            </tr>
+                            <tr><th>Utilisateur</th><th>Email</th><th>Type</th><th>Groupe</th><th>Établissement(s)</th><th>Dernière connexion</th><th>Statut</th><th class="text-end" width="160">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for user in users %}
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="user-avatar me-2">{{ user.initials }}</div>
-                                        <div>
+                                        {{ avatar(user, 'sm') }}
+                                        <div class="ms-2">
                                             <strong>{{ user.fullName }}</strong><br>
                                             <small class="text-muted">@{{ user.username }}</small>
                                         </div>
                                     </div>
                                 </td>
                                 <td>{{ user.email }}</td>
-                                <td>
-                                    {% if user.userType %}
-                                        <span class="badge bg-secondary">{{ user.userTypeLabel }}</span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if user.schoolGroup %}
-                                        <span class="badge bg-info" title="{{ user.schoolGroup.name }}">
-                                            {{ user.schoolGroup.code }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
+                                <td>{% if user.userType %}{{ badge_role(user.userType) }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                                <td>{% if user.schoolGroup %}<span class="badge badge-soft info" title="{{ user.schoolGroup.name }}">{{ user.schoolGroup.code }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                                 <td>
                                     {% if user.schools is not empty %}
-                                        {% for school in user.schools %}
-                                            <span class="badge bg-primary me-1" title="{{ school.name }}">
-                                                {{ school.code }}
-                                            </span>
-                                        {% endfor %}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
+                                        {% for school in user.schools %}<span class="badge badge-soft me-1" title="{{ school.name }}">{{ school.code }}</span>{% endfor %}
+                                    {% else %}<span class="text-muted">—</span>{% endif %}
                                 </td>
-                                <td>
-                                    {% for role in user.roles %}
-                                        {% if role != 'ROLE_USER' %}
-                                            <span class="badge bg-info">{{ role|replace({'ROLE_': ''})|lower|capitalize }}</span>
-                                        {% endif %}
-                                    {% endfor %}
-                                </td>
-                                <td>
-                                    {% if user.lastLogin %}
-                                        <small>{{ user.lastLogin|date('d/m/Y H:i') }}</small>
-                                    {% else %}
-                                        <small class="text-muted">Jamais</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if user.isActive %}
-                                        <span class="badge bg-success">Actif</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Inactif</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ path('admin_user_show', {'id': user.id}) }}" 
-                                           class="btn btn-info" title="Voir">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ path('admin_user_edit', {'id': user.id}) }}" 
-                                           class="btn btn-warning" title="Modifier">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form method="post" action="{{ path('admin_user_toggle', {'id': user.id}) }}" 
-                                              style="display:inline;">
+                                <td>{% if user.lastLogin %}<small class="text-muted">{{ user.lastLogin|date('d/m/Y H:i') }}</small>{% else %}<small class="text-muted">Jamais</small>{% endif %}</td>
+                                <td><span class="badge badge-soft {{ user.isActive ? 'success' : 'danger' }}">{{ user.isActive ? 'Actif' : 'Inactif' }}</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_user_show', {'id': user.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
+                                        <a href="{{ path('admin_user_edit', {'id': user.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        <form method="post" action="{{ path('admin_user_toggle', {'id': user.id}) }}" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ user.id) }}">
-                                            <button type="submit" class="btn btn-secondary" 
-                                                    title="{{ user.isActive ? 'Désactiver' : 'Activer' }}">
-                                                <i class="fas fa-{{ user.isActive ? 'ban' : 'check' }}"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-outline-secondary" title="{{ user.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ user.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
-                                        <form method="post" action="{{ path('admin_user_delete', {'id': user.id}) }}" 
-                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');"
-                                              style="display:inline;">
+                                        <form method="post" action="{{ path('admin_user_delete', {'id': user.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ user.id) }}">
-                                            <button type="submit" class="btn btn-danger" title="Supprimer">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>
@@ -213,4 +118,3 @@
     </div>
 </div>
 {% endblock %}
-

@@ -1,92 +1,59 @@
 {% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
 
 {% block title %}Années Scolaires{% endblock %}
 
 {% block body %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="h3 mb-3">
-                <i class="fas fa-calendar-alt me-2"></i> Gestion des Années Scolaires
-            </h1>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ path('admin_school_year_new') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i> Nouvelle Année Scolaire
-            </a>
-        </div>
-    </div>
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Gestion des Années Scolaires',
+        subtitle: 'Années, périodes et année courante',
+        icon: 'fa-calendar-alt',
+        color: 'primary',
+        breadcrumb: [ { label: 'Années scolaires' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_school_year_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouvelle Année Scolaire</a>
+        {% endblock %}
+    {% endembed %}
 
-    {% for message in app.flashes('success') %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
+    {% include '_flash.html.twig' %}
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Liste des Années Scolaires</h5>
-        </div>
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des années scolaires</h6></div>
         <div class="card-body">
             {% if school_years is empty %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Aucune année scolaire enregistrée. Cliquez sur "Nouvelle Année Scolaire" pour commencer.
-                </div>
+                {{ empty_state('fa-calendar-xmark', 'Aucune année scolaire', 'Cliquez sur « Nouvelle Année Scolaire » pour commencer.') }}
             {% else %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th>Année</th>
-                                <th>Date de début</th>
-                                <th>Date de fin</th>
-                                <th>Statut</th>
-                                <th width="200">Actions</th>
-                            </tr>
+                            <tr><th>Année</th><th>Date de début</th><th>Date de fin</th><th>Statut</th><th class="text-end" width="180">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for school_year in school_years %}
-                            <tr class="{{ school_year.isCurrent ? 'table-primary' : '' }}">
+                            <tr class="{{ school_year.isCurrent ? 'table-light' : '' }}">
                                 <td><strong>{{ school_year.name }}</strong></td>
-                                <td>{{ school_year.startDate|date('d/m/Y') }}</td>
-                                <td>{{ school_year.endDate|date('d/m/Y') }}</td>
+                                <td class="text-muted">{{ school_year.startDate|date('d/m/Y') }}</td>
+                                <td class="text-muted">{{ school_year.endDate|date('d/m/Y') }}</td>
                                 <td>
-                                    {% if school_year.isCurrent %}
-                                        <span class="badge bg-primary">En cours</span>
-                                    {% elseif school_year.isActive %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Terminée</span>
-                                    {% endif %}
+                                    {% if school_year.isCurrent %}<span class="badge bg-primary">En cours</span>
+                                    {% elseif school_year.isActive %}<span class="badge badge-soft success">Active</span>
+                                    {% else %}<span class="badge badge-soft secondary">Terminée</span>{% endif %}
                                 </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ path('admin_school_year_show', {'id': school_year.id}) }}" 
-                                           class="btn btn-info" title="Voir">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ path('admin_school_year_edit', {'id': school_year.id}) }}" 
-                                           class="btn btn-warning" title="Modifier">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_school_year_show', {'id': school_year.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
+                                        <a href="{{ path('admin_school_year_edit', {'id': school_year.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
                                         {% if not school_year.isCurrent %}
-                                        <form method="post" action="{{ path('admin_school_year_set_current', {'id': school_year.id}) }}" 
-                                              style="display:inline;">
+                                        <form method="post" action="{{ path('admin_school_year_set_current', {'id': school_year.id}) }}" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('set-current' ~ school_year.id) }}">
-                                            <button type="submit" class="btn btn-primary" title="Définir comme année courante">
-                                                <i class="fas fa-check-circle"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-outline-primary" title="Définir comme année courante"><i class="fas fa-check-circle"></i></button>
                                         </form>
                                         {% endif %}
-                                        <form method="post" action="{{ path('admin_school_year_delete', {'id': school_year.id}) }}" 
-                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette année scolaire ?');"
-                                              style="display:inline;">
+                                        <form method="post" action="{{ path('admin_school_year_delete', {'id': school_year.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette année scolaire ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ school_year.id) }}">
-                                            <button type="submit" class="btn btn-danger" title="Supprimer">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>
@@ -100,4 +67,3 @@
     </div>
 </div>
 {% endblock %}
-

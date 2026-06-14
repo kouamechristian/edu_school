@@ -23,7 +23,6 @@ class SchoolGroup
     private ?string $name = null;
 
     #[ORM\Column(length: 50, unique: true)]
-    #[Assert\NotBlank(message: 'Le code du groupe est obligatoire')]
     private ?string $code = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]

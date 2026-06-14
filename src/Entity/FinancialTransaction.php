@@ -66,15 +66,18 @@ class FinancialTransaction
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true)]
-    private ?Invoice $invoice = null;
-
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Scholarship $scholarship = null;
-
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: true)]
     private ?User $recordedBy = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?TransactionType $transactionType = null;
+
+    /**
+     * Établissement rattaché à la transaction (permet le suivi financier par école).
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?School $school = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
@@ -124,12 +127,45 @@ class FinancialTransaction
 
     public function getTypeLabel(): string
     {
+        if ($this->transactionType) {
+            return $this->transactionType->getName();
+        }
+
         return match($this->type) {
             'entrée' => 'Entrée',
             'sortie' => 'Sortie',
             'transfert' => 'Transfert',
             default => $this->type
         };
+    }
+
+    public function getTransactionType(): ?TransactionType
+    {
+        return $this->transactionType;
+    }
+
+    public function setTransactionType(?TransactionType $transactionType): static
+    {
+        $this->transactionType = $transactionType;
+
+        // Le sens comptable (type) reste synchronisé avec le type choisi.
+        if ($transactionType !== null) {
+            $this->type = $transactionType->getDirection();
+        }
+
+        return $this;
+    }
+
+    public function getSchool(): ?School
+    {
+        return $this->school;
+    }
+
+    public function setSchool(?School $school): static
+    {
+        $this->school = $school;
+
+        return $this;
     }
 
     public function getCategory(): ?string
@@ -285,28 +321,6 @@ class FinancialTransaction
     public function setPayment(?Payment $payment): static
     {
         $this->payment = $payment;
-        return $this;
-    }
-
-    public function getInvoice(): ?Invoice
-    {
-        return $this->invoice;
-    }
-
-    public function setInvoice(?Invoice $invoice): static
-    {
-        $this->invoice = $invoice;
-        return $this;
-    }
-
-    public function getScholarship(): ?Scholarship
-    {
-        return $this->scholarship;
-    }
-
-    public function setScholarship(?Scholarship $scholarship): static
-    {
-        $this->scholarship = $scholarship;
         return $this;
     }
 

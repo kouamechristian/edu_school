@@ -2,21 +2,36 @@
 
 namespace App\Repository;
 
+use App\Entity\Student;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
+use Symfony\Bridge\Doctrine\Security\User\UserLoaderInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * @extends ServiceEntityRepository<User>
  */
-class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
+class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface, UserLoaderInterface
 {
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, User::class);
+    }
+
+    /**
+     * Permet la connexion par nom d'utilisateur OU adresse e-mail.
+     */
+    public function loadUserByIdentifier(string $identifier): ?UserInterface
+    {
+        return $this->createQueryBuilder('u')
+            ->where('u.username = :id OR u.email = :id')
+            ->setParameter('id', $identifier)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     /**
@@ -248,6 +263,39 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->setParameter('active', true)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Trouve le compte parent actuellement rattaché à un élève, le cas échéant.
+     *
+     * Couvre les deux mécanismes de rattachement, afin de garantir qu'un enfant
+     * n'est lié qu'à un seul parent :
+     *  - lien explicite (Student.parentUser, auto-association) ;
+     *  - lien historique par e-mail vers un compte parent existant
+     *    (Student.parentEmail ↔ User.email avec ROLE_PARENT).
+     *
+     * Retourne null si l'élève n'est rattaché à aucun compte parent.
+     */
+    public function findParentOfStudent(Student $child): ?User
+    {
+        if ($child->getParentUser() !== null) {
+            return $child->getParentUser();
+        }
+
+        $email = mb_strtolower(trim((string) $child->getParentEmail()));
+
+        if ($email === '') {
+            return null;
+        }
+
+        return $this->createQueryBuilder('u')
+            ->andWhere('LOWER(TRIM(u.email)) = :email')
+            ->andWhere('u.roles LIKE :role')
+            ->setParameter('email', $email)
+            ->setParameter('role', '%"ROLE_PARENT"%')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     /**

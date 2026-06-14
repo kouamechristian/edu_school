@@ -12,6 +12,9 @@ services:
     _defaults:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        bind:
+            # Logger dédié au canal "payment" (injecté là où l'argument s'appelle $paymentLogger).
+            $paymentLogger: '@monolog.logger.payment'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
@@ -32,3 +35,27 @@ services:
             $maxTokens: '%env(int:AI_MAX_TOKENS)%'
             $cacheTtl: '%env(int:AI_CACHE_TTL)%'
             $enabled: '%env(bool:AI_ENABLED)%'
+
+    # Passerelle de paiement GeniusPay.
+    # Valeurs globales par défaut (.env / .env.local) ; surchargées par établissement
+    # via MobileMoneyConfig (espace Administration > Identifiants Mobile Money).
+    App\Service\Payment\GeniusPayClient:
+        arguments:
+            $baseUrl: '%env(GENIUSPAY_BASE_URL)%'
+            $apiKey: '%env(GENIUSPAY_API_KEY)%'
+            $apiSecret: '%env(GENIUSPAY_API_SECRET)%'
+
+    App\Service\Payment\GeniusPayCredentialsProvider:
+        arguments:
+            $defaultBaseUrl: '%env(GENIUSPAY_BASE_URL)%'
+            $defaultApiKey: '%env(GENIUSPAY_API_KEY)%'
+            $defaultApiSecret: '%env(GENIUSPAY_API_SECRET)%'
+            $defaultWebhookSecret: '%env(GENIUSPAY_WEBHOOK_SECRET)%'
+
+    App\Service\Payment\GeniusPaySignatureVerifier:
+        arguments:
+            $verifyEnabled: '%env(bool:GENIUSPAY_WEBHOOK_VERIFY)%'
+
+    App\Service\Payment\PaymentInitiator:
+        arguments:
+            $webhookUrlOverride: '%env(GENIUSPAY_WEBHOOK_URL)%'

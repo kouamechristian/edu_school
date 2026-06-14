@@ -19,7 +19,7 @@ class Employee
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\OneToOne(targetEntity: User::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: User::class, inversedBy: 'employee', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
@@ -76,7 +76,7 @@ class Employee
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
 
-    #[ORM\ManyToMany(targetEntity: School::class, inversedBy: 'employees')]
+    #[ORM\ManyToMany(targetEntity: School::class)]
     #[ORM\JoinTable(
         name: 'employee_school',
         joinColumns: [new ORM\JoinColumn(name: 'employee_id', referencedColumnName: 'id')],

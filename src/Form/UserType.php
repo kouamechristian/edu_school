@@ -131,18 +131,21 @@ class UserType extends AbstractType
             ->add('roles', ChoiceType::class, [
                 'label' => 'Rôles',
                 'choices' => [
-                    'Utilisateur (ROLE_USER)' => 'ROLE_USER',
-                    'Saisie (ROLE_SAISIE)' => 'ROLE_SAISIE',
-                    'Impression (ROLE_IMPRESSION)' => 'ROLE_IMPRESSION',
-                    'Modification (ROLE_MODIFICATION)' => 'ROLE_MODIFICATION',
-                    'Validation (ROLE_VALIDATION)' => 'ROLE_VALIDATION',
+                    'Super administrateur (ROLE_SUPER_ADMIN)' => 'ROLE_SUPER_ADMIN',
+                    'Fondateur (ROLE_FONDATEUR)' => 'ROLE_FONDATEUR',
                     'Administrateur (ROLE_ADMIN)' => 'ROLE_ADMIN',
-                    'Super Admin (ROLE_SUPER_ADMIN)' => 'ROLE_SUPER_ADMIN',
+                    'Directeur (ROLE_DIRECTEUR)' => 'ROLE_DIRECTEUR',
+                    'Agent d\'inscription (ROLE_INSCRIPTION)' => 'ROLE_INSCRIPTION',
+                    'Caissier (ROLE_CAISSE)' => 'ROLE_CAISSE',
+                    'Enseignant (ROLE_ENSEIGNANT)' => 'ROLE_ENSEIGNANT',
+                    'Éducateur (ROLE_EDUCATEUR)' => 'ROLE_EDUCATEUR',
+                    'Correspondant fichier (ROLE_CORRESPONDANT_FICHIER)' => 'ROLE_CORRESPONDANT_FICHIER',
+                    'Parent (ROLE_PARENT)' => 'ROLE_PARENT',
                 ],
                 'multiple' => true,
                 'expanded' => true,
                 'attr' => ['class' => 'roles-checkboxes'],
-                'help' => 'Sélectionnez un ou plusieurs rôles',
+                'help' => 'Sélectionnez un ou plusieurs rôles. Les rôles supérieurs héritent automatiquement des rôles inférieurs.',
             ])
             ->add('phone', TelType::class, [
                 'label' => 'Téléphone',

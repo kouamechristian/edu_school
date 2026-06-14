@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Classroom;
 use App\Entity\Course;
 use App\Form\CourseType;
@@ -16,9 +17,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/courses', name: 'admin_course_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_ENSEIGNANT')]
 class CourseController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(
         CourseRepository $courseRepository,
@@ -58,6 +61,69 @@ class CourseController extends AbstractController
             'selected_classroom' => $classroomId,
             'current_school' => $currentSchool,
             'current_school_year' => $currentSchoolYear,
+        ]);
+    }
+
+    /**
+     * Emploi du temps de l'enseignant connecté (« Mes cours »).
+     */
+    #[Route('/my-schedule', name: 'my_schedule', methods: ['GET'])]
+    public function mySchedule(CourseRepository $courseRepository): Response
+    {
+        $teacher = $this->getUser();
+        $courses = $teacher instanceof \App\Entity\User ? $courseRepository->findByTeacher($teacher->getId()) : [];
+
+        $schedule = ['lundi' => [], 'mardi' => [], 'mercredi' => [], 'jeudi' => [], 'vendredi' => [], 'samedi' => []];
+        $slots = [];
+        foreach ($courses as $course) {
+            $day = $course->getDayOfWeek();
+            if (isset($schedule[$day])) {
+                $schedule[$day][] = $course;
+            }
+            $ts = $course->getTimeSlot();
+            if ($ts) {
+                $slots[$ts->getId()] = $ts;
+            }
+        }
+
+        $slots = array_values($slots);
+        usort($slots, static fn ($a, $b) => ($a->getOrderNumber() <=> $b->getOrderNumber()) ?: ($a->getStartTime() <=> $b->getStartTime()));
+
+        return $this->render('course/my_schedule.html.twig', [
+            'teacher' => $teacher,
+            'schedule' => $schedule,
+            'time_slots' => $slots,
+            'course_count' => count($courses),
+        ]);
+    }
+
+    /**
+     * Liste des élèves de l'enseignant connecté, regroupés par classe.
+     */
+    #[Route('/my-students', name: 'my_students', methods: ['GET'])]
+    public function myStudents(
+        CourseRepository $courseRepository,
+        \App\Repository\StudentRepository $studentRepository
+    ): Response {
+        $teacher = $this->getUser();
+        $courses = $teacher instanceof \App\Entity\User ? $courseRepository->findByTeacher($teacher->getId()) : [];
+
+        $classrooms = [];
+        foreach ($courses as $course) {
+            $classroom = $course->getClassroom();
+            if ($classroom) {
+                $classrooms[$classroom->getId()] = $classroom;
+            }
+        }
+
+        $studentsByClassroom = [];
+        foreach ($classrooms as $id => $classroom) {
+            $studentsByClassroom[$id] = $studentRepository->findActiveByClassroom($id);
+        }
+
+        return $this->render('course/my_students.html.twig', [
+            'classrooms' => array_values($classrooms),
+            'students_by_classroom' => $studentsByClassroom,
         ]);
     }
 
@@ -115,10 +181,12 @@ class CourseController extends AbstractController
     public function delete(Request $request, Course $course, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$course->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($course);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Le cours a été supprimé avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $course,
+                'Le cours a été supprimé avec succès.',
+                'Suppression impossible : ce cours est encore lié à des évaluations, absences ou emplois du temps.'
+            );
         }
 
         return $this->redirectToRoute('admin_course_index', [], Response::HTTP_SEE_OTHER);

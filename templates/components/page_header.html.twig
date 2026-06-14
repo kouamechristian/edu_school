@@ -1,0 +1,42 @@
+{# ==========================================================================
+   EDU-SCHOOL — Composant : En-tête de page (embeddable)
+
+   Usage :
+     {% embed 'components/page_header.html.twig' with {
+         title: 'Gestion des Élèves',
+         subtitle: 'Liste, inscriptions et suivi',
+         icon: 'fa-user-graduate',
+         color: 'primary',                (primary | success | info | warning | danger)
+         breadcrumb: [
+             { label: 'Élèves', path: path('admin_student_index') },
+             { label: 'Détails' }
+         ]
+     } %}
+         {% block actions %}
+             <a href="#" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau</a>
+         {% endblock %}
+     {% endembed %}
+
+   Tous les paramètres sont optionnels sauf `title`.
+   ========================================================================== #}
+{% if breadcrumb is defined and breadcrumb %}
+    {% from 'components/macros.html.twig' import breadcrumb as render_breadcrumb %}
+    {{ render_breadcrumb(breadcrumb) }}
+{% endif %}
+
+<div class="page-header">
+    <div class="page-header__title">
+        {% if icon is defined and icon %}
+            <span class="page-header__icon {{ color | default('primary') }}"><i class="fas {{ icon }}"></i></span>
+        {% endif %}
+        <div>
+            <h1>{{ title }}</h1>
+            {% if subtitle is defined and subtitle %}
+                <p class="page-header__subtitle">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="page-header__actions">
+        {% block actions %}{% endblock %}
+    </div>
+</div>

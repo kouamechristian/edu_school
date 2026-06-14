@@ -7,7 +7,9 @@ use App\Entity\Evaluation;
 use App\Entity\Period;
 use App\Entity\Subject;
 use App\Entity\User;
+use App\Repository\CourseRepository;
 use App\Service\SchoolContextService;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -21,11 +23,11 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class EvaluationType extends AbstractType
 {
-    private SchoolContextService $contextService;
-
-    public function __construct(SchoolContextService $contextService)
-    {
-        $this->contextService = $contextService;
+    public function __construct(
+        private SchoolContextService $contextService,
+        private Security $security,
+        private CourseRepository $courseRepository,
+    ) {
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -35,6 +37,31 @@ class EvaluationType extends AbstractType
         $schoolId = $currentSchool ? $currentSchool->getId() : null;
         $yearId = $currentYear ? $currentYear->getId() : null;
 
+        // Restriction enseignant : un enseignant « simple » (sans rôle directeur)
+        // ne voit que SES classes, SES matières, et lui-même comme enseignant.
+        $user = $this->security->getUser();
+        $restrictToTeacher = $user instanceof User
+            && $this->security->isGranted('ROLE_ENSEIGNANT')
+            && !$this->security->isGranted('ROLE_DIRECTEUR');
+
+        $teacherClassroomIds = [];
+        $teacherSubjectIds = [];
+        if ($restrictToTeacher) {
+            foreach ($this->courseRepository->findByTeacher($user->getId()) as $course) {
+                if ($course->getClassroom()) {
+                    $teacherClassroomIds[$course->getClassroom()->getId()] = true;
+                }
+                if ($course->getSubject()) {
+                    $teacherSubjectIds[$course->getSubject()->getId()] = true;
+                }
+            }
+            foreach ($user->getTeachingSubjects() as $subject) {
+                $teacherSubjectIds[$subject->getId()] = true;
+            }
+            $teacherClassroomIds = array_keys($teacherClassroomIds) ?: [0];
+            $teacherSubjectIds = array_keys($teacherSubjectIds) ?: [0];
+        }
+
         $builder
             ->add('classroom', EntityType::class, [
                 'label' => 'Classe',
@@ -42,22 +69,27 @@ class EvaluationType extends AbstractType
                 'choice_label' => 'fullName',
                 'attr' => ['class' => 'form-select'],
                 'placeholder' => 'Sélectionnez une classe',
-                'query_builder' => function ($repository) use ($schoolId, $yearId) {
+                'query_builder' => function ($repository) use ($schoolId, $yearId, $restrictToTeacher, $teacherClassroomIds) {
                     $qb = $repository->createQueryBuilder('c')
                         ->where('c.isActive = :active')
                         ->setParameter('active', true)
                         ->orderBy('c.name', 'ASC');
-                    
+
                     if ($schoolId) {
                         $qb->andWhere('c.school = :school')
                            ->setParameter('school', $schoolId);
                     }
-                    
+
                     if ($yearId) {
                         $qb->andWhere('c.schoolYear = :year')
                            ->setParameter('year', $yearId);
                     }
-                    
+
+                    if ($restrictToTeacher) {
+                        $qb->andWhere('c.id IN (:teacherClassrooms)')
+                           ->setParameter('teacherClassrooms', $teacherClassroomIds);
+                    }
+
                     return $qb;
                 },
             ])
@@ -67,17 +99,22 @@ class EvaluationType extends AbstractType
                 'choice_label' => 'name',
                 'attr' => ['class' => 'form-select'],
                 'placeholder' => 'Sélectionnez une matière',
-                'query_builder' => function ($repository) use ($schoolId) {
+                'query_builder' => function ($repository) use ($schoolId, $restrictToTeacher, $teacherSubjectIds) {
                     $qb = $repository->createQueryBuilder('s')
                         ->where('s.isActive = :active')
                         ->setParameter('active', true)
                         ->orderBy('s.name', 'ASC');
-                    
+
                     if ($schoolId) {
                         $qb->andWhere('s.school = :school')
                            ->setParameter('school', $schoolId);
                     }
-                    
+
+                    if ($restrictToTeacher) {
+                        $qb->andWhere('s.id IN (:teacherSubjects)')
+                           ->setParameter('teacherSubjects', $teacherSubjectIds);
+                    }
+
                     return $qb;
                 },
             ])
@@ -113,20 +150,27 @@ class EvaluationType extends AbstractType
                 'attr' => ['class' => 'form-select'],
                 'placeholder' => 'Sélectionnez un enseignant',
                 'required' => false,
-                'query_builder' => function ($repository) use ($schoolId) {
+                'query_builder' => function ($repository) use ($schoolId, $restrictToTeacher, $user) {
                     $qb = $repository->createQueryBuilder('u')
                         ->where('u.userType = :type')
                         ->andWhere('u.isActive = :active')
                         ->setParameter('type', 'enseignant')
                         ->setParameter('active', true)
                         ->orderBy('u.lastName', 'ASC');
-                    
+
+                    // Enseignant « simple » : il ne peut se choisir que lui-même.
+                    if ($restrictToTeacher) {
+                        $qb->andWhere('u.id = :self')->setParameter('self', $user->getId());
+
+                        return $qb;
+                    }
+
                     if ($schoolId) {
                         $qb->innerJoin('u.schools', 's')
                            ->andWhere('s.id = :school')
                            ->setParameter('school', $schoolId);
                     }
-                    
+
                     return $qb;
                 },
             ])

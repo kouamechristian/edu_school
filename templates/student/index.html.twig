@@ -4,183 +4,138 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Gestion des Élèves</h1>
-        <div>
-            <a href="{{ path('admin_student_enrollment') }}" class="btn btn-success me-2">
-                <i class="fas fa-user-graduate"></i> Inscription
-            </a>
-            <a href="{{ path('admin_pre_registration_new') }}" class="btn btn-primary">
-                <i class="fas fa-user-plus"></i> Nouvelle préinscription
-            </a>
-        </div>
-    </div>
+    {# ── En-tête ── #}
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Gestion des Élèves',
+        subtitle: 'Liste, inscriptions et suivi de scolarité',
+        icon: 'fa-user-graduate',
+        color: 'primary',
+        breadcrumb: [ { label: 'Élèves' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_student_enrollment') }}" class="btn btn-success"><i class="fas fa-user-graduate me-1"></i> Inscription</a>
+            <a href="{{ path('admin_pre_registration_choose') }}" class="btn btn-primary"><i class="fas fa-user-plus me-1"></i> Préinscription</a>
+        {% endblock %}
+    {% endembed %}
 
-    <!-- Statistiques -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+    {# ── Statistiques ── #}
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card primary h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Total</div><div class="stat-value">{{ stats.total }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Affectés</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.affecte }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+        <div class="col-md-4">
+            <div class="stat-card success h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Affectés</div><div class="stat-value">{{ stats.affecte }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-user-check"></i></div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Non affectés</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.non_affecte }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-times fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+        <div class="col-md-4">
+            <div class="stat-card warning h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Non affectés</div><div class="stat-value">{{ stats.non_affecte }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-user-times"></i></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Filtres -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Filtres</h6>
-        </div>
+    {# ── Filtres ── #}
+    <div class="card filter-card mb-4">
         <div class="card-body">
-            <form method="GET" class="row">
+            <form method="GET" class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="search">Recherche</label>
-                        <input type="text" class="form-control" id="search" name="search" 
-                               value="{{ search }}" placeholder="Nom, prénom ou numéro d'élève">
-                    </div>
+                    <label for="search" class="form-label">Recherche</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ search }}" placeholder="Nom, prénom ou numéro d'élève">
                 </div>
                 <div class="col-md-3">
-                    <div class="form-group">
-                        <label for="status">Statut</label>
-                        <select class="form-control" id="status" name="status">
-                            <option value="">Tous</option>
-                            <option value="affecte" {{ status == 'affecte' ? 'selected' : '' }}>Affecté</option>
-                                    <option value="non_affecte" {{ status == 'non_affecte' ? 'selected' : '' }}>Non affecté</option>
-                        </select>
-                    </div>
+                    <label for="status" class="form-label">Statut</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Tous</option>
+                        <option value="affecte" {{ status == 'affecte' ? 'selected' : '' }}>Affecté</option>
+                        <option value="non_affecte" {{ status == 'non_affecte' ? 'selected' : '' }}>Non affecté</option>
+                    </select>
                 </div>
                 <div class="col-md-3">
-                    <div class="form-group">
-                        <label for="level">Niveau</label>
-                        <select class="form-control" id="level" name="level">
-                            <option value="">Tous</option>
-                            <!-- TODO: Ajouter les niveaux dynamiquement -->
-                        </select>
-                    </div>
+                    <label for="level" class="form-label">Niveau</label>
+                    <select class="form-select" id="level" name="level">
+                        <option value="">Tous</option>
+                    </select>
                 </div>
                 <div class="col-md-2">
-                    <div class="form-group">
-                        <label>&nbsp;</label>
-                        <button type="submit" class="btn btn-primary btn-block">
-                            <i class="fas fa-search"></i> Filtrer
-                        </button>
-                    </div>
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Filtrer</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Liste des élèves -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">Liste des Élèves</h6>
-            <div>
-                <a href="{{ path('admin_student_enrollment') }}" class="btn btn-success btn-sm">
-                    <i class="fas fa-graduation-cap"></i> Inscriptions
-                </a>
-                <a href="{{ path('admin_student_archive') }}" class="btn btn-secondary btn-sm">
-                    <i class="fas fa-archive"></i> Archives
-                </a>
+    {# ── Liste des élèves ── #}
+    <div class="card table-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des Élèves</h6>
+            <div class="d-flex gap-2">
+                <a href="{{ path('admin_student_export', {'search': search, 'status': status, 'level': level}) }}" class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel me-1"></i> Exporter Excel</a>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal"><i class="fas fa-file-import me-1"></i> Importer Excel</button>
+                <a href="{{ path('admin_student_enrollment') }}" class="btn btn-success btn-sm"><i class="fas fa-graduation-cap me-1"></i> Inscriptions</a>
+                <a href="{{ path('admin_student_archive') }}" class="btn btn-light btn-sm"><i class="fas fa-archive me-1"></i> Archives</a>
             </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <table class="table table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
-                            <th>Numéro</th>
-                            <th>Nom & Prénom</th>
-                            <th>Niveau</th>
-                            <th>Date d'inscription</th>
-                            <th class="text-end">Mnt Scolarité</th>
-                            <th class="text-end">Mnt Payé</th>
-                            <th class="text-end">Mnt Restant</th>
+                            <th>Mle interne</th>
+                            <th>Mle national</th>
+                            <th>Nom &amp; Prénoms</th>
+                            <th>Établissement</th>
+                            <th class="text-center">Préinscriptions</th>
+                            <th class="text-center">Inscriptions</th>
                             <th>Statut</th>
-                            <th>Actions</th>
+                            <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for student in students %}
-                        {% set tuition = tuition_data[student.id] ?? {total: 0, paid: 0, remaining: 0} %}
                         <tr>
-                            <td>{{ student.studentNumber }}</td>
-                            <td>{{ student.lastName }} {{ student.firstName }}</td>
-                            <td>{{ student.level ? student.level.name : '' }}</td>
-                            <td>{{ student.createdAt ? student.createdAt|date('d/m/Y') : '' }}</td>
-                            <td class="text-end fw-bold">{{ tuition.total|number_format(0, ',', ' ') }} F</td>
-                            <td class="text-end text-success">{{ tuition.paid|number_format(0, ',', ' ') }} F</td>
-                            <td class="text-end {{ tuition.remaining > 0 ? 'text-danger fw-bold' : 'text-success' }}">
-                                {{ tuition.remaining|number_format(0, ',', ' ') }} F
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ student.getStatusColor() }}">
-                                    {{ student.getStatusLabel() }}
+                            <td><span class="fw-semibold text-primary">{{ student.matriculeInterne ?: '—' }}</span></td>
+                            <td><span class="text-muted">{{ student.matriculeNational ?: '—' }}</span></td>
+                            <td class="fw-semibold">{{ student.lastName }} {{ student.firstName }}</td>
+                            <td>{{ student.school ? student.school.name : '—' }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-info-subtle text-info-emphasis rounded-pill" title="Préinscriptions effectuées depuis sa venue">
+                                    {{ preregistration_counts[student.id] ?? 0 }}
                                 </span>
                             </td>
+                            <td class="text-center">
+                                <span class="badge bg-success-subtle text-success-emphasis rounded-pill" title="Inscriptions effectuées depuis sa venue">
+                                    {{ enrollment_counts[student.id] ?? 0 }}
+                                </span>
+                            </td>
+                            <td><span class="badge bg-{{ student.getStatusColor() }}">{{ student.getStatusLabel() }}</span></td>
                             <td>
-                                <a href="{{ path('admin_student_show', {'id': student.id}) }}" 
-                                   class="btn btn-info btn-sm" title="Voir">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ path('admin_student_edit', {'id': student.id}) }}" 
-                                   class="btn btn-warning btn-sm" title="Modifier">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form method="post" action="{{ path('admin_student_delete', {'id': student.id}) }}" 
-                                      onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet élève ?')" 
-                                      style="display: inline;">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ student.id) }}">
-                                    <button class="btn btn-danger btn-sm" title="Supprimer">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                <div class="btn-group btn-group-sm float-end" role="group">
+                                    <a href="{{ path('admin_student_edit', {'id': student.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                    <form method="post" action="{{ path('admin_student_do_archive', {'id': student.id}) }}"
+                                          onsubmit="return confirm('Archiver cet élève ? Il quittera la liste active et sera déplacé dans les archives.')" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('archive' ~ student.id) }}">
+                                        <button class="btn btn-outline-danger" title="Archiver"><i class="fas fa-box-archive"></i></button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="9" class="text-center">Aucun élève trouvé</td>
+                            <td colspan="8">
+                                {% from 'components/macros.html.twig' import empty_state %}
+                                {{ empty_state('fa-user-slash', 'Aucun élève trouvé', 'Aucun élève ne correspond à vos critères de recherche.') }}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -188,27 +143,44 @@
             </div>
         </div>
     </div>
+
+    {# ── Modale d'import Excel ── #}
+    <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{{ path('admin_student_import') }}" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-file-import me-2 text-primary"></i>Importer des élèves (Excel)</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">
+                            Importez un fichier <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong>.
+                            Respectez l'ordre des colonnes du modèle : Matricule interne, Matricule national, Nom, Prénom,
+                            Genre (M/F), Date de naissance, Lieu de naissance, Nationalité, N° extrait de naissance, N° CMU,
+                            Téléphone, Email, Adresse, Dernière école fréquentée, Doublant (Oui/Non), Niveau, Classe, Statut,
+                            Nom parent, Téléphone parent, Email parent, Fonction parent, Domicile parent, Photo.
+                            Le <strong>Nom</strong> et le <strong>Prénom</strong> sont obligatoires ; le matricule interne est
+                            généré automatiquement s'il est vide. Les élèves sont rattachés à l'établissement et à l'année en
+                            cours. (La colonne Photo n'est pas importée — téléversez la photo depuis la fiche de l'élève.)
+                        </p>
+                        <div class="mb-3">
+                            <a href="{{ path('admin_student_import_template') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-download me-1"></i> Télécharger le modèle
+                            </a>
+                        </div>
+                        <div class="mb-2">
+                            <label for="importFile" class="form-label">Fichier à importer</label>
+                            <input type="file" class="form-control" id="importFile" name="file" accept=".xlsx,.xls,.csv" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-1"></i> Importer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
-
-<style>
-.border-left-primary {
-    border-left: 0.25rem solid #4e73df !important;
-}
-
-.border-left-success {
-    border-left: 0.25rem solid #1cc88a !important;
-}
-
-.border-left-warning {
-    border-left: 0.25rem solid #f6c23e !important;
-}
-
-.border-left-info {
-    border-left: 0.25rem solid #36b9cc !important;
-}
-
-.text-xs {
-    font-size: 0.7rem;
-}
-</style>
 {% endblock %}

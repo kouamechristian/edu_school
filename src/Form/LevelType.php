@@ -2,12 +2,11 @@
 
 namespace App\Form;
 
+use App\Entity\Cycle;
 use App\Entity\Level;
-use App\Entity\School;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -25,26 +24,6 @@ class LevelType extends AbstractType
                     'placeholder' => 'Ex: CP, 6ème, Terminale S, Licence 1',
                 ],
             ])
-            ->add('school', EntityType::class, [
-                'class' => School::class,
-                'label' => 'Établissement',
-                'choice_label' => function (School $school) {
-                    return $school->getName() . ' (' . $school->getTypeLabel() . ')';
-                },
-                'attr' => ['class' => 'form-select'],
-                'placeholder' => 'Sélectionnez un établissement',
-                'required' => false,
-                'help' => 'La catégorie du niveau sera déduite du type d\'établissement',
-            ])
-            ->add('orderNumber', IntegerType::class, [
-                'label' => 'Ordre d\'affichage',
-                'attr' => [
-                    'class' => 'form-control',
-                    'min' => 0,
-                    'placeholder' => '1',
-                ],
-                'help' => 'Ordre de tri (du plus petit au plus grand)',
-            ])
             ->add('description', TextareaType::class, [
                 'label' => 'Description',
                 'required' => false,
@@ -53,6 +32,15 @@ class LevelType extends AbstractType
                     'rows' => 3,
                     'placeholder' => 'Description du niveau...',
                 ],
+            ])
+            ->add('cycle', EntityType::class, [
+                'label' => 'Cycle',
+                'class' => Cycle::class,
+                'choice_label' => 'libelle',
+                'choices' => $options['cycles'] ?? [],
+                'required' => false,
+                'placeholder' => 'Aucun cycle',
+                'attr' => ['class' => 'form-select'],
             ])
             ->add('isActive', ChoiceType::class, [
                 'label' => 'Statut',
@@ -69,6 +57,7 @@ class LevelType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Level::class,
+            'cycles' => [],
         ]);
     }
 }

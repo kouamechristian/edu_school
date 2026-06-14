@@ -3,8 +3,10 @@
 namespace App\Form;
 
 use App\Entity\Classroom;
+use App\Entity\Faculty;
 use App\Entity\Level;
 use App\Entity\Room;
+use App\Entity\Round;
 use App\Entity\School;
 use App\Entity\SchoolYear;
 use App\Entity\User;
@@ -58,6 +60,38 @@ class ClassroomType extends AbstractType
                            ->setParameter('school', $schoolId);
                     }
                     
+                    return $qb;
+                },
+            ])
+            ->add('faculty', EntityType::class, [
+                'label' => 'Filière',
+                'class' => Faculty::class,
+                'choice_label' => 'libelle',
+                'required' => false,
+                'attr' => ['class' => 'form-select'],
+                'placeholder' => 'Aucune filière',
+                'query_builder' => function ($repository) use ($schoolId) {
+                    $qb = $repository->createQueryBuilder('f')->orderBy('f.libelle', 'ASC');
+                    if ($schoolId) {
+                        $qb->andWhere('f.school = :school')->setParameter('school', $schoolId);
+                    }
+
+                    return $qb;
+                },
+            ])
+            ->add('round', EntityType::class, [
+                'label' => 'Série',
+                'class' => Round::class,
+                'choice_label' => 'libelle',
+                'required' => false,
+                'attr' => ['class' => 'form-select'],
+                'placeholder' => 'Aucune série',
+                'query_builder' => function ($repository) use ($schoolId) {
+                    $qb = $repository->createQueryBuilder('r')->orderBy('r.libelle', 'ASC');
+                    if ($schoolId) {
+                        $qb->andWhere('r.school = :school')->setParameter('school', $schoolId);
+                    }
+
                     return $qb;
                 },
             ])

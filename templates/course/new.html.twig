@@ -1,77 +1,55 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Nouveau Cours{% endblock %}
+{% block heading %}Nouveau Cours{% endblock %}
 
 {% block body %}
-<div class="container py-4">
+<div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="fas fa-calendar-plus me-2"></i> Nouveau Cours
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <!-- Erreurs générales du formulaire -->
-                    {% if form.vars.errors|length > 0 %}
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <h6 class="alert-heading">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                <strong>Erreur de validation</strong>
-                            </h6>
-                            <ul class="mb-0">
-                                {% for error in form.vars.errors %}
-                                    <li><strong>{{ error.message }}</strong></li>
-                                {% endfor %}
-                            </ul>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endif %}
+        <div class="col-xl-9">
+            {% embed 'components/page_header.html.twig' with {
+                title: block('heading'),
+                icon: 'fa-calendar-plus',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Cours', path: path('admin_course_index') },
+                    { label: block('heading') }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_course_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
 
+            {% include '_flash.html.twig' %}
+
+            {% if form.vars.errors|length > 0 %}
+                <div class="form-error-message">
+                    <strong><i class="fas fa-exclamation-circle me-2"></i>Erreur de validation</strong>
+                    <ul class="mt-2">{% for error in form.vars.errors %}<li>{{ error.message }}</li>{% endfor %}</ul>
+                </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-body">
                     {{ form_start(form) }}
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.classroom) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.subject) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.classroom) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.subject) }}</div>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_row(form.teacher) }}
-                        </div>
-
+                        <div class="mb-3">{{ form_row(form.teacher) }}</div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.dayOfWeek) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.timeSlot) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.dayOfWeek) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.timeSlot) }}</div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.room) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.isActive) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.room) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.isActive) }}</div>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_row(form.notes) }}
-                        </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ path('admin_course_index') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-2"></i> Retour
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i> Enregistrer
-                            </button>
+                        <div class="mb-3">{{ form_row(form.notes) }}</div>
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_course_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer</button>
                         </div>
                     {{ form_end(form) }}
                 </div>
@@ -80,4 +58,3 @@
     </div>
 </div>
 {% endblock %}
-

@@ -85,6 +85,23 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
+                                {{ form_label(form.matriculeInterne) }}
+                                {{ form_widget(form.matriculeInterne) }}
+                                {{ form_errors(form.matriculeInterne) }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.matriculeNational) }}
+                                {{ form_widget(form.matriculeNational) }}
+                                {{ form_errors(form.matriculeNational) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
                                 {{ form_label(form.level) }}
                                 {{ form_widget(form.level) }}
                                 {{ form_errors(form.level) }}
@@ -92,11 +109,60 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                {{ form_label(form.schoolYear) }}
-                                {{ form_widget(form.schoolYear) }}
-                                {{ form_errors(form.schoolYear) }}
+                                {{ form_label(form.isRepeating) }}
+                                {{ form_widget(form.isRepeating) }}
+                                {{ form_errors(form.isRepeating) }}
                             </div>
                         </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="text-primary">État civil</h6>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.placeOfBirth) }}
+                                {{ form_widget(form.placeOfBirth) }}
+                                {{ form_errors(form.placeOfBirth) }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.nationality) }}
+                                {{ form_widget(form.nationality) }}
+                                {{ form_errors(form.nationality) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.birthCertificateNumber) }}
+                                {{ form_widget(form.birthCertificateNumber) }}
+                                {{ form_errors(form.birthCertificateNumber) }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.cmuNumber) }}
+                                {{ form_widget(form.cmuNumber) }}
+                                {{ form_errors(form.cmuNumber) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        {{ form_label(form.lastSchoolAttended) }}
+                        {{ form_widget(form.lastSchoolAttended) }}
+                        {{ form_errors(form.lastSchoolAttended) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form_label(form.photoFile) }}
+                        {% if student.photo %}
+                            <div class="mb-2"><img src="{{ asset(student.photo) }}" alt="Photo" style="max-height: 90px;" class="img-thumbnail"></div>
+                        {% endif %}
+                        {{ form_widget(form.photoFile) }}
+                        {{ form_errors(form.photoFile) }}
                     </div>
 
                     <hr class="my-4">
@@ -119,10 +185,26 @@
                         </div>
                     </div>
 
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.parentEmail) }}
+                                {{ form_widget(form.parentEmail) }}
+                                {{ form_errors(form.parentEmail) }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.parentFunction) }}
+                                {{ form_widget(form.parentFunction) }}
+                                {{ form_errors(form.parentFunction) }}
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-group">
-                        {{ form_label(form.parentEmail) }}
-                        {{ form_widget(form.parentEmail) }}
-                        {{ form_errors(form.parentEmail) }}
+                        {{ form_label(form.parentAddress) }}
+                        {{ form_widget(form.parentAddress) }}
+                        {{ form_errors(form.parentAddress) }}
                     </div>
 
                     <hr class="my-4">
@@ -186,7 +268,8 @@
                     <h6 class="m-0 font-weight-bold text-primary">Informations actuelles</h6>
                 </div>
                 <div class="card-body">
-                    <p><strong>Numéro d'élève :</strong> {{ student.studentNumber }}</p>
+                    <p><strong>Matricule interne :</strong> {{ student.matriculeInterne }}</p>
+                    {% if student.matriculeNational %}<p><strong>Matricule national :</strong> {{ student.matriculeNational }}</p>{% endif %}
                     <p><strong>Statut actuel :</strong> 
                         <span class="badge bg-{{ student.statusColor }}">
                             {{ student.statusLabel }}

@@ -21,7 +21,7 @@ class Period
     #[Assert\NotBlank(message: 'L\'établissement est obligatoire')]
     private ?School $school = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'periods')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotBlank(message: 'L\'année scolaire est obligatoire')]
     private ?SchoolYear $schoolYear = null;
@@ -32,7 +32,6 @@ class Period
     private ?string $name = null;
 
     #[ORM\Column(length: 50)]
-    #[Assert\NotBlank(message: 'Le code est obligatoire')]
     private ?string $code = null;
 
     #[ORM\Column(type: Types::INTEGER)]

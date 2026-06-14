@@ -29,7 +29,6 @@ class AbsenceType
     private ?string $description = null;
 
     #[ORM\Column(length: 20)]
-    #[Assert\NotBlank(message: 'Le code est obligatoire')]
     #[Assert\Length(max: 20)]
     private ?string $code = null;
 

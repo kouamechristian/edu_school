@@ -4,147 +4,127 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Modifier la Préinscription</h1>
-                <div class="btn-group">
-                    <a href="{{ path('admin_pre_registration_show', {'id': pre_registration.id}) }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour
-                    </a>
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Modifier la Préinscription',
+        subtitle: pre_registration.fullName,
+        icon: 'fa-clipboard-list',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Préinscriptions', path: path('admin_pre_registration_index') },
+            { label: pre_registration.fullName, path: path('admin_pre_registration_show', {'id': pre_registration.id}) },
+            { label: 'Modifier' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_pre_registration_show', {'id': pre_registration.id}) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-user me-2"></i>Informations de l'élève</h6></div>
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.firstName) }}</div>
+                            <div class="col-md-6">{{ form_row(form.lastName) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.matriculeNational) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.dateOfBirth) }}</div>
+                            <div class="col-md-6">{{ form_row(form.gender) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.phone) }}</div>
+                            <div class="col-md-6">{{ form_row(form.email) }}</div>
+                        </div>
+                        {{ form_row(form.address) }}
+
+                        <hr class="my-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-id-card me-2"></i>État civil</h6>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.placeOfBirth) }}</div>
+                            <div class="col-md-6">{{ form_row(form.nationality) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.birthCertificateNumber) }}</div>
+                            <div class="col-md-6">{{ form_row(form.cmuNumber) }}</div>
+                        </div>
+                        {% if pre_registration.photo %}
+                            <div class="mb-2"><img src="{{ asset(pre_registration.photo) }}" alt="Photo" style="max-height: 90px;" class="img-thumbnail"></div>
+                        {% endif %}
+                        {{ form_row(form.photoFile) }}
+
+                        <hr class="my-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-user-friends me-2"></i>Informations du parent/tuteur</h6>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.parentName) }}</div>
+                            <div class="col-md-6">{{ form_row(form.parentPhone) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.parentEmail) }}</div>
+                            <div class="col-md-6">{{ form_row(form.parentFunction) }}</div>
+                        </div>
+                        {{ form_row(form.parentAddress) }}
+
+                        <hr class="my-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-phone-alt me-2"></i>Contact d'urgence</h6>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.emergencyContact) }}</div>
+                            <div class="col-md-6">{{ form_row(form.emergencyPhone) }}</div>
+                        </div>
+
+                        <hr class="my-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-school me-2"></i>Informations scolaires</h6>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.requestedLevel) }}</div>
+                            <div class="col-md-6">{{ form_row(form.schoolYear) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.isRepeating) }}</div>
+                        </div>
+                        {{ form_row(form.lastSchoolAttended) }}
+
+                        <hr class="my-4">
+                        <h6 class="text-muted mb-3"><i class="fas fa-notes-medical me-2"></i>Informations supplémentaires</h6>
+                        {{ form_row(form.medicalInfo) }}
+                        {{ form_row(form.notes) }}
+
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_pre_registration_show', {'id': pre_registration.id}) }}" class="btn btn-light">Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer les modifications</button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Statut actuel</h6></div>
+                <div class="card-body">
+                    <div class="alert alert-{{ pre_registration.statusColor }} mb-0">
+                        <strong>{{ pre_registration.statusLabel }}</strong>
+                        {% if pre_registration.validatedAt %}<br><small>Validée le {{ pre_registration.validatedAt|date('d/m/Y à H:i') }}</small>{% endif %}
+                        {% if pre_registration.enrolledAt %}<br><small>Inscrite le {{ pre_registration.enrolledAt|date('d/m/Y à H:i') }}</small>{% endif %}
+                    </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations de l'élève</h5>
-                        </div>
-                        <div class="card-body">
-                            {{ form_start(form) }}
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {{ form_row(form.firstName) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(form.lastName) }}
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {{ form_row(form.dateOfBirth) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(form.gender) }}
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {{ form_row(form.phone) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(form.email) }}
-                                    </div>
-                                </div>
-
-                                {{ form_row(form.address) }}
-
-                                <hr class="my-4">
-                                <h6 class="text-muted">Informations du parent/tuteur</h6>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {{ form_row(form.parentName) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(form.parentPhone) }}
-                                    </div>
-                                </div>
-
-                                {{ form_row(form.parentEmail) }}
-
-                                <hr class="my-4">
-                                <h6 class="text-muted">Contact d'urgence</h6>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {{ form_row(form.emergencyContact) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(form.emergencyPhone) }}
-                                    </div>
-                                </div>
-
-                                <hr class="my-4">
-                                <h6 class="text-muted">Informations scolaires</h6>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {{ form_row(form.requestedLevel) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(form.schoolYear) }}
-                                    </div>
-                                </div>
-
-                                <hr class="my-4">
-                                <h6 class="text-muted">Informations supplémentaires</h6>
-
-                                {{ form_row(form.medicalInfo) }}
-                                {{ form_row(form.notes) }}
-
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ path('admin_pre_registration_show', {'id': pre_registration.id}) }}" class="btn btn-outline-secondary">
-                                        Annuler
-                                    </a>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> Enregistrer les modifications
-                                    </button>
-                                </div>
-                            {{ form_end(form) }}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Statut actuel</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-{{ pre_registration.statusColor }}">
-                                <strong>{{ pre_registration.statusLabel }}</strong>
-                                {% if pre_registration.validatedAt %}
-                                    <br><small>Validée le {{ pre_registration.validatedAt|date('d/m/Y à H:i') }}</small>
-                                {% endif %}
-                                {% if pre_registration.enrolledAt %}
-                                    <br><small>Inscrite le {{ pre_registration.enrolledAt|date('d/m/Y à H:i') }}</small>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card mt-3">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations de création</h5>
-                        </div>
-                        <div class="card-body">
-                            <dl class="row small">
-                                <dt class="col-5">Créée le :</dt>
-                                <dd class="col-7">{{ pre_registration.createdAt|date('d/m/Y à H:i') }}</dd>
-                                
-                                <dt class="col-5">Modifiée le :</dt>
-                                <dd class="col-7">{{ pre_registration.updatedAt|date('d/m/Y à H:i') }}</dd>
-                                
-                                {% if pre_registration.validatedBy %}
-                                    <dt class="col-5">Validée par :</dt>
-                                    <dd class="col-7">{{ pre_registration.validatedBy.fullName }}</dd>
-                                {% endif %}
-                            </dl>
-                        </div>
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-clock-rotate-left me-2"></i>Informations de création</h6></div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Créée le</div><div class="info-value">{{ pre_registration.createdAt|date('d/m/Y à H:i') }}</div></div>
+                        <div class="info-row"><div class="info-label">Modifiée le</div><div class="info-value">{{ pre_registration.updatedAt|date('d/m/Y à H:i') }}</div></div>
+                        {% if pre_registration.validatedBy %}
+                        <div class="info-row"><div class="info-label">Validée par</div><div class="info-value">{{ pre_registration.validatedBy.fullName }}</div></div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

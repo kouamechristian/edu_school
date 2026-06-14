@@ -26,7 +26,7 @@ class Payment
     #[Assert\NotBlank(message: 'L\'élève est obligatoire')]
     private ?Student $student = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'payments')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotBlank(message: 'Le frais est obligatoire')]
     private ?Fee $fee = null;
@@ -60,6 +60,26 @@ class Payment
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $receiptPath = null;
+
+    // ── Passerelle de paiement en ligne (GeniusPay) ──
+
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $provider = null;
+
+    #[ORM\Column(length: 100, unique: true, nullable: true)]
+    private ?string $providerTransactionId = null;
+
+    #[ORM\Column(length: 40, nullable: true)]
+    private ?string $providerStatus = null;
+
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $payerPhone = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $checkoutUrl = null;
+
+    #[ORM\Column(length: 64, unique: true, nullable: true)]
+    private ?string $idempotencyKey = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true)]
@@ -247,6 +267,72 @@ class Payment
     public function setReceiptPath(?string $receiptPath): static
     {
         $this->receiptPath = $receiptPath;
+        return $this;
+    }
+
+    public function getProvider(): ?string
+    {
+        return $this->provider;
+    }
+
+    public function setProvider(?string $provider): static
+    {
+        $this->provider = $provider;
+        return $this;
+    }
+
+    public function getProviderTransactionId(): ?string
+    {
+        return $this->providerTransactionId;
+    }
+
+    public function setProviderTransactionId(?string $providerTransactionId): static
+    {
+        $this->providerTransactionId = $providerTransactionId;
+        return $this;
+    }
+
+    public function getProviderStatus(): ?string
+    {
+        return $this->providerStatus;
+    }
+
+    public function setProviderStatus(?string $providerStatus): static
+    {
+        $this->providerStatus = $providerStatus;
+        return $this;
+    }
+
+    public function getPayerPhone(): ?string
+    {
+        return $this->payerPhone;
+    }
+
+    public function setPayerPhone(?string $payerPhone): static
+    {
+        $this->payerPhone = $payerPhone;
+        return $this;
+    }
+
+    public function getCheckoutUrl(): ?string
+    {
+        return $this->checkoutUrl;
+    }
+
+    public function setCheckoutUrl(?string $checkoutUrl): static
+    {
+        $this->checkoutUrl = $checkoutUrl;
+        return $this;
+    }
+
+    public function getIdempotencyKey(): ?string
+    {
+        return $this->idempotencyKey;
+    }
+
+    public function setIdempotencyKey(?string $idempotencyKey): static
+    {
+        $this->idempotencyKey = $idempotencyKey;
         return $this;
     }
 

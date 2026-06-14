@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Réinscription d'un ancien élève{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Réinscription d\'un ancien élève',
+        subtitle: 'Recherchez l\'élève par son matricule national',
+        icon: 'fa-user-clock',
+        color: 'success',
+        breadcrumb: [
+            { label: 'Préinscriptions', path: path('admin_pre_registration_index') },
+            { label: 'Nouvelle', path: path('admin_pre_registration_choose') },
+            { label: 'Ancien élève' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_pre_registration_choose') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {# ── Recherche par matricule national ── #}
+    <div class="card mb-4">
+        <div class="card-header"><h6 class="m-0 fw-bold text-success"><i class="fas fa-search me-2"></i>Rechercher l'élève</h6></div>
+        <div class="card-body">
+            <form method="get" action="{{ path('admin_pre_registration_returning') }}" class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label for="matricule_national" class="form-label">Matricule national de l'élève</label>
+                    <input type="text" class="form-control" id="matricule_national" name="matricule_national"
+                           value="{{ matricule_national }}" placeholder="Ex. 25096333 A" autofocus required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-success w-100"><i class="fas fa-magnifying-glass me-1"></i> Rechercher</button>
+                </div>
+            </form>
+            {% if matricule_national and not student %}
+                <div class="alert alert-warning mt-3 mb-0">
+                    <i class="fas fa-triangle-exclamation me-1"></i>
+                    Aucun élève trouvé avec le matricule national « {{ matricule_national }} » dans cet établissement.
+                    Vérifiez le matricule, ou créez une <a href="{{ path('admin_pre_registration_new') }}">préinscription pour un nouvel élève</a>.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Formulaire pré-rempli (si élève trouvé) ── #}
+    {% if student and form %}
+        <div class="alert alert-success">
+            <i class="fas fa-circle-check me-1"></i>
+            Élève trouvé : <strong>{{ student.lastName }} {{ student.firstName }}</strong>
+            {% if student.matriculeInterne %}<span class="text-muted">(matricule interne {{ student.matriculeInterne }})</span>{% endif %}.
+            Les informations ont été pré-remplies — modifiez-les si nécessaire, puis enregistrez.
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-9">
+                <div class="card">
+                    <div class="card-header"><h6 class="m-0 fw-bold text-success"><i class="fas fa-user me-2"></i>Informations de l'élève</h6></div>
+                    <div class="card-body">
+                        {{ include('pre_registration/_form_fields.html.twig', {
+                            action: path('admin_pre_registration_new'),
+                            submit_label: 'Enregistrer la réinscription'
+                        }) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

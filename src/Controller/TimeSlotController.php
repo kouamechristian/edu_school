@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\TimeSlot;
 use App\Form\TimeSlotType;
 use App\Repository\TimeSlotRepository;
@@ -14,9 +15,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/time-slots', name: 'admin_time_slot_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_DIRECTEUR')]
 class TimeSlotController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(TimeSlotRepository $timeSlotRepository, SchoolContextService $contextService): Response
     {
@@ -105,10 +108,12 @@ class TimeSlotController extends AbstractController
     public function delete(Request $request, TimeSlot $timeSlot, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$timeSlot->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($timeSlot);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'La plage horaire a été supprimée avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $timeSlot,
+                'La plage horaire a été supprimée avec succès.',
+                'Suppression impossible : cette plage horaire est encore utilisée par des cours ou emplois du temps.'
+            );
         }
 
         return $this->redirectToRoute('admin_time_slot_index', [], Response::HTTP_SEE_OTHER);

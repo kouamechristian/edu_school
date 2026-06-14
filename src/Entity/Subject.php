@@ -22,7 +22,6 @@ class Subject
     private ?string $name = null;
 
     #[ORM\Column(length: 50, unique: true)]
-    #[Assert\NotBlank(message: 'Le code de la matière est obligatoire')]
     #[Assert\Length(max: 50)]
     private ?string $code = null;
 
@@ -41,13 +40,17 @@ class Subject
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
-    #[Assert\Choice(choices: ['obligatoire', 'optionnelle', 'facultative'])]
-    private ?string $type = 'obligatoire';
+    #[ORM\ManyToOne(targetEntity: SubjectType::class)]
+    #[ORM\JoinColumn(name: 'type_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?SubjectType $type = null;
 
     #[ORM\Column(nullable: true)]
     #[Assert\PositiveOrZero]
     private ?int $hoursPerWeek = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Assert\PositiveOrZero(message: 'Le numéro d\'ordre sur le bulletin doit être positif.')]
+    private ?int $bulletinOrderNumber = null;
 
     #[ORM\Column(length: 7, nullable: true)]
     #[Assert\Regex(pattern: '/^#[0-9A-F]{6}$/i', message: 'Format couleur invalide (ex: #FF5733)')]
@@ -145,12 +148,12 @@ class Subject
         return $this;
     }
 
-    public function getType(): ?string
+    public function getType(): ?SubjectType
     {
         return $this->type;
     }
 
-    public function setType(?string $type): static
+    public function setType(?SubjectType $type): static
     {
         $this->type = $type;
         return $this;
@@ -158,12 +161,7 @@ class Subject
 
     public function getTypeLabel(): string
     {
-        return match($this->type) {
-            'obligatoire' => 'Obligatoire',
-            'optionnelle' => 'Optionnelle',
-            'facultative' => 'Facultative',
-            default => $this->type
-        };
+        return $this->type?->getLabel() ?? 'Non défini';
     }
 
     public function getHoursPerWeek(): ?int
@@ -174,6 +172,17 @@ class Subject
     public function setHoursPerWeek(?int $hoursPerWeek): static
     {
         $this->hoursPerWeek = $hoursPerWeek;
+        return $this;
+    }
+
+    public function getBulletinOrderNumber(): ?int
+    {
+        return $this->bulletinOrderNumber;
+    }
+
+    public function setBulletinOrderNumber(?int $bulletinOrderNumber): static
+    {
+        $this->bulletinOrderNumber = $bulletinOrderNumber;
         return $this;
     }
 

@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Enregistrer un abandon{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-7">
+            {% embed 'components/page_header.html.twig' with {
+                title: 'Enregistrer un abandon',
+                icon: 'fa-user-xmark',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Élèves', path: path('admin_student_index') },
+                    { label: 'Abandons', path: path('admin_dropout_index') },
+                    { label: 'Nouveau' }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_dropout_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        <div class="row">
+                            <div class="col-md-7 mb-3">{{ form_row(form.student) }}</div>
+                            <div class="col-md-5 mb-3">{{ form_row(form.dropoutDate) }}</div>
+                        </div>
+                        <div class="mb-3">{{ form_row(form.reason) }}</div>
+                        <div class="alert alert-info py-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            L'abandon sera d'abord <strong>enregistré</strong>. Il devra ensuite être <strong>validé</strong> depuis la liste pour retirer l'élève des effectifs actifs.
+                        </div>
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_dropout_index') }}" class="btn btn-light"><i class="fas fa-times me-1"></i> Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer</button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,93 +4,75 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Modifier le Type de Document</h1>
-                <div class="btn-group">
-                    <a href="{{ path('admin_document_type_show', {'id': document_type.id}) }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour
-                    </a>
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Modifier le Type de Document',
+        subtitle: document_type.name,
+        icon: 'fa-file-alt',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Types de documents', path: path('admin_document_type_index') },
+            { label: document_type.name, path: path('admin_document_type_show', {'id': document_type.id}) },
+            { label: 'Modifier' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_document_type_show', {'id': document_type.id}) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-edit me-2"></i>Informations du type de document</h6></div>
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        <div class="mb-3">{{ form_row(form.name) }}</div>
+                        <div class="mb-3">{{ form_row(form.description) }}</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.isRequired) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.isActive) }}</div>
+                        </div>
+                        <div class="mb-3">{{ form_row(form.maxFileSize) }}</div>
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_document_type_show', {'id': document_type.id}) }}" class="btn btn-light">Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer les modifications</button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-clock-rotate-left me-2"></i>Informations actuelles</h6></div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Créé le</div><div class="info-value">{{ document_type.createdAt|date('d/m/Y à H:i') }}</div></div>
+                        <div class="info-row"><div class="info-label">Modifié le</div><div class="info-value">{{ document_type.updatedAt|date('d/m/Y à H:i') }}</div></div>
+                        <div class="info-row"><div class="info-label">Documents</div><div class="info-value">{{ document_type.preRegistrationDocuments|length }}</div></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations du type de document</h5>
-                        </div>
-                        <div class="card-body">
-                            {{ form_start(form) }}
-                                {{ form_row(form.name) }}
-                                {{ form_row(form.description) }}
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        {{ form_row(form.isRequired) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(form.isActive) }}
-                                    </div>
-                                </div>
-                                
-                                {{ form_row(form.maxFileSize) }}
-
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ path('admin_document_type_show', {'id': document_type.id}) }}" class="btn btn-outline-secondary">
-                                        Annuler
-                                    </a>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> Enregistrer les modifications
-                                    </button>
-                                </div>
-                            {{ form_end(form) }}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations actuelles</h5>
-                        </div>
-                        <div class="card-body">
-                            <dl class="row small">
-                                <dt class="col-5">Créé le :</dt>
-                                <dd class="col-7">{{ document_type.createdAt|date('d/m/Y à H:i') }}</dd>
-                                
-                                <dt class="col-5">Modifié le :</dt>
-                                <dd class="col-7">{{ document_type.updatedAt|date('d/m/Y à H:i') }}</dd>
-                                
-                                <dt class="col-5">Documents :</dt>
-                                <dd class="col-7">{{ document_type.preRegistrationDocuments|length }}</dd>
-                            </dl>
-                        </div>
-                    </div>
-
-                    <div class="card mt-3">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Aide</h5>
-                        </div>
-                        <div class="card-body">
-                            <h6>Types MIME autorisés :</h6>
-                            <ul class="list-unstyled small">
-                                <li><code>application/pdf</code> - Documents PDF</li>
-                                <li><code>image/jpeg</code> - Images JPEG</li>
-                                <li><code>image/png</code> - Images PNG</li>
-                                <li><code>image/gif</code> - Images GIF</li>
-                                <li><code>image/webp</code> - Images WebP</li>
-                            </ul>
-                            
-                            <h6 class="mt-3">Tailles de fichier :</h6>
-                            <ul class="list-unstyled small">
-                                <li>1 MB = 1,048,576 octets</li>
-                                <li>5 MB = 5,242,880 octets</li>
-                                <li>10 MB = 10,485,760 octets</li>
-                            </ul>
-                        </div>
-                    </div>
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-circle-question me-2"></i>Aide</h6></div>
+                <div class="card-body">
+                    <h6 class="text-muted">Types MIME autorisés</h6>
+                    <ul class="list-unstyled small">
+                        <li><code>application/pdf</code> — Documents PDF</li>
+                        <li><code>image/jpeg</code> — Images JPEG</li>
+                        <li><code>image/png</code> — Images PNG</li>
+                        <li><code>image/gif</code> — Images GIF</li>
+                        <li><code>image/webp</code> — Images WebP</li>
+                    </ul>
+                    <h6 class="text-muted mt-3">Tailles de fichier</h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li>1 MB = 1 048 576 octets</li>
+                        <li>5 MB = 5 242 880 octets</li>
+                        <li>10 MB = 10 485 760 octets</li>
+                    </ul>
                 </div>
             </div>
         </div>

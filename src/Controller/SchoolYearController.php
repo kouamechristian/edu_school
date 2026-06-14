@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\SchoolYear;
 use App\Form\SchoolYearType;
 use App\Repository\SchoolYearRepository;
@@ -16,6 +17,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class SchoolYearController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(SchoolYearRepository $schoolYearRepository): Response
     {
@@ -80,10 +83,12 @@ class SchoolYearController extends AbstractController
     public function delete(Request $request, SchoolYear $schoolYear, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$schoolYear->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($schoolYear);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'L\'année scolaire a été supprimée avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $schoolYear,
+                'L\'année scolaire a été supprimée avec succès.',
+                'Suppression impossible : cette année scolaire est encore liée à des périodes, inscriptions ou autres données.'
+            );
         }
 
         return $this->redirectToRoute('admin_school_year_index', [], Response::HTTP_SEE_OTHER);

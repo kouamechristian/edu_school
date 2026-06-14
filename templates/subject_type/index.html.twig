@@ -1,0 +1,64 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Types de Matière{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Types de Matière',
+        subtitle: 'Référentiel des types et leur ordre sur le bulletin',
+        icon: 'fa-tags',
+        color: 'primary',
+        breadcrumb: [ { label: 'Types de matière' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_subject_type_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau Type</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des types</h6></div>
+        <div class="card-body">
+            {% if subject_types|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>N° ordre (bulletin)</th>
+                                <th>Libellé</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subject_type in subject_types %}
+                                <tr>
+                                    <td>{{ subject_type.orderNumber }}</td>
+                                    <td class="fw-semibold">{{ subject_type.label }}</td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ path('admin_subject_type_edit', {'id': subject_type.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            <form method="post" action="{{ path('admin_subject_type_delete', {'id': subject_type.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer ce type de matière ?')">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ subject_type.id) }}">
+                                                <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-tags"></i></div>
+                    <h6>Aucun type de matière</h6>
+                    <p>Commencez par créer un nouveau type de matière.</p>
+                    <a href="{{ path('admin_subject_type_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Créer le premier type</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

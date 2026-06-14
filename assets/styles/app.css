@@ -1,3 +1,9 @@
-body {
-    background-color: skyblue;
-}
+/*
+ * EDU-SCHOOL — point d'entrée AssetMapper (assets/app.js).
+ *
+ * La charte graphique complète est gérée dans public/css/styles.css,
+ * chargée directement dans base.html.twig pour un rendu critique immédiat.
+ * Ce fichier est volontairement laissé vide afin de ne pas dupliquer les
+ * styles ni introduire de règles conflictuelles (ancienne règle de test
+ * « body { background: skyblue } » supprimée).
+ */

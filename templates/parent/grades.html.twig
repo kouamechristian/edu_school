@@ -1,0 +1,110 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}Notes · {{ child.fullName }}{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> /
+        <a href="{{ path('parent_child_show', {id: child.id}) }}">{{ child.fullName }}</a> / Notes</div>
+{% endblock %}
+{% block page_title %}Notes de {{ child.fullName }}{% endblock %}
+{% block page_subtitle %}Évaluations publiées {{ period ? '— ' ~ period.name : '' }}.{% endblock %}
+
+{% block subnav %}{% include 'parent/_child_nav.html.twig' with {active: 'notes'} %}{% endblock %}
+{% block bottomnav %}{% include 'parent/_child_bottomnav.html.twig' %}{% endblock %}
+
+{% block body %}
+{% set avg = academic.general_average %}
+{% set ring = avg is not null ? (avg / 20 * 100)|round : 0 %}
+{% set ring_color = avg is null ? '#94a3b8' : (avg >= 14 ? '#10b981' : (avg >= 10 ? '#f59e0b' : '#ef4444')) %}
+
+{% if periods is not empty %}
+<form method="get" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:.6rem;">
+    <label class="pp-child-sub" style="margin:0;">Période</label>
+    <select name="period" onchange="this.form.submit()"
+            style="border:1px solid #e3e8f0;border-radius:999px;padding:.45rem 1rem;font-weight:600;color:#1e3a5f;background:#fff;">
+        {% for p in periods %}
+            <option value="{{ p.id }}" {{ period and period.id == p.id ? 'selected' : '' }}>{{ p.name }}</option>
+        {% endfor %}
+    </select>
+</form>
+{% endif %}
+
+<div class="pp-grid cols-2" style="align-items:start;">
+    <section class="pp-card pp-reveal" style="text-align:center;">
+        <div class="pp-card-title" style="justify-content:center;margin-bottom:1rem;"><i class="fas fa-star"></i> Moyenne générale</div>
+        <div class="pp-ring" style="--val:{{ ring }};--ring-color:{{ ring_color }};width:150px;height:150px;">
+            <div class="pp-ring-label">
+                <div class="num" style="font-size:1.7rem;">{{ avg is not null ? avg : '—' }}</div>
+                <div class="unit">/ 20</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-chart-column"></i> Moyennes par matière</div>
+        {% if academic.subjects is empty %}
+            <div class="pp-empty" style="padding:1.5rem;"><i class="fas fa-inbox"></i><p>Aucune donnée.</p></div>
+        {% else %}
+            <canvas id="subjectsChart" height="160"></canvas>
+        {% endif %}
+    </section>
+</div>
+
+{% if academic.subjects is empty %}
+    <div class="pp-card pp-reveal" style="margin-top:1.1rem;">
+        <div class="pp-empty"><i class="fas fa-inbox"></i><p>Aucune note publiée pour cette période.</p></div>
+    </div>
+{% else %}
+    {% for row in academic.subjects %}
+        <section class="pp-card pp-reveal" style="margin-top:1.1rem;padding:0;overflow:hidden;">
+            <div class="pp-card-header" style="padding:1rem 1.25rem;margin:0;background:#f8fafc;">
+                <span class="pp-card-title">{{ row.subject.name }}</span>
+                <span class="pp-badge navy">Moyenne {{ row.average is not null ? row.average ~ '/20' : '—' }}</span>
+            </div>
+            <table class="pp-table">
+                <thead>
+                    <tr><th>Évaluation</th><th>Type</th><th class="text-center">Date</th><th class="text-center">Coef.</th><th class="text-end">Note</th></tr>
+                </thead>
+                <tbody>
+                    {% for grade in row.grades %}
+                        {% set eval = grade.evaluation %}
+                        <tr>
+                            <td>{{ eval.name }}</td>
+                            <td><span class="pp-badge sky">{{ eval.typeLabel }}</span></td>
+                            <td class="text-center">{{ eval.date ? eval.date|date('d/m/Y') : '—' }}</td>
+                            <td class="text-center">{{ eval.coefficient }}</td>
+                            <td class="text-end"><strong>{{ grade.displayValue }}</strong> / {{ eval.maxGrade }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block javascripts %}
+{% if academic.subjects is not empty %}
+<script>
+    (function () {
+        var labels = {{ academic.subjects|map(r => r.subject.name)|json_encode|raw }};
+        var values = {{ academic.subjects|map(r => r.average ?? 0)|json_encode|raw }};
+        var ctx = document.getElementById('subjectsChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{
+                data: values,
+                backgroundColor: values.map(function (v) { return v >= 14 ? '#10b981' : (v >= 10 ? '#f59e0b' : '#ef4444'); }),
+                borderRadius: 8, maxBarThickness: 38
+            }]},
+            options: {
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, max: 20, ticks: { stepSize: 5 } } },
+                responsive: true, maintainAspectRatio: true
+            }
+        });
+    })();
+</script>
+{% endif %}
+{% endblock %}

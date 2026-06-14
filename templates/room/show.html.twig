@@ -3,162 +3,73 @@
 {% block title %}Détails de la Salle{% endblock %}
 
 {% block body %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3">Détails de la Salle</h1>
-                <div>
-                    <a href="{{ path('admin_room_edit', {'id': room.id}) }}" class="btn btn-warning me-2">
-                        <i class="fas fa-edit"></i> Modifier
-                    </a>
-                    <a href="{{ path('admin_room_index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour
-                    </a>
-                </div>
-            </div>
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: room.code ~ ' — ' ~ room.name,
+        subtitle: 'Salle',
+        icon: 'fa-door-closed',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Salles', path: path('admin_room_index') },
+            { label: room.code }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_room_edit', {'id': room.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+            <a href="{{ path('admin_room_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
 
-            {% include '_flash.html.twig' %}
+    {% include '_flash.html.twig' %}
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-door-open"></i> {{ room.code }} - {{ room.name }}
-                    </h5>
-                    {% if room.isActive %}
-                        <span class="badge bg-success">Active</span>
-                    {% else %}
-                        <span class="badge bg-danger">Inactive</span>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="border-bottom pb-2 mb-3">Informations Générales</h6>
-                            
-                            <table class="table table-sm">
-                                <tbody>
-                                    <tr>
-                                        <th style="width: 40%;">Établissement</th>
-                                        <td>
-                                            <i class="fas fa-school text-primary"></i>
-                                            {{ room.school.name }}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Code</th>
-                                        <td><strong class="text-primary">{{ room.code }}</strong></td>
-                                    </tr>
-                                    <tr>
-                                        <th>Nom</th>
-                                        <td>{{ room.name }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Type</th>
-                                        <td>
-                                            {% if room.type %}
-                                                <span class="badge bg-secondary">
-                                                    {{ room.type|replace({'_': ' '})|title }}
-                                                </span>
-                                            {% else %}
-                                                <span class="text-muted">Non spécifié</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Capacité</th>
-                                        <td>
-                                            {% if room.capacity %}
-                                                <i class="fas fa-users text-info"></i> {{ room.capacity }} places
-                                            {% else %}
-                                                <span class="text-muted">Non spécifiée</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="col-md-6">
-                            <h6 class="border-bottom pb-2 mb-3">Localisation</h6>
-                            
-                            <table class="table table-sm">
-                                <tbody>
-                                    <tr>
-                                        <th style="width: 40%;">Bâtiment</th>
-                                        <td>
-                                            {% if room.building %}
-                                                <i class="fas fa-building text-info"></i> {{ room.building }}
-                                            {% else %}
-                                                <span class="text-muted">Non spécifié</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Étage</th>
-                                        <td>
-                                            {% if room.floor %}
-                                                <i class="fas fa-layer-group text-info"></i> {{ room.floor }}
-                                            {% else %}
-                                                <span class="text-muted">Non spécifié</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <h6 class="border-bottom pb-2 mb-3 mt-4">Dates</h6>
-                            
-                            <table class="table table-sm">
-                                <tbody>
-                                    <tr>
-                                        <th style="width: 40%;">Créée le</th>
-                                        <td>
-                                            <i class="fas fa-calendar text-success"></i>
-                                            {{ room.createdAt|date('d/m/Y à H:i') }}
-                                        </td>
-                                    </tr>
-                                    {% if room.updatedAt %}
-                                        <tr>
-                                            <th>Modifiée le</th>
-                                            <td>
-                                                <i class="fas fa-calendar-alt text-warning"></i>
-                                                {{ room.updatedAt|date('d/m/Y à H:i') }}
-                                            </td>
-                                        </tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-door-open me-2"></i>{{ room.code }} — {{ room.name }}</h6>
+            <span class="badge badge-soft {{ room.isActive ? 'success' : 'danger' }}">{{ room.isActive ? 'Active' : 'Inactive' }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted border-bottom pb-2 mb-3">Informations générales</h6>
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Établissement</div><div class="info-value">{{ room.school.name }}</div></div>
+                        <div class="info-row"><div class="info-label">Code</div><div class="info-value text-primary fw-bold">{{ room.code }}</div></div>
+                        <div class="info-row"><div class="info-label">Nom</div><div class="info-value">{{ room.name }}</div></div>
+                        <div class="info-row"><div class="info-label">Type</div><div class="info-value">{% if room.type %}<span class="badge badge-soft secondary">{{ room.type|replace({'_': ' '})|title }}</span>{% else %}<span class="text-muted">Non spécifié</span>{% endif %}</div></div>
+                        <div class="info-row"><div class="info-label">Capacité</div><div class="info-value">{{ room.capacity ? room.capacity ~ ' places' : 'Non spécifiée' }}</div></div>
                     </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted border-bottom pb-2 mb-3">Localisation</h6>
+                    <div class="info-list mb-4">
+                        <div class="info-row"><div class="info-label">Bâtiment</div><div class="info-value">{{ room.building ?: 'Non spécifié' }}</div></div>
+                        <div class="info-row"><div class="info-label">Étage</div><div class="info-value">{{ room.floor ?: 'Non spécifié' }}</div></div>
+                    </div>
+                    <h6 class="text-muted border-bottom pb-2 mb-3">Dates</h6>
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Créée le</div><div class="info-value">{{ room.createdAt|date('d/m/Y à H:i') }}</div></div>
+                        {% if room.updatedAt %}<div class="info-row"><div class="info-label">Modifiée le</div><div class="info-value">{{ room.updatedAt|date('d/m/Y à H:i') }}</div></div>{% endif %}
+                    </div>
+                </div>
+            </div>
 
-                    {% if room.equipment or room.description %}
-                        <div class="row mt-4">
-                            {% if room.equipment %}
-                                <div class="col-md-6">
-                                    <h6 class="border-bottom pb-2 mb-3">Équipements</h6>
-                                    <div class="alert alert-light">
-                                        <i class="fas fa-tools text-primary"></i>
-                                        {{ room.equipment|nl2br }}
-                                    </div>
-                                </div>
-                            {% endif %}
-
-                            {% if room.description %}
-                                <div class="col-md-{{ room.equipment ? '6' : '12' }}">
-                                    <h6 class="border-bottom pb-2 mb-3">Description</h6>
-                                    <div class="alert alert-light">
-                                        <i class="fas fa-info-circle text-info"></i>
-                                        {{ room.description|nl2br }}
-                                    </div>
-                                </div>
-                            {% endif %}
+            {% if room.equipment or room.description %}
+                <div class="row mt-4">
+                    {% if room.equipment %}
+                        <div class="col-md-{{ room.description ? '6' : '12' }}">
+                            <h6 class="text-muted border-bottom pb-2 mb-3">Équipements</h6>
+                            <div class="alert alert-info mb-0"><i class="fas fa-tools me-2"></i>{{ room.equipment|nl2br }}</div>
+                        </div>
+                    {% endif %}
+                    {% if room.description %}
+                        <div class="col-md-{{ room.equipment ? '6' : '12' }}">
+                            <h6 class="text-muted border-bottom pb-2 mb-3">Description</h6>
+                            <div class="alert alert-info mb-0"><i class="fas fa-info-circle me-2"></i>{{ room.description|nl2br }}</div>
                         </div>
                     {% endif %}
                 </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 {% endblock %}
-

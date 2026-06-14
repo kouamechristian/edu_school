@@ -59,6 +59,26 @@ class LevelRepository extends ServiceEntityRepository
     }
 
     /**
+     * Calcule le prochain ordre d'affichage pour un établissement donné
+     * (dernier ordre utilisé + 1, ou 1 s'il n'existe encore aucun niveau).
+     */
+    public function getNextOrderNumber(?int $schoolId): int
+    {
+        $qb = $this->createQueryBuilder('l')
+            ->select('MAX(l.orderNumber)');
+
+        if ($schoolId) {
+            $qb->andWhere('l.school = :school')->setParameter('school', $schoolId);
+        } else {
+            $qb->andWhere('l.school IS NULL');
+        }
+
+        $max = (int) $qb->getQuery()->getSingleScalarResult();
+
+        return $max + 1;
+    }
+
+    /**
      * Trouver les niveaux par établissement
      * Retourne UNIQUEMENT les niveaux liés à l'établissement spécifié
      */

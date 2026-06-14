@@ -22,7 +22,7 @@ class Grade
     #[Assert\NotBlank(message: 'L\'évaluation est obligatoire')]
     private ?Evaluation $evaluation = null;
 
-    #[ORM\ManyToOne(targetEntity: Student::class)]
+    #[ORM\ManyToOne(targetEntity: Student::class, inversedBy: 'grades')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotBlank(message: 'L\'élève est obligatoire')]
     private ?Student $student = null;

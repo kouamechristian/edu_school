@@ -20,8 +20,10 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/absences')]
+#[IsGranted('ROLE_EDUCATEUR')]
 class AbsenceController extends AbstractController
 {
     public function __construct(
@@ -133,7 +135,7 @@ class AbsenceController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'admin_absence_show', methods: ['GET'])]
+    #[Route('/{id}', name: 'admin_absence_show', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show(Absence $absence): Response
     {
         return $this->render('absence/show.html.twig', [
@@ -141,7 +143,7 @@ class AbsenceController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/edit', name: 'admin_absence_edit', methods: ['GET', 'POST'])]
+    #[Route('/{id}/edit', name: 'admin_absence_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
     public function edit(
         Request $request,
         Absence $absence
@@ -162,7 +164,7 @@ class AbsenceController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/justify', name: 'admin_absence_justify', methods: ['GET', 'POST'])]
+    #[Route('/{id}/justify', name: 'admin_absence_justify', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
     public function justify(
         Request $request,
         Absence $absence
@@ -195,7 +197,7 @@ class AbsenceController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/delete', name: 'admin_absence_delete', methods: ['POST'])]
+    #[Route('/{id}/delete', name: 'admin_absence_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function delete(
         Request $request,
         Absence $absence

@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Filiere — {{ faculty.libelle }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
+            {% embed 'components/page_header.html.twig' with {
+                title: faculty.libelle,
+                icon: 'fa-building-columns',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Filieres', path: path('admin_faculty_index') },
+                    { label: faculty.libelle }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_faculty_edit', {'id': faculty.id}) }}" class="btn btn-primary"><i class="fas fa-edit me-1"></i> Modifier</a>
+                    <a href="{{ path('admin_faculty_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Libellé</div><div class="info-value"><strong>{{ faculty.libelle }}</strong></div></div>
+                        <div class="info-row"><div class="info-label">Cycle</div><div class="info-value">{% if faculty.cycle %}<span class="badge badge-soft info">{{ faculty.cycle.libelle }}</span>{% else %}—{% endif %}</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

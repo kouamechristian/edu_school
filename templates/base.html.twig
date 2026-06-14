@@ -15,8 +15,10 @@
     {# Font Awesome Icons #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     
-    {# Google Fonts #}
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {# Google Fonts — Poppins (titres) + Inter (corps de texte) #}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
     
     {# ================================================================
        STYLES INLINE DU LAYOUT
@@ -24,14 +26,14 @@
        ================================================================ #}
     <style>
         :root {
-            --primary-color: #4e73df;
-            --secondary-color: #858796;
-            --success-color: #1cc88a;
-            --info-color: #36b9cc;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --sidebar-width: 260px;
-            --topbar-height: 60px;
+            --primary-color: #1e3a5f;
+            --secondary-color: #94a3b8;
+            --success-color: #10b981;
+            --info-color: #0ea5e9;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --sidebar-width: 264px;
+            --topbar-height: 64px;
         }
 
         * {
@@ -41,13 +43,13 @@
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8f9fc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f4f6f9;
             overflow-x: hidden;
         }
 
         [data-bs-theme="dark"] body {
-            background-color: var(--es-body-bg, #1a1d21);
+            background-color: var(--es-body-bg, #0f1729);
         }
 
         /* ── Sidebar ── */
@@ -57,11 +59,15 @@
             left: 0;
             height: 100vh;
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, #4e73df 0%, #224abe 100%);
+            background: linear-gradient(190deg, #20436b 0%, #16293f 55%, #101f30 100%);
             color: white;
-            transition: all 0.3s;
+            transition: width 0.25s ease, transform 0.25s ease;
             z-index: 1000;
-            overflow-y: auto;
+            /* Layout flexible : marque figée en haut, navigation défilante */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: inset -1px 0 0 rgba(255,255,255,0.06);
         }
 
         .sidebar.collapsed {
@@ -69,26 +75,48 @@
         }
 
         .sidebar-brand {
+            flex: 0 0 auto;
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            font-size: 1.3rem;
-            font-weight: 600;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            gap: 0.65rem;
+            padding: 1.15rem 1.25rem;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            border-bottom: 1px solid rgba(255,255,255,0.10);
         }
 
         .sidebar-brand i {
-            margin-right: 0.5rem;
-            font-size: 1.5rem;
+            font-size: 1.15rem;
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #10b981, #0ea5e9);
+            box-shadow: 0 4px 12px rgba(16,185,129,0.35);
+        }
+
+        .sidebar.collapsed .sidebar-brand {
+            justify-content: center;
+            padding: 1.15rem 0;
         }
 
         .sidebar.collapsed .sidebar-brand-text {
             display: none;
         }
 
+        /* Navigation : prend l'espace restant et défile seule */
         .sidebar-nav {
-            padding: 1rem 0;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0.75rem 0.5rem 1.5rem;
+            margin: 0;
+            list-style: none;
         }
 
         .nav-item {
@@ -99,44 +127,82 @@
         .nav-link {
             display: flex;
             align-items: center;
-            padding: 0.75rem 1.5rem;
-            color: rgba(255,255,255,0.8);
+            gap: 0.85rem;
+            padding: 0.6rem 0.85rem;
+            margin: 2px 0;
+            border-radius: 10px;
+            color: rgba(255,255,255,0.72);
             text-decoration: none;
-            transition: all 0.3s;
+            font-size: 0.92rem;
+            white-space: nowrap;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
         .nav-link:hover {
-            color: white;
-            background-color: rgba(255,255,255,0.1);
+            color: #fff;
+            background-color: rgba(255,255,255,0.08);
         }
 
         .nav-link.active {
-            color: white;
-            background-color: rgba(255,255,255,0.15);
-            border-left: 3px solid white;
+            color: #fff;
+            background: linear-gradient(90deg, rgba(16,185,129,0.22), rgba(14,165,233,0.10));
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 #10b981;
         }
 
         .nav-link i {
-            margin-right: 1rem;
-            font-size: 1.1rem;
-            width: 20px;
+            font-size: 1rem;
+            width: 22px;
+            min-width: 22px;
             text-align: center;
+        }
+
+        .nav-link .sidebar-badge {
+            margin-left: auto;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+        }
+
+        .sidebar.collapsed .nav-link {
+            justify-content: center;
+            gap: 0;
+            padding: 0.7rem 0;
         }
 
         .sidebar.collapsed .nav-link span:not(.sidebar-badge) {
             display: none;
         }
 
+        .sidebar.collapsed .nav-link .sidebar-badge {
+            position: absolute;
+            top: 4px;
+            right: 10px;
+            margin: 0;
+        }
+
         .nav-section {
-            padding: 1rem 1.5rem 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
+            padding: 1.1rem 1rem 0.4rem;
+            margin-top: 0.25rem;
+            font-size: 0.68rem;
+            font-weight: 700;
             text-transform: uppercase;
-            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.38);
         }
 
         .sidebar.collapsed .nav-section {
-            display: none;
+            text-align: center;
+            font-size: 0;
+            padding: 0.75rem 0 0.25rem;
+        }
+
+        .sidebar.collapsed .nav-section::before {
+            content: "•••";
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.25);
         }
 
         /* ── Topbar ── */
@@ -147,7 +213,8 @@
             right: 0;
             height: var(--topbar-height);
             background: white;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58,59,69,0.15);
+            border-bottom: 1px solid #e5e9f0;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.04);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -259,29 +326,43 @@
         /* ── Sous-menus sidebar ── */
         .nav-item ul {
             list-style: none;
-            padding: 0;
-            margin: 0;
-            background-color: rgba(0,0,0,0.1);
+            padding: 0.15rem 0.25rem 0.2rem 1.7rem;
+            margin: 0 0 0.25rem;
+            position: relative;
+        }
+
+        .nav-item ul::before {
+            content: "";
+            position: absolute;
+            left: 1.6rem;
+            top: 0.1rem;
+            bottom: 0.45rem;
+            width: 2px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 2px;
         }
 
         .nav-item ul .nav-link {
-            padding-left: 3rem;
-            font-size: 0.9rem;
-            border-left: none;
+            padding: 0.48rem 0.7rem;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
         }
 
         .nav-item ul .nav-link:hover {
-            background-color: rgba(255,255,255,0.05);
+            background-color: rgba(255,255,255,0.06);
+            color: #fff;
         }
 
         .nav-item ul .nav-link.active {
-            background-color: rgba(255,255,255,0.1);
-            border-left: 3px solid rgba(255,255,255,0.5);
+            background: rgba(16,185,129,0.18);
+            color: #fff;
+            box-shadow: inset 2px 0 0 #10b981;
         }
 
         .nav-item ul .nav-link i {
-            font-size: 0.9rem;
-            width: 16px;
+            font-size: 0.82rem;
+            width: 18px;
+            min-width: 18px;
         }
 
         .sidebar.collapsed .nav-item ul {
@@ -302,17 +383,26 @@
         }
 
         /* ── Scrollbar sidebar ── */
-        .sidebar::-webkit-scrollbar {
+        .sidebar-nav {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.25) transparent;
+        }
+
+        .sidebar-nav::-webkit-scrollbar {
             width: 6px;
         }
 
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.1);
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: transparent;
         }
 
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.18);
             border-radius: 3px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.32);
         }
 
         /* ── Responsive ── */
@@ -339,9 +429,76 @@
         }
     </style>
     
+    {# Tom Select — rend tous les <select> recherchables (thème Bootstrap 5, hébergé en local) #}
+    <link rel="stylesheet" href="{{ asset('vendor/tom-select/css/tom-select.bootstrap5.min.css') }}">
+
     {# CSS externe (thème sombre, skeleton, toasts, etc.) #}
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
-    
+
+    {# Harmonisation de Tom Select avec la charte Navy + Émeraude #}
+    <style>
+        /* Le contrôle reprend l'apparence d'un .form-select Bootstrap */
+        .ts-wrapper.form-select,
+        .ts-wrapper.form-control {
+            padding: 0;
+        }
+        .ts-wrapper .ts-control {
+            border: 1px solid var(--es-border, #e5e9f0);
+            border-radius: 0.5rem;
+            min-height: calc(1.5em + 0.75rem + 2px);
+            box-shadow: none;
+        }
+        .ts-wrapper.focus .ts-control {
+            border-color: var(--es-accent, #10b981);
+            box-shadow: 0 0 0 0.2rem rgba(var(--es-accent-rgb, 16,185,129), 0.20);
+        }
+        .ts-dropdown {
+            border: 1px solid var(--es-border, #e5e9f0);
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.12);
+            overflow: hidden;
+        }
+        .ts-dropdown .active {
+            background-color: rgba(var(--es-accent-rgb, 16,185,129), 0.12);
+            color: var(--es-text-dark, #1e293b);
+        }
+        .ts-dropdown .ts-dropdown-content .option:hover {
+            background-color: rgba(var(--es-primary-rgb, 30,58,95), 0.06);
+        }
+        /* Champ de recherche en tête de liste */
+        .ts-dropdown .dropdown-input-wrap input,
+        .ts-dropdown-input {
+            border-radius: 0.4rem;
+        }
+        /* Puces des selects multiples */
+        .ts-wrapper.multi .ts-control > div.item {
+            background: rgba(var(--es-primary-rgb, 30,58,95), 0.08);
+            color: var(--es-primary, #1e3a5f);
+            border-radius: 0.35rem;
+        }
+        /* État invalide (validation Symfony) */
+        .is-invalid + .ts-wrapper .ts-control,
+        .ts-wrapper.is-invalid .ts-control {
+            border-color: var(--es-danger, #ef4444);
+        }
+
+        /* ── Mode sombre ── */
+        [data-bs-theme="dark"] .ts-control,
+        [data-bs-theme="dark"] .ts-dropdown {
+            background-color: var(--es-card-bg, #1b2536);
+            color: #e2e8f0;
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        [data-bs-theme="dark"] .ts-dropdown .option,
+        [data-bs-theme="dark"] .ts-control input {
+            color: #e2e8f0;
+        }
+        [data-bs-theme="dark"] .ts-dropdown .active {
+            background-color: rgba(var(--es-accent-rgb, 16,185,129), 0.22);
+            color: #fff;
+        }
+    </style>
+
     {% block stylesheets %}{% endblock %}
 
     {# Application du thème sauvegardé avant le rendu pour éviter le flash blanc #}
@@ -370,81 +527,30 @@
         </div>
 
         <ul class="sidebar-nav">
+            {% set current_route = app.request.attributes.get('_route') ?? '' %}
             {# ── Dashboard (commun à tous) ── #}
             <li class="nav-item">
-                <a href="{{ path('app_home') }}" class="nav-link {{ app.request.get('_route') starts with 'app_home' ? 'active' : '' }}">
+                <a href="{{ path('app_home') }}" class="nav-link {{ current_route starts with 'app_home' ? 'active' : '' }}">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Tableau de bord</span>
                 </a>
             </li>
 
             {# ==============================================================
-               ESPACE ÉLÈVE
-               Visible uniquement pour les utilisateurs de type "eleve"
-               ============================================================== #}
-            {% if app.user and app.user.userType == 'eleve' %}
-            <div class="nav-section">Mon Espace Élève</div>
-
-            <li class="nav-item">
-                <a href="{{ path('student_dashboard') }}" class="nav-link {{ app.request.get('_route') == 'student_dashboard' ? 'active' : '' }}">
-                    <i class="fas fa-home"></i>
-                    <span>Mon Tableau de Bord</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('student_grades') }}" class="nav-link {{ app.request.get('_route') == 'student_grades' ? 'active' : '' }}">
-                    <i class="fas fa-book"></i>
-                    <span>Mes Notes</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('student_schedule') }}" class="nav-link {{ app.request.get('_route') == 'student_schedule' ? 'active' : '' }}">
-                    <i class="fas fa-calendar"></i>
-                    <span>Mon Emploi du Temps</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('student_absences') }}" class="nav-link {{ app.request.get('_route') == 'student_absences' ? 'active' : '' }}">
-                    <i class="fas fa-calendar-times"></i>
-                    <span>Mes Absences</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Ma Progression</span>
-                </a>
-            </li>
-            {% endif %}
-
-            {# ==============================================================
                ESPACE PARENT
                Visible pour les utilisateurs de type "parent"
                ============================================================== #}
             {% if app.user and app.user.userType == 'parent' %}
+            {% set parent_active = current_route starts with 'parent_' %}
             <div class="nav-section">Espace Parent</div>
-
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-child"></i>
-                    <span>Mes Enfants</span>
+                <a href="#" class="nav-link dropdown-toggle {{ parent_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuParent" aria-expanded="{{ parent_active ? 'true' : 'false' }}">
+                    <i class="fas fa-user-friends"></i>
+                    <span>Espace Parent</span>
                 </a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Suivi Scolaire</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-money-check-alt"></i>
-                    <span>Paiements</span>
-                </a>
+                <ul class="nav flex-column collapse {{ parent_active ? 'show' : '' }}" id="menuParent">
+                    <li class="nav-item"><a href="{{ path('parent_dashboard') }}" class="nav-link {{ parent_active ? 'active' : '' }}"><i class="fas fa-child"></i><span>Mes Enfants</span></a></li>
+                </ul>
             </li>
             {% endif %}
 
@@ -453,115 +559,236 @@
                Visible pour les enseignants (userType == 'enseignant')
                ============================================================== #}
             {% if app.user and app.user.userType == 'enseignant' %}
+            {% set ens_active = current_route starts with 'admin_course' or current_route starts with 'admin_evaluation' or current_route starts with 'admin_absence' %}
             <div class="nav-section">Espace Enseignant</div>
-
             <li class="nav-item">
-                <a href="{{ path('admin_course_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_course' ? 'active' : '' }}">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Mes Cours</span>
+                <a href="#" class="nav-link dropdown-toggle {{ ens_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuEns" aria-expanded="{{ ens_active ? 'true' : 'false' }}">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span>Espace Enseignant</span>
                 </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ path('admin_evaluation_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_evaluation' ? 'active' : '' }}">
-                    <i class="fas fa-clipboard-list"></i>
-                    <span>Évaluations</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ path('admin_absence_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_absence_index' ? 'active' : '' }}">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Absences</span>
-                    <span class="badge bg-warning sidebar-badge">3</span>
-                </a>
+                <ul class="nav flex-column collapse {{ ens_active ? 'show' : '' }}" id="menuEns">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_course_my_schedule') }}" class="nav-link {{ current_route == 'admin_course_my_schedule' ? 'active' : '' }}">
+                            <i class="fas fa-calendar-week"></i><span>Mes Cours</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_course_my_students') }}" class="nav-link {{ current_route == 'admin_course_my_students' ? 'active' : '' }}">
+                            <i class="fas fa-users"></i><span>Mes élèves</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_evaluation_index') }}" class="nav-link {{ current_route starts with 'admin_evaluation' ? 'active' : '' }}">
+                            <i class="fas fa-clipboard-list"></i><span>Évaluations</span>
+                        </a>
+                    </li>
+                    {% if is_granted('ROLE_EDUCATEUR') %}
+                    <li class="nav-item">
+                        <a href="{{ path('admin_absence_index') }}" class="nav-link {{ current_route starts with 'admin_absence_index' ? 'active' : '' }}">
+                            <i class="fas fa-calendar-check"></i><span>Absences</span>
+                            <span class="badge bg-warning sidebar-badge">3</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
             </li>
             {% endif %}
+
+             {# ==============================================================
+               ESPACE FONDATEUR — visible uniquement par les fondateurs
+               ============================================================== #}
+            {% if is_granted('ROLE_FONDATEUR') %}
+            {% set fondateur_active = (app.request.attributes.get('_route') ?? '') starts with 'fondateur_' %}
+            <div class="nav-section">Fondateur</div>
+            <li class="nav-item">
+                <a href="#" class="nav-link dropdown-toggle {{ fondateur_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuFondateur" aria-expanded="{{ fondateur_active ? 'true' : 'false' }}">
+                    <i class="fas fa-crown"></i>
+                    <span>Espace Fondateur</span>
+                </a>
+                <ul class="nav flex-column collapse {{ fondateur_active ? 'show' : '' }}" id="menuFondateur">
+                    <li class="nav-item">
+                        <a href="{{ path('fondateur_index') }}" class="nav-link {{ app.request.get('_route') == 'fondateur_index' ? 'active' : '' }}">
+                            <i class="fas fa-gauge"></i><span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('fondateur_validations') }}" class="nav-link {{ app.request.get('_route') == 'fondateur_validations' ? 'active' : '' }}">
+                            <i class="fas fa-cash-register"></i><span>Valider les caisses</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('fondateur_autorisations') }}" class="nav-link {{ app.request.get('_route') == 'fondateur_autorisations' ? 'active' : '' }}">
+                            <i class="fas fa-key"></i><span>Autorisations</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('fondateur_versements') }}" class="nav-link {{ app.request.get('_route') == 'fondateur_versements' ? 'active' : '' }}">
+                            <i class="fas fa-money-bill-transfer"></i><span>Versements</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            {% endif %}
+
 
             {# ==============================================================
                ADMINISTRATION
                Visible pour ROLE_ADMIN (admins, super admins)
                ============================================================== #}
             {% if is_granted('ROLE_ADMIN') %}
+            {% set admin_active = current_route starts with 'admin_school' or current_route starts with 'admin_user' or current_route starts with 'admin_subject_type' or current_route starts with 'admin_mobile_money_log' or current_route starts with 'admin_mobile_money_config' %}
             <div class="nav-section">Administration</div>
-            
             <li class="nav-item">
-                <a href="{{ path('admin_school_group_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_school_group' ? 'active' : '' }}">
-                    <i class="fas fa-sitemap"></i>
-                    <span>Groupes d'Établissements</span>
+                <a href="#" class="nav-link dropdown-toggle {{ admin_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuAdmin" aria-expanded="{{ admin_active ? 'true' : 'false' }}">
+                    <i class="fas fa-cogs"></i>
+                    <span>Administration</span>
                 </a>
+                <ul class="nav flex-column collapse {{ admin_active ? 'show' : '' }}" id="menuAdmin">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_school_group_index') }}" class="nav-link {{ current_route starts with 'admin_school_group' ? 'active' : '' }}">
+                            <i class="fas fa-sitemap"></i><span>Groupes d'Établissements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_school_index') }}" class="nav-link {{ current_route starts with 'admin_school' and not (current_route starts with 'admin_school_group') and not (current_route starts with 'admin_school_year') ? 'active' : '' }}">
+                            <i class="fas fa-school"></i><span>Établissements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_school_year_index') }}" class="nav-link {{ current_route starts with 'admin_school_year' ? 'active' : '' }}">
+                            <i class="fas fa-calendar-alt"></i><span>Années Scolaires</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_user_index') }}" class="nav-link {{ current_route starts with 'admin_user' ? 'active' : '' }}">
+                            <i class="fas fa-users"></i><span>Utilisateurs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_mobile_money_config_index') }}" class="nav-link {{ current_route starts with 'admin_mobile_money_config' ? 'active' : '' }}">
+                            <i class="fas fa-key"></i><span>Identifiants Mobile Money</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_mobile_money_log_index') }}" class="nav-link {{ current_route starts with 'admin_mobile_money_log' ? 'active' : '' }}">
+                            <i class="fas fa-mobile-screen-button"></i><span>Logs Mobile Money</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
+            {% endif %}
 
+            {# ==============================================================
+               CONFIGURATION
+               Paramétrage de l'établissement (cycles, niveaux, classes, frais...)
+               ============================================================== #}
+            {% if is_granted('ROLE_ADMIN') %}
+            {% set config_active = current_route starts with 'admin_cycle' or current_route starts with 'admin_level' or current_route starts with 'admin_faculty' or current_route starts with 'admin_round' or current_route starts with 'admin_classroom' or current_route starts with 'admin_fee' or current_route starts with 'admin_document_type' or current_route starts with 'admin_room' or current_route starts with 'admin_time_slot' %}
+            <div class="nav-section">Configuration</div>
             <li class="nav-item">
-                <a href="{{ path('admin_school_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_school' and not (app.request.get('_route') starts with 'admin_school_group') and not (app.request.get('_route') starts with 'admin_school_year') ? 'active' : '' }}">
-                    <i class="fas fa-school"></i>
-                    <span>Établissements</span>
+                <a href="#" class="nav-link dropdown-toggle {{ config_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuConfig" aria-expanded="{{ config_active ? 'true' : 'false' }}">
+                    <i class="fas fa-sliders"></i>
+                    <span>Configuration</span>
                 </a>
+                <ul class="nav flex-column collapse {{ config_active ? 'show' : '' }}" id="menuConfig">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_cycle_index') }}" class="nav-link {{ current_route starts with 'admin_cycle' ? 'active' : '' }}">
+                            <i class="fas fa-sitemap"></i><span>Cycles</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_level_index') }}" class="nav-link {{ current_route starts with 'admin_level' ? 'active' : '' }}">
+                            <i class="fas fa-layer-group"></i><span>Niveaux</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_faculty_index') }}" class="nav-link {{ current_route starts with 'admin_faculty' ? 'active' : '' }}">
+                            <i class="fas fa-building-columns"></i><span>Filières</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_round_index') }}" class="nav-link {{ current_route starts with 'admin_round' ? 'active' : '' }}">
+                            <i class="fas fa-stream"></i><span>Séries</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_classroom_index') }}" class="nav-link {{ current_route starts with 'admin_classroom' ? 'active' : '' }}">
+                            <i class="fas fa-door-open"></i><span>Classes</span>
+                        </a>
+                    </li>
+                    {% if is_granted('ROLE_CAISSE') %}
+                    <li class="nav-item">
+                        <a href="{{ path('admin_fee_index') }}" class="nav-link {{ current_route starts with 'admin_fee' ? 'active' : '' }}">
+                            <i class="fas fa-money-bill"></i><span>Frais de scolarité</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a href="{{ path('admin_document_type_index') }}" class="nav-link {{ current_route starts with 'admin_document_type' ? 'active' : '' }}">
+                            <i class="fas fa-file-alt"></i><span>Types de Documents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_room_index') }}" class="nav-link {{ current_route starts with 'admin_room' ? 'active' : '' }}">
+                            <i class="fas fa-door-closed"></i><span>Salles</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_time_slot_index') }}" class="nav-link {{ current_route starts with 'admin_time_slot' ? 'active' : '' }}">
+                            <i class="fas fa-clock"></i><span>Plages Horaires</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
+            {% endif %}
 
-            <li class="nav-item">
-                <a href="{{ path('admin_school_year_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_school_year' ? 'active' : '' }}">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Années Scolaires</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_level_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_level' ? 'active' : '' }}">
-                    <i class="fas fa-layer-group"></i>
-                    <span>Niveaux</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_user_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_user' ? 'active' : '' }}">
-                    <i class="fas fa-users"></i>
-                    <span>Utilisateurs</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_document_type_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_document_type' ? 'active' : '' }}">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Types de Documents</span>
-                </a>
-            </li>
-
-            {# ── Section Gestion des Élèves (admin) ── #}
+            {# ── Gestion des Élèves ── #}
+            {% if is_granted('ROLE_INSCRIPTION') %}
+            {% set students_active = current_route starts with 'admin_student' or current_route starts with 'admin_pre_registration' or current_route starts with 'admin_dropout' %}
             <div class="nav-section">Gestion des Élèves</div>
-            
             <li class="nav-item">
-                <a href="{{ path('admin_student_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_student' and app.request.get('_route') != 'admin_student_enrollment' and app.request.get('_route') != 'admin_student_transfer' and app.request.get('_route') != 'admin_student_archive' ? 'active' : '' }}">
+                <a href="#" class="nav-link dropdown-toggle {{ students_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuStudents" aria-expanded="{{ students_active ? 'true' : 'false' }}">
                     <i class="fas fa-user-graduate"></i>
-                    <span>Liste des Élèves</span>
+                    <span>Élèves</span>
                 </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_pre_registration_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_pre_registration' ? 'active' : '' }}">
-                    <i class="fas fa-clipboard-list"></i>
-                    <span>Préinscriptions</span>
-                    <span class="badge bg-info sidebar-badge">Nouveau</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_student_enrollment') }}" class="nav-link {{ app.request.get('_route') == 'admin_student_enrollment' ? 'active' : '' }}">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>Inscriptions</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_student_transfer') }}" class="nav-link {{ app.request.get('_route') == 'admin_student_transfer' ? 'active' : '' }}">
-                    <i class="fas fa-exchange-alt"></i>
-                    <span>Transferts</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_student_archive') }}" class="nav-link {{ app.request.get('_route') == 'admin_student_archive' ? 'active' : '' }}">
-                    <i class="fas fa-archive"></i>
-                    <span>Archives</span>
-                </a>
+                <ul class="nav flex-column collapse {{ students_active ? 'show' : '' }}" id="menuStudents">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_student_dashboard') }}" class="nav-link {{ current_route in ['admin_student_dashboard', 'admin_student_classroom_students'] ? 'active' : '' }}">
+                            <i class="fas fa-gauge"></i><span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_student_index') }}" class="nav-link {{ current_route starts with 'admin_student' and current_route not in ['admin_student_enrollment', 'admin_student_transfer', 'admin_student_archive', 'admin_student_dashboard', 'admin_student_classroom_students'] ? 'active' : '' }}">
+                            <i class="fas fa-list"></i><span>Liste des Élèves</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_pre_registration_index') }}" class="nav-link {{ current_route starts with 'admin_pre_registration' ? 'active' : '' }}">
+                            <i class="fas fa-clipboard-list"></i><span>Préinscriptions</span>
+                            <span class="badge bg-info sidebar-badge">Nouveau</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_student_enrollment') }}" class="nav-link {{ current_route == 'admin_student_enrollment' ? 'active' : '' }}">
+                            <i class="fas fa-graduation-cap"></i><span>Inscriptions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_student_transfer') }}" class="nav-link {{ current_route == 'admin_student_transfer' ? 'active' : '' }}">
+                            <i class="fas fa-exchange-alt"></i><span>Transferts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_dropout_index') }}" class="nav-link {{ current_route starts with 'admin_dropout' ? 'active' : '' }}">
+                            <i class="fas fa-user-xmark"></i><span>Abandons</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_student_archive') }}" class="nav-link {{ current_route == 'admin_student_archive' ? 'active' : '' }}">
+                            <i class="fas fa-archive"></i><span>Archives</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
             {% endif %}
 
@@ -569,42 +796,36 @@
                ACADÉMIQUE
                Visible pour admins, directeurs et enseignants
                ============================================================== #}
-            {% if is_granted('ROLE_ADMIN') or (app.user and app.user.userType in ['directeur', 'enseignant']) %}
+            {% if is_granted('ROLE_DIRECTEUR') %}
+            {% set academic_active = current_route starts with 'admin_subject' or current_route starts with 'admin_course' or current_route starts with 'admin_teacher' %}
             <div class="nav-section">Académique</div>
-            
             <li class="nav-item">
-                <a href="{{ path('admin_classroom_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_classroom' ? 'active' : '' }}">
-                    <i class="fas fa-door-open"></i>
-                    <span>Classes</span>
+                <a href="#" class="nav-link dropdown-toggle {{ academic_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuAcademic" aria-expanded="{{ academic_active ? 'true' : 'false' }}">
+                    <i class="fas fa-chalkboard"></i>
+                    <span>Académique</span>
                 </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_subject_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_subject' ? 'active' : '' }}">
-                    <i class="fas fa-book"></i>
-                    <span>Matières</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_time_slot_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_time_slot' ? 'active' : '' }}">
-                    <i class="fas fa-clock"></i>
-                    <span>Plages Horaires</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_room_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_room' ? 'active' : '' }}">
-                    <i class="fas fa-door-open"></i>
-                    <span>Salles</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_course_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_course' ? 'active' : '' }}">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Emplois du Temps</span>
-                </a>
+                <ul class="nav flex-column collapse {{ academic_active ? 'show' : '' }}" id="menuAcademic">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_subject_type_index') }}" class="nav-link {{ current_route starts with 'admin_subject_type' ? 'active' : '' }}">
+                            <i class="fas fa-tags"></i><span>Types de Matière</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_subject_index') }}" class="nav-link {{ current_route starts with 'admin_subject' and not (current_route starts with 'admin_subject_type') ? 'active' : '' }}">
+                            <i class="fas fa-book"></i><span>Matières</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_course_index') }}" class="nav-link {{ current_route starts with 'admin_course' ? 'active' : '' }}">
+                            <i class="fas fa-calendar-alt"></i><span>Emplois du Temps</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_teacher_index') }}" class="nav-link {{ current_route starts with 'admin_teacher' ? 'active' : '' }}">
+                            <i class="fas fa-chalkboard-user"></i><span>Enseignants</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
             {% endif %}
 
@@ -612,30 +833,31 @@
                NOTES & ÉVALUATIONS
                Visible pour admins, directeurs et enseignants
                ============================================================== #}
-            {% if is_granted('ROLE_ADMIN') or (app.user and app.user.userType in ['directeur', 'enseignant']) %}
-            <li class="nav-section">
-                <span>Notes & Évaluations</span>
-            </li>
-
+            {% if is_granted('ROLE_ADMIN') %}
+            {% set notes_active = current_route starts with 'admin_period' or current_route starts with 'admin_evaluation' or current_route starts with 'admin_bulletin' %}
+            <div class="nav-section">Notes &amp; Évaluations</div>
             <li class="nav-item">
-                <a href="{{ path('admin_period_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_period' ? 'active' : '' }}">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Périodes</span>
+                <a href="#" class="nav-link dropdown-toggle {{ notes_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuNotes" aria-expanded="{{ notes_active ? 'true' : 'false' }}">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Notes &amp; Évaluations</span>
                 </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_evaluation_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_evaluation' ? 'active' : '' }}">
-                    <i class="fas fa-clipboard-list"></i>
-                    <span>Évaluations</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ path('admin_bulletin_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_bulletin' ? 'active' : '' }}">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Bulletins</span>
-                </a>
+                <ul class="nav flex-column collapse {{ notes_active ? 'show' : '' }}" id="menuNotes">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_period_index') }}" class="nav-link {{ current_route starts with 'admin_period' ? 'active' : '' }}">
+                            <i class="fas fa-calendar-alt"></i><span>Périodes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_evaluation_index') }}" class="nav-link {{ current_route starts with 'admin_evaluation' ? 'active' : '' }}">
+                            <i class="fas fa-clipboard-list"></i><span>Évaluations</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_bulletin_index') }}" class="nav-link {{ current_route starts with 'admin_bulletin' ? 'active' : '' }}">
+                            <i class="fas fa-file-alt"></i><span>Bulletins</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
             {% endif %}
 
@@ -643,7 +865,7 @@
                GESTION (Absences) - Menu déroulant
                Visible pour admins, directeurs et personnel
                ============================================================== #}
-            {% if is_granted('ROLE_ADMIN') or (app.user and app.user.userType in ['directeur', 'personnel']) %}
+            {% if is_granted('ROLE_EDUCATEUR') %}
             <div class="nav-section">Gestion</div>
 
             <li class="nav-item">
@@ -691,15 +913,13 @@
                FINANCES - Menu déroulant
                Visible pour admins et directeurs
                ============================================================== #}
-            {% if is_granted('ROLE_ADMIN') or (app.user and app.user.userType == 'directeur') %}
+            {% if is_granted('ROLE_CAISSE') %}
             {% set current_route = app.request.attributes.get('_route') %}
             {% set finance_active = current_route starts with 'admin_fee'
                 or current_route starts with 'admin_payment'
-                or current_route starts with 'admin_invoice'
                 or current_route starts with 'admin_cash_register'
-                or current_route starts with 'admin_scholarship'
-                or current_route starts with 'admin_payment_plan'
                 or current_route starts with 'admin_financial_transaction'
+                or current_route starts with 'admin_transaction_type'
             %}
             <div class="nav-section">Finances</div>
 
@@ -712,16 +932,11 @@
                     <span>Gestion Financière</span>
                 </a>
                 <ul class="collapse {{ finance_active ? 'show' : '' }}" id="financeSubmenu">
+                    {% if is_granted('ROLE_CAISSE') %}
                     <li class="nav-item">
                         <a href="{{ path('admin_cash_register_open') }}" class="nav-link {{ current_route starts with 'admin_cash_register' ? 'active' : '' }}">
                             <i class="fas fa-cash-register"></i>
                             <span>Ma caisse</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ path('admin_fee_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_fee' ? 'active' : '' }}">
-                            <i class="fas fa-money-bill"></i>
-                            <span>Frais de scolarité</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -730,60 +945,60 @@
                             <span>Paiements</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{{ path('admin_invoice_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_invoice' ? 'active' : '' }}">
-                            <i class="fas fa-file-invoice"></i>
-                            <span>Factures</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ path('admin_scholarship_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_scholarship' ? 'active' : '' }}">
-                            <i class="fas fa-graduation-cap"></i>
-                            <span>Bourses</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ path('admin_payment_plan_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_payment_plan' ? 'active' : '' }}">
-                            <i class="fas fa-calendar-check"></i>
-                            <span>Plans de paiement</span>
-                        </a>
-                    </li>
+                    {% endif %}
+                    {% if is_granted('ROLE_CAISSE') %}
                     <li class="nav-item">
                         <a href="{{ path('admin_financial_transaction_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_financial_transaction' ? 'active' : '' }}">
                             <i class="fas fa-exchange-alt"></i>
                             <span>Transactions</span>
                         </a>
                     </li>
+                    {% endif %}
+                    {% if is_granted('ROLE_CAISSE') %}
+                    <li class="nav-item">
+                        <a href="{{ path('admin_transaction_type_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_transaction_type' ? 'active' : '' }}">
+                            <i class="fas fa-tags"></i>
+                            <span>Types de transaction</span>
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
             </li>
             {% endif %}
 
+           
             {# ==============================================================
                COMMUNICATION
                Visible pour tous les rôles connectés
                ============================================================== #}
+            {% set unread_notifs = unread_notifications_count() %}
+            {% set comm_active = current_route starts with 'notification_' %}
             <div class="nav-section">Communication</div>
-
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-envelope"></i>
-                    <span>Messages</span>
-                    <span class="badge bg-primary sidebar-badge">2</span>
+                <a href="#" class="nav-link dropdown-toggle {{ comm_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuComm" aria-expanded="{{ comm_active ? 'true' : 'false' }}">
+                    <i class="fas fa-comments"></i>
+                    <span>Communication</span>
+                    {% if unread_notifs > 0 %}<span class="badge bg-danger sidebar-badge">{{ unread_notifs }}</span>{% endif %}
                 </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-bell"></i>
-                    <span>Notifications</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-bullhorn"></i>
-                    <span>Annonces</span>
-                </a>
+                <ul class="nav flex-column collapse {{ comm_active ? 'show' : '' }}" id="menuComm">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-envelope"></i><span>Messages</span>
+                            <span class="badge bg-primary sidebar-badge">2</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('notification_index') }}" class="nav-link {{ comm_active ? 'active' : '' }}">
+                            <i class="fas fa-bell"></i><span>Notifications</span>
+                            {% if unread_notifs > 0 %}<span class="badge bg-danger sidebar-badge">{{ unread_notifs }}</span>{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-bullhorn"></i><span>Annonces</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
 
             {# ==============================================================
@@ -792,26 +1007,22 @@
                ============================================================== #}
             {% if is_granted('ROLE_ADMIN') or (app.user and app.user.userType in ['directeur', 'enseignant']) %}
             <div class="nav-section">Ressources</div>
-
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-book-open"></i>
-                    <span>Bibliothèque</span>
+                <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#menuResources" aria-expanded="false">
+                    <i class="fas fa-folder-open"></i>
+                    <span>Ressources</span>
                 </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Documents</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Rapports</span>
-                </a>
+                <ul class="nav flex-column collapse" id="menuResources">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link"><i class="fas fa-book-open"></i><span>Bibliothèque</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link"><i class="fas fa-file-alt"></i><span>Documents</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link"><i class="fas fa-chart-bar"></i><span>Rapports</span></a>
+                    </li>
+                </ul>
             </li>
             {% endif %}
 
@@ -840,7 +1051,7 @@
         </button>
 
         {# ── Indicateur établissement actuel ── #}
-        {% if current_school is defined and current_school %}
+        {% if current_school is defined and current_school and not (app.user and app.user.userType == 'parent') %}
         <div class="school-indicator d-none d-md-flex ms-3">
             <i class="fas fa-school"></i>
             <span>{{ current_school.name }}</span>
@@ -852,8 +1063,8 @@
         </div>
         {% endif %}
 
-        {# ── Sélecteurs de contexte (dropdowns) ── #}
-        <div class="context-selectors d-none d-lg-flex gap-2 ms-3">
+        {# ── Sélecteurs de contexte (dropdowns) — masqués pour les parents ── #}
+        <div class="context-selectors d-none {{ app.user and app.user.userType == 'parent' ? '' : 'd-lg-flex' }} gap-2 ms-3">
             {% if current_school is defined and current_school %}
             <div class="dropdown">
                 <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -878,29 +1089,31 @@
             </div>
             {% endif %}
 
-            {% if current_school_year is defined and current_school_year %}
+            {# Le sélecteur d'année s'affiche dès qu'au moins une année scolaire existe,
+               même si aucune n'est encore sélectionnée (permet d'en choisir une). #}
+            {% if available_school_years is defined and available_school_years|length > 0 %}
             <div class="dropdown">
                 <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-calendar me-1"></i> {{ current_school_year.name }}
+                    <i class="fas fa-calendar me-1"></i>
+                    {{ current_school_year is defined and current_school_year ? current_school_year.name : 'Année scolaire' }}
                 </button>
                 <ul class="dropdown-menu">
                     <li><h6 class="dropdown-header">Changer d'année scolaire</h6></li>
-                    {% if available_school_years is defined %}
                     {% for year in available_school_years %}
+                    {% set is_selected = current_school_year is defined and current_school_year and current_school_year.id == year.id %}
                     <li>
-                        <a class="dropdown-item {{ current_school_year.id == year.id ? 'active' : '' }}" 
+                        <a class="dropdown-item {{ is_selected ? 'active' : '' }}"
                            href="{{ path('context_switch_year', {'id': year.id}) }}">
                             <i class="fas fa-calendar me-2"></i> {{ year.name }}
                             {% if year.isCurrent is defined and year.isCurrent %}
                                 <span class="badge bg-primary ms-1">En cours</span>
                             {% endif %}
-                            {% if current_school_year.id == year.id %}
+                            {% if is_selected %}
                                 <i class="fas fa-check text-success ms-2"></i>
                             {% endif %}
                         </a>
                     </li>
                     {% endfor %}
-                    {% endif %}
                 </ul>
             </div>
             {% endif %}
@@ -915,58 +1128,40 @@
             </button>
 
             {# ── Notifications dropdown ── #}
+            {% set unread_notifs = unread_notifications_count() %}
+            {% set recent_notifs = recent_notifications(8) %}
             <div class="topbar-item dropdown">
                 <a href="#" class="topbar-link" data-bs-toggle="dropdown">
                     <i class="fas fa-bell fa-fw"></i>
-                    <span class="notification-badge">3</span>
+                    {% if unread_notifs > 0 %}<span class="notification-badge">{{ unread_notifs > 9 ? '9+' : unread_notifs }}</span>{% endif %}
                 </a>
-                <div class="dropdown-menu dropdown-menu-end" style="min-width: 320px;">
+                <div class="dropdown-menu dropdown-menu-end" style="min-width: 340px;">
                     <h6 class="dropdown-header d-flex justify-content-between align-items-center">
                         Notifications
-                        <span class="badge bg-primary rounded-pill">3 nouvelles</span>
+                        {% if unread_notifs > 0 %}<span class="badge bg-primary rounded-pill">{{ unread_notifs }} nouvelle{{ unread_notifs > 1 ? 's' : '' }}</span>{% endif %}
                     </h6>
-                    {# Non lues en premier #}
-                    <a class="dropdown-item py-2 border-start border-3 border-primary" href="#">
-                        <div class="d-flex align-items-start">
-                            <div class="flex-shrink-0">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
-                                    <i class="fas fa-envelope fa-sm"></i>
+                    {% for n in recent_notifs %}
+                        <a class="dropdown-item py-2 {{ not n.isRead ? 'border-start border-3 border-primary bg-light' : '' }}" href="{{ path('notification_read', {'id': n.id}) }}">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+                                        <i class="fas {{ n.icon ?: 'fa-bell' }} fa-sm"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-2" style="white-space: normal;">
+                                    <div class="fw-bold small">{{ n.title }}</div>
+                                    <div class="text-muted" style="font-size:0.75rem;">{{ n.message|length > 70 ? n.message|slice(0, 70) ~ '…' : n.message }}</div>
+                                    <div class="text-muted" style="font-size:0.7rem;">{{ n.createdAt|date('d/m/Y H:i') }}</div>
                                 </div>
                             </div>
-                            <div class="flex-grow-1 ms-2">
-                                <div class="fw-bold small">Nouveau message reçu</div>
-                                <div class="text-muted" style="font-size:0.75rem;">Il y a 5 min</div>
-                            </div>
+                        </a>
+                    {% else %}
+                        <div class="dropdown-item-text text-center text-muted small py-3">
+                            <i class="fas fa-bell-slash me-1"></i> Aucune notification
                         </div>
-                    </a>
-                    <a class="dropdown-item py-2 border-start border-3 border-success" href="#">
-                        <div class="d-flex align-items-start">
-                            <div class="flex-shrink-0">
-                                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
-                                    <i class="fas fa-user-plus fa-sm"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 ms-2">
-                                <div class="fw-bold small">Nouvelle inscription validée</div>
-                                <div class="text-muted" style="font-size:0.75rem;">Il y a 2h</div>
-                            </div>
-                        </div>
-                    </a>
-                    <a class="dropdown-item py-2 border-start border-3 border-warning" href="#">
-                        <div class="d-flex align-items-start">
-                            <div class="flex-shrink-0">
-                                <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
-                                    <i class="fas fa-exclamation fa-sm"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 ms-2">
-                                <div class="fw-bold small">Paiement en attente</div>
-                                <div class="text-muted" style="font-size:0.75rem;">Hier</div>
-                            </div>
-                        </div>
-                    </a>
+                    {% endfor %}
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item text-center small text-primary" href="#">
+                    <a class="dropdown-item text-center small text-primary" href="{{ path('notification_index') }}">
                         <i class="fas fa-bell me-1"></i>Voir toutes les notifications
                     </a>
                 </div>
@@ -998,12 +1193,12 @@
 
             {# ── Menu utilisateur avec avatar dynamique coloré par rôle ── #}
             {% set avatar_colors = {
-                'admin':      '#e74a3b',
-                'directeur':  '#8b5cf6',
-                'enseignant': '#36b9cc',
-                'personnel':  '#f6c23e',
-                'parent':     '#1cc88a',
-                'eleve':      '#4e73df'
+                'admin':      '#ef4444',
+                'directeur':  '#7c3aed',
+                'enseignant': '#0ea5e9',
+                'personnel':  '#f59e0b',
+                'parent':     '#10b981',
+                'eleve':      '#1e3a5f'
             } %}
             {% set user_bg = avatar_colors[app.user ? app.user.userType : 'admin'] | default('#4e73df') %}
 
@@ -1142,7 +1337,66 @@
     
     {# App JS (thème, compteurs, toasts, modales, sidebar) #}
     <script src="{{ asset('js/app.js') }}"></script>
-    
+
+    {# Tom Select : rend tous les <select> recherchables (hébergé en local) #}
+    <script src="{{ asset('vendor/tom-select/js/tom-select.complete.min.js') }}"></script>
+    <script>
+        (function () {
+            /**
+             * Initialise un select recherchable.
+             * Échappatoire : ajouter `data-no-search` (ou la classe `no-search`)
+             * sur un <select> pour le laisser en select natif.
+             */
+            function enhanceSelect(el) {
+                if (el.tomselect) return;                         // déjà initialisé
+                if (el.dataset.noSearch !== undefined) return;    // opt-out : data-no-search
+                if (el.classList.contains('no-search')) return;   // opt-out : class no-search
+
+                // Conserve l'option vide comme placeholder (ex. « Choisir... »)
+                var placeholder = el.getAttribute('placeholder');
+                if (!placeholder) {
+                    var first = el.options[0];
+                    if (first && first.value === '') {
+                        placeholder = first.textContent.trim();
+                    }
+                }
+
+                var settings = {
+                    create: false,
+                    allowEmptyOption: true,
+                    placeholder: placeholder || 'Rechercher...',
+                    render: {
+                        no_results: function () {
+                            return '<div class="no-results px-2 py-1 text-muted">Aucun résultat</div>';
+                        }
+                    }
+                };
+
+                try {
+                    new TomSelect(el, settings);
+                } catch (e) {
+                    /* select incompatible : on le laisse natif */
+                }
+            }
+
+            function enhanceAll(root) {
+                (root || document).querySelectorAll('select').forEach(enhanceSelect);
+            }
+
+            if (typeof TomSelect !== 'undefined') {
+                if (document.readyState !== 'loading') {
+                    enhanceAll();
+                } else {
+                    document.addEventListener('DOMContentLoaded', function () { enhanceAll(); });
+                }
+                // Re-init après une navigation Turbo éventuelle
+                document.addEventListener('turbo:load', function () { enhanceAll(); });
+                // Expose pour ré-initialiser les selects ajoutés dynamiquement (ex. modales AJAX)
+                window.enhanceSelects = enhanceAll;
+            }
+        })();
+    </script>
+
     {% block javascripts %}{% endblock %}
 
     {# Widget Chatbot IA — disponible sur toutes les pages #}

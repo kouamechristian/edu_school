@@ -1,0 +1,69 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau versement{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Versement de caisse',
+        subtitle: current_school.name,
+        icon: 'fa-money-bill-transfer',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Ma caisse', path: path('admin_cash_register_index') },
+            { label: 'Versement' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_cash_register_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="fas fa-wallet me-2 fa-lg"></i>
+                <div>Solde disponible en caisse : <strong>{{ current_balance|number_format(0, ',', ' ') }} F</strong></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-money-bill-transfer me-2"></i>Enregistrer un versement</h6></div>
+                <div class="card-body">
+                    <form method="post" action="{{ path('admin_cash_register_deposit') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('deposit') }}">
+
+                        <div class="mb-3">
+                            <label for="reference" class="form-label fw-bold">Référence du bordereau de versement <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="reference" name="reference" required
+                                   placeholder="Ex: BV-2026-000123" value="{{ app.request.request.get('reference') }}">
+                            <div class="form-text">Numéro figurant sur le bordereau remis par la banque.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label fw-bold">Montant versé (F) <span class="text-danger">*</span></label>
+                            <input type="number" step="1" min="1" max="{{ current_balance }}" class="form-control" id="amount" name="amount" required
+                                   placeholder="Montant en espèces versé à la banque">
+                            <div class="form-text">Ce montant sera déduit du solde de la caisse.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes (optionnel)</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Banque, agence, observations..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_cash_register_index') }}" class="btn btn-light">Annuler</a>
+                            <button type="submit" class="btn btn-primary"
+                                    {% if current_balance <= 0 %}disabled title="Aucun solde à verser"{% endif %}>
+                                <i class="fas fa-check me-1"></i> Enregistrer le versement
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

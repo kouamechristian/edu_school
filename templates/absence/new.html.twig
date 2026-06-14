@@ -4,99 +4,77 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
-                        <li class="breadcrumb-item"><a href="{{ path('admin_absence_index') }}">Absences</a></li>
-                        <li class="breadcrumb-item active">Nouvelle absence</li>
-                    </ol>
-                </div>
-                <h4 class="page-title">Enregistrer une nouvelle absence</h4>
-            </div>
-        </div>
-    </div>
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Enregistrer une absence',
+        icon: 'fa-calendar-plus',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Absences', path: path('admin_absence_index') },
+            { label: 'Nouvelle absence' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_absence_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
 
-    <div class="row">
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4">
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Informations de l'absence</h5>
-                </div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Informations de l'absence</h6></div>
                 <div class="card-body">
                     {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.student, 'Élève', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.student, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.student) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.student, 'Élève', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.student, {'attr': {'class': 'form-select'}}) }}
+                                {{ form_errors(form.student) }}
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.absenceType, 'Type d\'absence', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.absenceType, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.absenceType) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.absenceType, 'Type d\'absence', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.absenceType, {'attr': {'class': 'form-select'}}) }}
+                                {{ form_errors(form.absenceType) }}
                             </div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    {{ form_label(form.date, 'Date', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.date, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.date) }}
-                                </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form_label(form.date, 'Date', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.date, {'attr': {'class': 'form-control'}}) }}
+                                {{ form_errors(form.date) }}
                             </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    {{ form_label(form.startTime, 'Heure de début', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.startTime, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.startTime) }}
-                                </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form_label(form.startTime, 'Heure de début', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.startTime, {'attr': {'class': 'form-control'}}) }}
+                                {{ form_errors(form.startTime) }}
                             </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    {{ form_label(form.endTime, 'Heure de fin', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.endTime, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.endTime) }}
-                                </div>
+                            <div class="col-md-4 mb-3">
+                                {{ form_label(form.endTime, 'Heure de fin', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.endTime, {'attr': {'class': 'form-control'}}) }}
+                                {{ form_errors(form.endTime) }}
                             </div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.period, 'Période', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.period, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.period) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.period, 'Période', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.period, {'attr': {'class': 'form-select'}}) }}
+                                {{ form_errors(form.period) }}
                             </div>
                         </div>
-
                         <div class="mb-3">
                             {{ form_label(form.reason, 'Motif', {'label_attr': {'class': 'form-label'}}) }}
                             {{ form_widget(form.reason, {'attr': {'class': 'form-control'}}) }}
                             {{ form_errors(form.reason) }}
                         </div>
-
                         <div class="mb-3">
                             {{ form_label(form.notes, 'Notes supplémentaires', {'label_attr': {'class': 'form-label'}}) }}
                             {{ form_widget(form.notes, {'attr': {'class': 'form-control'}}) }}
                             {{ form_errors(form.notes) }}
                         </div>
-
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-success">
-                                <i class="mdi mdi-check"></i> Enregistrer
-                            </button>
-                            <a href="{{ path('admin_absence_index') }}" class="btn btn-secondary">
-                                <i class="mdi mdi-arrow-left"></i> Annuler
-                            </a>
+                        <div class="d-flex gap-2 pt-3 border-top">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Enregistrer</button>
+                            <a href="{{ path('admin_absence_index') }}" class="btn btn-light"><i class="fas fa-times me-1"></i> Annuler</a>
                         </div>
                     {{ form_end(form) }}
                 </div>
@@ -105,26 +83,20 @@
 
         <div class="col-lg-4">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Informations</h5>
-                </div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-circle-info me-2"></i>Informations</h6></div>
                 <div class="card-body">
                     <div class="alert alert-info">
                         <h6 class="alert-heading">Conseils pour l'enregistrement</h6>
                         <ul class="mb-0">
-                            <li>Sélectionnez l'élève concerné par l'absence</li>
-                            <li>Choisissez le type d'absence approprié</li>
-                            <li>Indiquez la date et les heures si nécessaire</li>
-                            <li>Ajoutez un motif si disponible</li>
+                            <li>Sélectionnez l'élève concerné par l'absence.</li>
+                            <li>Choisissez le type d'absence approprié.</li>
+                            <li>Indiquez la date et les heures si nécessaire.</li>
+                            <li>Ajoutez un motif si disponible.</li>
                         </ul>
                     </div>
-
-                    <div class="alert alert-warning">
+                    <div class="alert alert-warning mb-0">
                         <h6 class="alert-heading">Important</h6>
-                        <p class="mb-0">
-                            L'absence sera enregistrée avec le statut "En attente" de justification.
-                            Vous pourrez la justifier ultérieurement.
-                        </p>
+                        <p class="mb-0">L'absence sera enregistrée avec le statut « En attente » de justification. Vous pourrez la justifier ultérieurement.</p>
                     </div>
                 </div>
             </div>

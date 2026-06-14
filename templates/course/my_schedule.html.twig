@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes cours{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Mon emploi du temps',
+        subtitle: teacher ? teacher.fullName : '',
+        icon: 'fa-calendar-week',
+        color: 'primary',
+        breadcrumb: [ { label: 'Espace Enseignant' }, { label: 'Mes cours' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if course_count == 0 %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-calendar-xmark fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Aucun cours programmé</h5>
+                <p class="text-muted mb-0">Vous n'avez aucun cours dans votre emploi du temps pour le moment.</p>
+            </div>
+        </div>
+    {% else %}
+        {% set days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] %}
+        {% set day_labels = {'lundi':'Lundi','mardi':'Mardi','mercredi':'Mercredi','jeudi':'Jeudi','vendredi':'Vendredi','samedi':'Samedi'} %}
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle schedule-table mb-0">
+                        <thead>
+                            <tr>
+                                <th width="90">Horaire</th>
+                                {% for day in days %}<th>{{ day_labels[day] }}</th>{% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for slot in time_slots %}
+                                <tr>
+                                    <td class="text-center fw-bold">
+                                        <span class="badge bg-primary">{{ slot.name }}</span><br>
+                                        <small class="text-muted">{{ slot.startTime|date('H:i') }}<br>{{ slot.endTime|date('H:i') }}</small>
+                                    </td>
+                                    {% for day in days %}
+                                        <td class="schedule-cell">
+                                            {% set found = false %}
+                                            {% for course in schedule[day] %}
+                                                {% if course.timeSlot.id == slot.id %}
+                                                    {% set found = true %}
+                                                    {% set color = course.subject.color ?? '#1e3a5f' %}
+                                                    <div class="course-slot" style="background-color: {{ color }}15; border-left: 4px solid {{ color }};">
+                                                        <strong>{{ course.subject.name }}</strong><br>
+                                                        <small>
+                                                            <i class="fas fa-door-open me-1"></i>{{ course.classroom ? course.classroom.name : '—' }}
+                                                            {% if course.room %}<br><i class="fas fa-door-closed me-1"></i>{{ course.room.code }}{% endif %}
+                                                        </small>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if not found %}<span class="text-muted">—</span>{% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.schedule-table { font-size: 0.85rem; }
+.schedule-table thead th { background-color: var(--es-muted-bg, #f4f7fb); }
+.schedule-cell { height: 84px; vertical-align: middle; padding: 8px; min-width: 130px; }
+.course-slot { padding: 8px; border-radius: var(--es-radius-sm, 8px); margin: 2px 0; }
+</style>
+{% endblock %}

@@ -49,6 +49,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $isActive = true;
 
+    /**
+     * Lorsque true, l'utilisateur est forcé de changer son mot de passe à la
+     * prochaine connexion (ex. compte créé automatiquement avec un mot de passe
+     * par défaut).
+     */
+    #[ORM\Column]
+    private bool $mustChangePassword = false;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $lastLogin = null;
 
@@ -102,12 +110,40 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     )]
     private Collection $schools;
 
+    /**
+     * Enfants rattachés à ce parent (auto-association via matricule + date de naissance).
+     *
+     * Relation 1—N : côté inverse de Student.parentUser. Comme un élève ne référence
+     * qu'UN parent, le schéma garantit qu'un enfant ne peut être rattaché à plusieurs
+     * comptes parents à la fois. Ce lien explicite complète — sans le remplacer — le lien
+     * historique par e-mail (Student.parentEmail ↔ User.email).
+     *
+     * @var Collection<int, Student>
+     */
+    #[ORM\OneToMany(mappedBy: 'parentUser', targetEntity: Student::class)]
+    private Collection $children;
+
+    /**
+     * Matières enseignées par cet utilisateur (enseignant).
+     *
+     * @var Collection<int, Subject>
+     */
+    #[ORM\ManyToMany(targetEntity: Subject::class)]
+    #[ORM\JoinTable(
+        name: 'user_teaching_subject',
+        joinColumns: [new ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id')],
+        inverseJoinColumns: [new ORM\JoinColumn(name: 'subject_id', referencedColumnName: 'id')]
+    )]
+    private Collection $teachingSubjects;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
         $this->roles = ['ROLE_USER'];
         $this->schools = new ArrayCollection();
+        $this->children = new ArrayCollection();
+        $this->teachingSubjects = new ArrayCollection();
     }
 
     #[ORM\PostLoad]
@@ -115,6 +151,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if (!isset($this->schools)) {
             $this->schools = new ArrayCollection();
+        }
+        if (!isset($this->children)) {
+            $this->children = new ArrayCollection();
+        }
+        if (!isset($this->teachingSubjects)) {
+            $this->teachingSubjects = new ArrayCollection();
         }
     }
 
@@ -215,6 +257,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+        return $this;
+    }
+
+    public function isMustChangePassword(): bool
+    {
+        return $this->mustChangePassword;
+    }
+
+    public function setMustChangePassword(bool $mustChangePassword): static
+    {
+        $this->mustChangePassword = $mustChangePassword;
         return $this;
     }
 
@@ -404,6 +457,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
+     * Libellés lisibles des rôles applicatifs.
+     */
+    public const ROLE_LABELS = [
+        'ROLE_SUPER_ADMIN' => 'Super administrateur',
+        'ROLE_FONDATEUR' => 'Fondateur',
+        'ROLE_ADMIN' => 'Administrateur',
+        'ROLE_DIRECTEUR' => 'Directeur',
+        'ROLE_INSCRIPTION' => 'Agent d\'inscription',
+        'ROLE_CAISSE' => 'Caissier',
+        'ROLE_ENSEIGNANT' => 'Enseignant',
+        'ROLE_EDUCATEUR' => 'Éducateur',
+        'ROLE_CORRESPONDANT_FICHIER' => 'Correspondant fichier',
+        'ROLE_PARENT' => 'Parent',
+        'ROLE_USER' => 'Utilisateur',
+    ];
+
+    public function getRoleLabel(string $role): string
+    {
+        return self::ROLE_LABELS[$role] ?? $role;
+    }
+
+    /**
      * @return Collection<int, School>
      */
     public function getSchools(): Collection
@@ -426,6 +501,66 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeSchool(School $school): static
     {
         $this->schools->removeElement($school);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Student>
+     */
+    public function getChildren(): Collection
+    {
+        if (!isset($this->children)) {
+            $this->children = new ArrayCollection();
+        }
+        return $this->children;
+    }
+
+    public function addChild(Student $child): static
+    {
+        if (!$this->getChildren()->contains($child)) {
+            $this->children->add($child);
+            $child->setParentUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeChild(Student $child): static
+    {
+        if ($this->getChildren()->removeElement($child)) {
+            // Dissocier le côté propriétaire de la relation.
+            if ($child->getParentUser() === $this) {
+                $child->setParentUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Subject>
+     */
+    public function getTeachingSubjects(): Collection
+    {
+        if (!isset($this->teachingSubjects)) {
+            $this->teachingSubjects = new ArrayCollection();
+        }
+        return $this->teachingSubjects;
+    }
+
+    public function addTeachingSubject(Subject $subject): static
+    {
+        if (!$this->getTeachingSubjects()->contains($subject)) {
+            $this->teachingSubjects->add($subject);
+        }
+
+        return $this;
+    }
+
+    public function removeTeachingSubject(Subject $subject): static
+    {
+        $this->getTeachingSubjects()->removeElement($subject);
 
         return $this;
     }

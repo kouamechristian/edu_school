@@ -4,262 +4,186 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Préinscription - {{ pre_registration.fullName }}</h1>
-                <div class="btn-group">
-                    <a href="{{ path('admin_pre_registration_index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour à la liste
-                    </a>
-                    <a href="{{ path('admin_pre_registration_edit', {'id': pre_registration.id}) }}" class="btn btn-outline-primary">
-                        <i class="fas fa-edit"></i> Modifier
-                    </a>
+    {# ── En-tête ── #}
+    {% embed 'components/page_header.html.twig' with {
+        title: pre_registration.fullName,
+        subtitle: 'Préinscription',
+        icon: 'fa-clipboard-list',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Préinscriptions', path: path('admin_pre_registration_index') },
+            { label: pre_registration.fullName }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_pre_registration_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+            <a href="{{ path('admin_pre_registration_edit', {'id': pre_registration.id}) }}" class="btn btn-primary"><i class="fas fa-edit me-1"></i> Modifier</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {# ── Statut & actions ── #}
+    <div class="row g-4 mb-4">
+        <div class="col-md-8">
+            <div class="alert alert-{{ pre_registration.statusColor }} d-flex align-items-center mb-0 h-100">
+                <i class="fas fa-info-circle me-2 fa-lg"></i>
+                <div>
+                    <strong>Statut :</strong> {{ pre_registration.statusLabel }}
+                    {% if pre_registration.validatedAt %}<br><small>Validée le {{ pre_registration.validatedAt|date('d/m/Y à H:i') }}</small>{% endif %}
+                    {% if pre_registration.enrolledAt %}<br><small>Inscrite le {{ pre_registration.enrolledAt|date('d/m/Y à H:i') }}</small>{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="d-grid gap-2">
+                {% if pre_registration.isPending() %}
+                    <form method="post" action="{{ path('admin_pre_registration_change_status', {'id': pre_registration.id, 'status': 'documents_required'}) }}" onsubmit="return confirm('Passer cette préinscription en statut &quot;Documents requis&quot; ?')">
+                        <button type="submit" class="btn btn-info w-100"><i class="fas fa-file-upload me-1"></i> Demander des documents</button>
+                    </form>
+                {% endif %}
+                {% if pre_registration.isDocumentsRequired() %}
+                    <form method="post" action="{{ path('admin_pre_registration_change_status', {'id': pre_registration.id, 'status': 'documents_received'}) }}" onsubmit="return confirm('Marquer les documents comme reçus ?')">
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-check-circle me-1"></i> Documents reçus</button>
+                    </form>
+                {% endif %}
+                {% if pre_registration.canBeValidated() %}
+                    <form method="post" action="{{ path('admin_pre_registration_validate', {'id': pre_registration.id}) }}" onsubmit="return confirm('Valider cette préinscription ?')">
+                        <button type="submit" class="btn btn-success w-100"><i class="fas fa-check me-1"></i> Valider</button>
+                    </form>
+                {% endif %}
+                
+                {% if pre_registration.isValidated() or pre_registration.isDocumentsReceived() %}
+                    <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#rejectModal"><i class="fas fa-times me-1"></i> Rejeter</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {# ── Colonne gauche ── #}
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-user me-2"></i>Informations de l'élève</h6></div>
+                <div class="card-body">
+                    {% if pre_registration.photo %}
+                    <div class="text-center mb-3">
+                        <img src="{{ asset(pre_registration.photo) }}" alt="Photo" class="img-thumbnail" style="max-height: 140px;">
+                    </div>
+                    {% endif %}
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value">{{ pre_registration.fullName }}</div></div>
+                        <div class="info-row"><div class="info-label">Matricule interne</div><div class="info-value">{{ pre_registration.matriculeInterne ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Matricule national</div><div class="info-value">{{ pre_registration.matriculeNational ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Date de naissance</div><div class="info-value">{{ pre_registration.dateOfBirth|date('d/m/Y') }}</div></div>
+                        <div class="info-row"><div class="info-label">Lieu de naissance</div><div class="info-value">{{ pre_registration.placeOfBirth ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Genre</div><div class="info-value">{{ pre_registration.genderLabel }}</div></div>
+                        <div class="info-row"><div class="info-label">Nationalité</div><div class="info-value">{{ pre_registration.nationality ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">N° extrait de naissance</div><div class="info-value">{{ pre_registration.birthCertificateNumber ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">N° CMU</div><div class="info-value">{{ pre_registration.cmuNumber ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">{{ pre_registration.phone ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Email</div><div class="info-value">{{ pre_registration.email ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Adresse</div><div class="info-value">{{ pre_registration.address ?: '—' }}</div></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Statut et actions -->
-            <div class="row mb-4">
-                <div class="col-md-8">
-                    <div class="alert alert-{{ pre_registration.statusColor }} d-flex align-items-center">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <div>
-                            <strong>Statut :</strong> {{ pre_registration.statusLabel }}
-                            {% if pre_registration.validatedAt %}
-                                <br><small>Validée le {{ pre_registration.validatedAt|date('d/m/Y à H:i') }}</small>
-                            {% endif %}
-                            {% if pre_registration.enrolledAt %}
-                                <br><small>Inscrite le {{ pre_registration.enrolledAt|date('d/m/Y à H:i') }}</small>
-                            {% endif %}
-                        </div>
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-user-friends me-2"></i>Parent / Tuteur</h6></div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Nom</div><div class="info-value">{{ pre_registration.parentName ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">{{ pre_registration.parentPhone ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Email</div><div class="info-value">{{ pre_registration.parentEmail ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Fonction</div><div class="info-value">{{ pre_registration.parentFunction ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Domicile</div><div class="info-value">{{ pre_registration.parentAddress ?: '—' }}</div></div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="d-grid gap-2">
-                        <!-- Boutons de changement de statut -->
-                        {% if pre_registration.isPending() %}
-                            <form method="post" action="{{ path('admin_pre_registration_change_status', {'id': pre_registration.id, 'status': 'documents_required'}) }}" 
-                                  onsubmit="return confirm('Passer cette préinscription en statut "Documents requis" ?')">
-                                <button type="submit" class="btn btn-info w-100">
-                                    <i class="fas fa-file-upload"></i> Demander des documents
-                                </button>
-                            </form>
-                        {% endif %}
-                        
-                        {% if pre_registration.isDocumentsRequired() %}
-                            <form method="post" action="{{ path('admin_pre_registration_change_status', {'id': pre_registration.id, 'status': 'documents_received'}) }}" 
-                                  onsubmit="return confirm('Marquer les documents comme reçus ?')">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-check-circle"></i> Documents reçus
-                                </button>
-                            </form>
-                        {% endif %}
-                        
-                        <!-- Boutons d'action principaux -->
-                        {% if pre_registration.canBeValidated() %}
-                            <form method="post" action="{{ path('admin_pre_registration_validate', {'id': pre_registration.id}) }}" 
-                                  onsubmit="return confirm('Valider cette préinscription ?')">
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="fas fa-check"></i> Valider
-                                </button>
-                            </form>
-                        {% endif %}
-                        {% if pre_registration.canBeEnrolled() %}
-                            <form method="post" action="{{ path('admin_pre_registration_enroll', {'id': pre_registration.id}) }}" 
-                                  onsubmit="return confirm('Inscrire cet élève ? Cette action est définitive.')">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-user-plus"></i> Inscrire l'élève
-                                </button>
-                            </form>
-                        {% endif %}
-                        {% if pre_registration.isValidated() or pre_registration.isDocumentsReceived() %}
-                            <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                                <i class="fas fa-times"></i> Rejeter
-                            </button>
-                        {% endif %}
+            </div>
+        </div>
+
+        {# ── Colonne droite ── #}
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-school me-2"></i>Informations scolaires</h6></div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Établissement</div><div class="info-value">{{ pre_registration.school.name }}</div></div>
+                        <div class="info-row"><div class="info-label">Niveau demandé</div><div class="info-value">{% if pre_registration.requestedLevel %}{{ pre_registration.requestedLevel.name }}{% else %}<span class="text-muted">Non spécifié</span>{% endif %}</div></div>
+                        <div class="info-row"><div class="info-label">Doublant</div><div class="info-value">{{ pre_registration.isRepeating ? 'Oui' : 'Non' }}</div></div>
+                        <div class="info-row"><div class="info-label">Dernière école fréquentée</div><div class="info-value">{{ pre_registration.lastSchoolAttended ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Année scolaire</div><div class="info-value">{% if pre_registration.schoolYear %}{{ pre_registration.schoolYear.name }}{% else %}<span class="text-muted">Non spécifiée</span>{% endif %}</div></div>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <!-- Informations de l'élève -->
-                <div class="col-lg-6">
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations de l'élève</h5>
-                        </div>
-                        <div class="card-body">
-                            <dl class="row">
-                                <dt class="col-sm-4">Nom complet :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.fullName }}</dd>
-                                
-                                <dt class="col-sm-4">Date de naissance :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.dateOfBirth|date('d/m/Y') }}</dd>
-                                
-                                <dt class="col-sm-4">Genre :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.genderLabel }}</dd>
-                                
-                                <dt class="col-sm-4">Téléphone :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.phone ?: 'Non renseigné' }}</dd>
-                                
-                                <dt class="col-sm-4">Email :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.email ?: 'Non renseigné' }}</dd>
-                                
-                                <dt class="col-sm-4">Adresse :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.address ?: 'Non renseignée' }}</dd>
-                            </dl>
-                        </div>
-                    </div>
-
-                    <!-- Informations du parent -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations du parent/tuteur</h5>
-                        </div>
-                        <div class="card-body">
-                            <dl class="row">
-                                <dt class="col-sm-4">Nom :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.parentName ?: 'Non renseigné' }}</dd>
-                                
-                                <dt class="col-sm-4">Téléphone :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.parentPhone ?: 'Non renseigné' }}</dd>
-                                
-                                <dt class="col-sm-4">Email :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.parentEmail ?: 'Non renseigné' }}</dd>
-                            </dl>
-                        </div>
-                    </div>
+            {# Documents #}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-folder-open me-2"></i>Documents</h6>
+                    {% if pre_registration.isDocumentsRequired() or pre_registration.isDocumentsReceived() %}
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-upload me-1"></i> Ajouter</button>
+                    {% endif %}
                 </div>
-
-                <!-- Informations scolaires et documents -->
-                <div class="col-lg-6">
-                    <!-- Informations scolaires -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informations scolaires</h5>
-                        </div>
-                        <div class="card-body">
-                            <dl class="row">
-                                <dt class="col-sm-4">Établissement :</dt>
-                                <dd class="col-sm-8">{{ pre_registration.school.name }}</dd>
-                                
-                                <dt class="col-sm-4">Niveau demandé :</dt>
-                                <dd class="col-sm-8">
-                                    {% if pre_registration.requestedLevel %}
-                                        {{ pre_registration.requestedLevel.name }}
-                                    {% else %}
-                                        <span class="text-muted">Non spécifié</span>
-                                    {% endif %}
-                                </dd>
-                                
-                                <dt class="col-sm-4">Année scolaire :</dt>
-                                <dd class="col-sm-8">
-                                    {% if pre_registration.schoolYear %}
-                                        {{ pre_registration.schoolYear.name }}
-                                    {% else %}
-                                        <span class="text-muted">Non spécifiée</span>
-                                    {% endif %}
-                                </dd>
-                            </dl>
-                        </div>
-                    </div>
-
-                    <!-- Documents -->
-                    <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Documents</h5>
-                            {% if pre_registration.isDocumentsRequired() or pre_registration.isDocumentsReceived() %}
-                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                                    <i class="fas fa-upload"></i> Ajouter un document
-                                </button>
-                            {% endif %}
-                        </div>
-                        <div class="card-body">
-                            {% if pre_registration.documents|length > 0 %}
-                                <div class="list-group">
-                                    {% for document in pre_registration.documents %}
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1">{{ document.documentType.name }}</h6>
-                                                <p class="mb-1 text-muted">{{ document.originalFileName }}</p>
-                                                <small class="text-muted">
-                                                    Uploadé le {{ document.uploadedAt|date('d/m/Y à H:i') }}
-                                                    ({{ document.formattedFileSize }})
-                                                </small>
-                                            </div>
-                                            <div class="btn-group">
-                                                <a href="{{ path('admin_pre_registration_document_download', {'id': document.id}) }}" 
-                                                   class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-download"></i>
-                                                </a>
-                                                {% if document.isValidated %}
-                                                    <form method="post" action="{{ path('admin_pre_registration_document_invalidate', {'id': document.id}) }}" 
-                                                          class="d-inline">
-                                                        <button type="submit" class="btn btn-sm btn-outline-warning" 
-                                                                title="Invalider">
-                                                            <i class="fas fa-times"></i>
-                                                        </button>
-                                                    </form>
-                                                {% else %}
-                                                    <form method="post" action="{{ path('admin_pre_registration_document_validate', {'id': document.id}) }}" 
-                                                          class="d-inline">
-                                                        <button type="submit" class="btn btn-sm btn-outline-success" 
-                                                                title="Valider">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                    </form>
-                                                {% endif %}
-                                                <form method="post" action="{{ path('admin_pre_registration_document_delete', {'id': document.id}) }}" 
-                                                      class="d-inline" onsubmit="return confirm('Supprimer ce document ?')">
-                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ document.id) }}">
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
+                <div class="card-body">
+                    {% if pre_registration.documents|length > 0 %}
+                        <div class="list-group list-group-flush">
+                            {% for document in pre_registration.documents %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <div>
+                                        <h6 class="mb-1">{{ document.documentType.name }}
+                                            {% if document.isValidated %}<span class="badge badge-soft success ms-1"><i class="fas fa-check"></i></span>{% endif %}
+                                        </h6>
+                                        <p class="mb-1 small">{{ document.originalFileName }}</p>
+                                        <small class="text-muted">Uploadé le {{ document.uploadedAt|date('d/m/Y à H:i') }} ({{ document.formattedFileSize }})</small>
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_pre_registration_document_download', {'id': document.id}) }}" class="btn btn-outline-primary" title="Télécharger"><i class="fas fa-download"></i></a>
+                                        {% if document.isValidated %}
+                                            <form method="post" action="{{ path('admin_pre_registration_document_invalidate', {'id': document.id}) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-warning" title="Invalider"><i class="fas fa-times"></i></button>
+                                            </form>
+                                        {% else %}
+                                            <form method="post" action="{{ path('admin_pre_registration_document_validate', {'id': document.id}) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-success" title="Valider"><i class="fas fa-check"></i></button>
+                                            </form>
+                                        {% endif %}
+                                        <form method="post" action="{{ path('admin_pre_registration_document_delete', {'id': document.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer ce document ?')">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ document.id) }}">
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </div>
                                 </div>
-                            {% else %}
-                                <div class="text-center py-3">
-                                    <i class="fas fa-file-upload fa-2x text-muted mb-2"></i>
-                                    <p class="text-muted mb-0">Aucun document uploadé</p>
-                                </div>
-                            {% endif %}
+                            {% endfor %}
                         </div>
-                    </div>
-
-                    <!-- Informations supplémentaires -->
-                    {% if pre_registration.medicalInfo or pre_registration.notes %}
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Informations supplémentaires</h5>
-                            </div>
-                            <div class="card-body">
-                                {% if pre_registration.medicalInfo %}
-                                    <h6>Informations médicales :</h6>
-                                    <p>{{ pre_registration.medicalInfo }}</p>
-                                {% endif %}
-                                
-                                {% if pre_registration.notes %}
-                                    <h6>Notes :</h6>
-                                    <p>{{ pre_registration.notes }}</p>
-                                {% endif %}
-                            </div>
+                    {% else %}
+                        <div class="empty-state py-3">
+                            <div class="empty-icon"><i class="fas fa-file-upload"></i></div>
+                            <p class="mb-0">Aucun document uploadé</p>
                         </div>
                     {% endif %}
                 </div>
             </div>
+
+            {% if pre_registration.medicalInfo or pre_registration.notes %}
+                <div class="card">
+                    <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-notes-medical me-2"></i>Informations supplémentaires</h6></div>
+                    <div class="card-body">
+                        {% if pre_registration.medicalInfo %}<h6 class="text-muted">Informations médicales</h6><p>{{ pre_registration.medicalInfo }}</p>{% endif %}
+                        {% if pre_registration.notes %}<h6 class="text-muted">Notes</h6><p class="mb-0">{{ pre_registration.notes }}</p>{% endif %}
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Modal de rejet -->
+{# ── Modal de rejet ── #}
 <div class="modal fade" id="rejectModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Rejeter la préinscription</h5>
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger"><i class="fas fa-times-circle me-2"></i>Rejeter la préinscription</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="post" action="{{ path('admin_pre_registration_reject', {'id': pre_registration.id}) }}">
@@ -269,8 +193,8 @@
                         <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="3" required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
                     <button type="submit" class="btn btn-danger">Rejeter</button>
                 </div>
             </form>
@@ -278,16 +202,15 @@
     </div>
 </div>
 
-<!-- Modal d'upload -->
+{# ── Modal d'upload ── #}
 <div class="modal fade" id="uploadModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Ajouter un document</h5>
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-primary"><i class="fas fa-upload me-2"></i>Ajouter un document</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post" action="{{ path('admin_pre_registration_document_upload', {'preRegistrationId': pre_registration.id}) }}" 
-                  enctype="multipart/form-data">
+            <form method="post" action="{{ path('admin_pre_registration_document_upload', {'preRegistrationId': pre_registration.id}) }}" enctype="multipart/form-data">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="document_type" class="form-label">Type de document *</label>
@@ -303,8 +226,8 @@
                         <input type="file" name="file" id="file" class="form-control" required>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
                     <button type="submit" class="btn btn-primary">Uploader</button>
                 </div>
             </form>

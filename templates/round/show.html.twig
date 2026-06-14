@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Série — {{ round.libelle }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
+            {% embed 'components/page_header.html.twig' with {
+                title: round.libelle,
+                icon: 'fa-stream',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Séries', path: path('admin_round_index') },
+                    { label: round.libelle }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_round_edit', {'id': round.id}) }}" class="btn btn-primary"><i class="fas fa-edit me-1"></i> Modifier</a>
+                    <a href="{{ path('admin_round_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Libellé</div><div class="info-value"><strong>{{ round.libelle }}</strong></div></div>
+                        <div class="info-row"><div class="info-label">Cycle</div><div class="info-value">{% if round.cycle %}<span class="badge badge-soft info">{{ round.cycle.libelle }}</span>{% else %}—{% endif %}</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

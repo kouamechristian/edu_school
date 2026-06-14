@@ -4,32 +4,41 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Ouvrir ma caisse</h1>
-        <a href="{{ path('admin_student_index') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Retour
-        </a>
-    </div>
+    <div class="row justify-content-center">
+        <div class="col-xl-7">
+            {% embed 'components/page_header.html.twig' with {
+                title: 'Ouvrir ma caisse',
+                subtitle: current_school.name,
+                icon: 'fa-cash-register',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Ma caisse', path: path('admin_cash_register_open') },
+                    { label: 'Ouverture' }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_student_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
 
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-cash-register me-1"></i> Caisse - {{ current_school.name }}
-            </h6>
-        </div>
-        <div class="card-body">
-            <form method="post">
-                <div class="mb-3">
-                    <label class="form-label">Solde d'ouverture</label>
-                    <input type="number" name="opening_balance" class="form-control" min="0" step="1" value="0">
-                    <div class="form-text">Montant en caisse au début de la journée.</div>
+            {% include '_flash.html.twig' %}
+
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-cash-register me-2"></i>Caisse — {{ current_school.name }}</h6></div>
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Solde d'ouverture</label>
+                            <input type="number" name="opening_balance" class="form-control" min="0" step="1" value="0">
+                            <div class="form-text">Montant en caisse au début de la journée.</div>
+                        </div>
+                        <div class="pt-3 border-top">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Ouvrir la caisse</button>
+                        </div>
+                    </form>
                 </div>
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-check"></i> Ouvrir la caisse
-                </button>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
-

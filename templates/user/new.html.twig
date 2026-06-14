@@ -1,151 +1,91 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Nouvel Utilisateur{% endblock %}
+{% block heading %}Nouvel Utilisateur{% endblock %}
 
 {% block body %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="fas fa-user-plus me-2"></i> Nouvel Utilisateur
-                    </h4>
-                </div>
-                <div class="card-body">
-                    {{ form_start(form) }}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: block('heading'),
+        icon: 'fa-user-plus',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Utilisateurs', path: path('admin_user_index') },
+            { label: block('heading') }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_user_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card">
+        <div class="card-body">
+            {{ form_start(form) }}
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-key me-2"></i>Informations de connexion</h6>
+                        <div class="mb-3">{{ form_row(form.username) }}</div>
+                        <div class="mb-3">{{ form_row(form.email) }}</div>
+                        <div class="mb-3">{{ form_row(form.plainPassword) }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-user me-2"></i>Informations personnelles</h6>
+                        <div class="mb-3">{{ form_row(form.firstName) }}</div>
+                        <div class="mb-3">{{ form_row(form.lastName) }}</div>
                         <div class="row">
-                            {# Informations de connexion #}
-                            <div class="col-md-6">
-                                <h5 class="mb-3"><i class="fas fa-key me-2"></i> Informations de connexion</h5>
-                                
-                                <div class="mb-3">
-                                    {{ form_row(form.username) }}
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form_row(form.email) }}
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form_row(form.plainPassword) }}
-                                </div>
-                            </div>
-
-                            {# Informations personnelles #}
-                            <div class="col-md-6">
-                                <h5 class="mb-3"><i class="fas fa-user me-2"></i> Informations personnelles</h5>
-                                
-                                <div class="mb-3">
-                                    {{ form_row(form.firstName) }}
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form_row(form.lastName) }}
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        {{ form_row(form.gender) }}
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        {{ form_row(form.dateOfBirth) }}
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.gender) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.dateOfBirth) }}</div>
                         </div>
-
-                        <hr class="my-4">
-
-                        <div class="row">
-                            {# Type et rôles #}
-                            <div class="col-md-6">
-                                <h5 class="mb-3"><i class="fas fa-shield-alt me-2"></i> Type et Permissions</h5>
-                                
-                                <div class="mb-3">
-                                    {{ form_row(form.userType) }}
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form_row(form.schoolGroup) }}
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form_row(form.schools) }}
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form_row(form.roles) }}
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form_row(form.isActive) }}
-                                </div>
-                            </div>
-
-                            {# Coordonnées #}
-                            <div class="col-md-6">
-                                <h5 class="mb-3"><i class="fas fa-address-book me-2"></i> Coordonnées</h5>
-                                
-                                <div class="mb-3">
-                                    {{ form_row(form.phone) }}
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form_row(form.address) }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ path('admin_user_index') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-2"></i> Retour
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i> Enregistrer
-                            </button>
-                        </div>
-                    {{ form_end(form) }}
+                    </div>
                 </div>
-            </div>
+
+                <hr class="my-4">
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-shield-alt me-2"></i>Type et permissions</h6>
+                        <div class="mb-3">{{ form_row(form.userType) }}</div>
+                        <div class="mb-3">{{ form_row(form.schoolGroup) }}</div>
+                        <div class="mb-3">{{ form_row(form.schools) }}</div>
+                        <div class="mb-3">{{ form_row(form.roles) }}</div>
+                        <div class="mb-3">{{ form_row(form.isActive) }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-address-book me-2"></i>Coordonnées</h6>
+                        <div class="mb-3">{{ form_row(form.phone) }}</div>
+                        <div class="mb-3">{{ form_row(form.address) }}</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                    <a href="{{ path('admin_user_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer</button>
+                </div>
+            {{ form_end(form) }}
         </div>
     </div>
 </div>
 
-<style>
-    .roles-checkboxes .form-check {
-        margin-bottom: 0.5rem;
-    }
-</style>
+<style>.roles-checkboxes .form-check { margin-bottom: 0.5rem; }</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const groupSelect = document.getElementById('user_schoolGroup');
     const schoolsSelect = document.getElementById('user_schools');
-    
     if (groupSelect && schoolsSelect) {
-        // Stocker toutes les options
         const allOptions = Array.from(schoolsSelect.options);
-        
-        // Fonction pour filtrer les établissements
         function filterSchools() {
             const selectedGroupId = groupSelect.value;
-            
-            // Réinitialiser les options
             schoolsSelect.innerHTML = '';
-            
-            // Filtrer et ajouter les options
             allOptions.forEach(option => {
                 const groupId = option.getAttribute('data-group-id');
-                
-                // Si aucun groupe sélectionné, afficher tous
-                // Si groupe sélectionné, afficher seulement ceux du groupe
                 if (!selectedGroupId || groupId === selectedGroupId) {
                     schoolsSelect.appendChild(option.cloneNode(true));
                 }
             });
-            
-            // Afficher un message si aucune école
             if (schoolsSelect.options.length === 0) {
                 const emptyOption = document.createElement('option');
                 emptyOption.text = selectedGroupId ? 'Aucun établissement dans ce groupe' : 'Aucun établissement disponible';
@@ -153,16 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 schoolsSelect.appendChild(emptyOption);
             }
         }
-        
-        // Écouter les changements de groupe
         groupSelect.addEventListener('change', filterSchools);
-        
-        // Filtrer au chargement si un groupe est déjà sélectionné
-        if (groupSelect.value) {
-            filterSchools();
-        }
+        if (groupSelect.value) { filterSchools(); }
     }
 });
 </script>
 {% endblock %}
-

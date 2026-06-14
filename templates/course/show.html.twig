@@ -3,85 +3,47 @@
 {% block title %}Détails du Cours{% endblock %}
 
 {% block body %}
-<div class="container py-4">
+<div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-xl-9">
+            {% embed 'components/page_header.html.twig' with {
+                title: course.subject.name,
+                subtitle: course.classroom.fullName ~ '  ·  ' ~ course.dayOfWeekLabel,
+                icon: 'fa-calendar-alt',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Cours', path: path('admin_course_index') },
+                    { label: course.subject.name }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_course_edit', {'id': course.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+                    <a href="{{ path('admin_course_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
             <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="fas fa-calendar-alt me-2"></i> Détails du Cours
-                    </h4>
-                </div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Détails du cours</h6></div>
                 <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong><i class="fas fa-door-open me-2"></i> Classe :</strong><br>
-                            <a href="{{ path('admin_classroom_show', {'id': course.classroom.id}) }}">
-                                {{ course.classroom.fullName }}
-                            </a>
-                        </div>
-                        <div class="col-md-6">
-                            <strong><i class="fas fa-book me-2"></i> Matière :</strong><br>
-                            <span class="badge" style="background-color: {{ course.subject.color ?? '#6c757d' }}; color: white; padding: 8px 12px;">
-                                {{ course.subject.name }}
-                            </span>
-                        </div>
+                    <div class="row">
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Classe</div><div class="info-value"><a href="{{ path('admin_classroom_show', {'id': course.classroom.id}) }}">{{ course.classroom.fullName }}</a></div></div>
+                            <div class="info-row"><div class="info-label">Matière</div><div class="info-value"><span class="badge" style="background-color: {{ course.subject.color ?? '#6c757d' }}; color: #fff;">{{ course.subject.name }}</span></div></div>
+                            <div class="info-row"><div class="info-label">Enseignant</div><div class="info-value">{% if course.teacher %}<a href="{{ path('admin_user_show', {'id': course.teacher.id}) }}">{{ course.teacher.fullName }}</a>{% else %}<span class="text-muted">Non assigné</span>{% endif %}</div></div>
+                            {% if course.room %}<div class="info-row"><div class="info-label">Salle</div><div class="info-value">{{ course.room.fullName }}</div></div>{% endif %}
+                        </div></div>
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Jour</div><div class="info-value"><span class="badge badge-soft">{{ course.dayOfWeekLabel }}</span></div></div>
+                            <div class="info-row"><div class="info-label">Horaire</div><div class="info-value">{{ course.startTime|date('H:i') }} – {{ course.endTime|date('H:i') }}</div></div>
+                            <div class="info-row"><div class="info-label">Durée</div><div class="info-value">{{ course.duration }} minutes</div></div>
+                        </div></div>
                     </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <strong><i class="fas fa-chalkboard-teacher me-2"></i> Enseignant :</strong><br>
-                            {% if course.teacher %}
-                                <a href="{{ path('admin_user_show', {'id': course.teacher.id}) }}">
-                                    {{ course.teacher.fullName }}
-                                </a>
-                            {% else %}
-                                <span class="text-muted">Non assigné</span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <strong><i class="fas fa-calendar-day me-2"></i> Jour :</strong><br>
-                            <span class="badge bg-primary">{{ course.dayOfWeekLabel }}</span>
-                        </div>
-                        <div class="col-md-4">
-                            <strong><i class="fas fa-clock me-2"></i> Horaire :</strong><br>
-                            <span class="text-muted">{{ course.startTime|date('H:i') }} - {{ course.endTime|date('H:i') }}</span>
-                        </div>
-                        <div class="col-md-4">
-                            <strong><i class="fas fa-hourglass-half me-2"></i> Durée :</strong><br>
-                            <span class="text-muted">{{ course.duration }} minutes</span>
-                        </div>
-                    </div>
-
-                    {% if course.room %}
-                    <div class="mb-3">
-                        <strong><i class="fas fa-door-closed me-2"></i> Salle :</strong><br>
-                        <span class="text-muted">{{ course.room.fullName }}</span>
-                    </div>
-                    {% endif %}
-
                     {% if course.notes %}
-                    <div class="mb-3">
-                        <strong><i class="fas fa-sticky-note me-2"></i> Remarques :</strong><br>
-                        <span class="text-muted">{{ course.notes|nl2br }}</span>
-                    </div>
+                        <div class="info-list mt-2"><div class="info-row"><div class="info-label">Remarques</div><div class="info-value">{{ course.notes|nl2br }}</div></div></div>
                     {% endif %}
-
-                    <div class="mt-4 d-flex justify-content-between">
-                        <a href="{{ path('admin_course_index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i> Retour
-                        </a>
-                        <a href="{{ path('admin_course_edit', {'id': course.id}) }}" class="btn btn-warning">
-                            <i class="fas fa-edit me-2"></i> Modifier
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-

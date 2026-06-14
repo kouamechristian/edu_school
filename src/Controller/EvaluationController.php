@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Evaluation;
 use App\Entity\Grade;
 use App\Form\EvaluationType;
@@ -13,13 +14,17 @@ use App\Repository\UserRepository;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/admin/evaluations')]
+#[IsGranted('ROLE_ENSEIGNANT')]
 class EvaluationController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'admin_evaluation_index', methods: ['GET'])]
     public function index(
         EvaluationRepository $evaluationRepository,
@@ -84,6 +89,10 @@ class EvaluationController extends AbstractController
         }
 
         $evaluation = new Evaluation();
+        // Un enseignant « simple » : pré-sélectionner lui-même comme enseignant.
+        if ($this->isGranted('ROLE_ENSEIGNANT') && !$this->isGranted('ROLE_DIRECTEUR')) {
+            $evaluation->setTeacher($this->getUser());
+        }
         $form = $this->createForm(EvaluationType::class, $evaluation);
         $form->handleRequest($request);
 
@@ -145,10 +154,12 @@ class EvaluationController extends AbstractController
         EntityManagerInterface $entityManager
     ): Response {
         if ($this->isCsrfTokenValid('delete'.$evaluation->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($evaluation);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'L\'évaluation a été supprimée avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $evaluation,
+                'L\'évaluation a été supprimée avec succès.',
+                'Suppression impossible : cette évaluation contient encore des notes. Veuillez d\'abord les supprimer.'
+            );
         }
 
         return $this->redirectToRoute('admin_evaluation_index', [], Response::HTTP_SEE_OTHER);

@@ -3,62 +3,68 @@
 {% block title %}Nouvel Établissement{% endblock %}
 
 {% block body %}
-<div class="container py-4">
+<div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-xl-9">
+            {% embed 'components/page_header.html.twig' with {
+                title: 'Nouvel Établissement',
+                icon: 'fa-school',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Établissements', path: path('admin_school_index') },
+                    { label: 'Nouvel établissement' }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_school_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
             <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="fas fa-school me-2"></i> Nouvel Établissement
-                    </h4>
-                </div>
                 <div class="card-body">
                     {{ form_start(form) }}
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.name) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.code) }}
-                            </div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.name) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.code) }}</div>
                         </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">{{ form_row(form.schoolGroup) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.type) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.director) }}</div>
+                        </div>
+                        <div class="mb-3">{{ form_row(form.address) }}</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.phone) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.email) }}</div>
+                        </div>
+                        <div class="mb-3">{{ form_row(form.isActive) }}</div>
 
+                        <hr>
+                        <h6 class="text-muted mb-3"><i class="fas fa-image me-2"></i>Identité visuelle</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.logoFile) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.cachetDirectionFile) }}</div>
+                        </div>
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                {{ form_row(form.schoolGroup) }}
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                {{ form_row(form.type) }}
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                {{ form_row(form.director) }}
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form_row(form.address) }}
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.phone) }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form_row(form.email) }}
+                                {{ form_label(form.badgeBackgroundColor) }}
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color flex-grow-0"
+                                           value="{{ form.badgeBackgroundColor.vars.value|default('') ?: '#2563eb' }}"
+                                           title="Choisir une couleur"
+                                           oninput="document.getElementById('{{ form.badgeBackgroundColor.vars.id }}').value = this.value">
+                                    {{ form_widget(form.badgeBackgroundColor) }}
+                                </div>
+                                {{ form_help(form.badgeBackgroundColor) }}
+                                {{ form_errors(form.badgeBackgroundColor) }}
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            {{ form_row(form.isActive) }}
-                        </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ path('admin_school_index') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-2"></i> Retour
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i> Enregistrer
-                            </button>
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_school_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer</button>
                         </div>
                     {{ form_end(form) }}
                 </div>
@@ -67,4 +73,3 @@
     </div>
 </div>
 {% endblock %}
-

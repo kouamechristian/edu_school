@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier le Type de Matière{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Modifier le Type de Matière',
+        icon: 'fa-tags',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Types de matière', path: path('admin_subject_type_index') },
+            { label: 'Modifier' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_subject_type_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Informations du type de matière</h6></div>
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        <div class="row">
+                            <div class="col-md-8 mb-3">{{ form_row(form.label) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.orderNumber) }}</div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_subject_type_index') }}" class="btn btn-light">Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer</button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

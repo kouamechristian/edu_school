@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Payment;
+use App\Entity\SchoolGroup;
 use App\Entity\Student;
 use App\Entity\Fee;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -13,9 +14,75 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class PaymentRepository extends ServiceEntityRepository
 {
+    /** Statuts considérés comme effectivement encaissés. */
+    private const PAID_STATUSES = ['payé', 'partiellement_payé'];
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Payment::class);
+    }
+
+    /**
+     * Chiffre d'affaires (encaissements) par établissement d'un groupe.
+     * Le lien vers l'école se fait via la caisse (cashRegister → school).
+     * « online » isole les paiements passés en ligne (caisse en ligne ou passerelle).
+     *
+     * @return array<int, array{schoolId:int, schoolName:string, revenue:float, online:float}>
+     */
+    public function getRevenueBySchoolForGroup(SchoolGroup $group): array
+    {
+        $rows = $this->createQueryBuilder('p')
+            ->select(
+                's.id AS schoolId',
+                's.name AS schoolName',
+                'SUM(p.amount) AS revenue',
+                'SUM(CASE WHEN (cr.isOnline = :online OR p.provider IS NOT NULL) THEN p.amount ELSE 0 END) AS online'
+            )
+            ->join('p.cashRegister', 'cr')
+            ->join('cr.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->andWhere('p.status IN (:paid)')
+            ->setParameter('group', $group)
+            ->setParameter('paid', self::PAID_STATUSES)
+            ->setParameter('online', true)
+            ->groupBy('s.id')
+            ->addGroupBy('s.name')
+            ->orderBy('revenue', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        return array_map(static fn (array $r): array => [
+            'schoolId' => (int) $r['schoolId'],
+            'schoolName' => (string) $r['schoolName'],
+            'revenue' => (float) $r['revenue'],
+            'online' => (float) $r['online'],
+        ], $rows);
+    }
+
+    /**
+     * Chiffre d'affaires encaissé sur le mois en cours pour tout le groupe.
+     */
+    public function getMonthlyRevenueForGroup(SchoolGroup $group): float
+    {
+        $start = new \DateTimeImmutable('first day of this month 00:00:00');
+        $end = new \DateTimeImmutable('first day of next month 00:00:00');
+
+        $result = $this->createQueryBuilder('p')
+            ->select('SUM(p.amount)')
+            ->join('p.cashRegister', 'cr')
+            ->join('cr.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->andWhere('p.status IN (:paid)')
+            ->andWhere('p.paymentDate >= :start')
+            ->andWhere('p.paymentDate < :end')
+            ->setParameter('group', $group)
+            ->setParameter('paid', self::PAID_STATUSES)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($result ?? 0);
     }
 
     public function save(Payment $entity, bool $flush = false): void
@@ -25,6 +92,99 @@ class PaymentRepository extends ServiceEntityRepository
         if ($flush) {
             $this->getEntityManager()->flush();
         }
+    }
+
+    /**
+     * Paiement en ligne déjà en attente pour un frais donné (anti double-paiement).
+     */
+    public function findActiveOnlineForStudentFee(int $studentFeeId): ?Payment
+    {
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.studentFee = :sf')
+            ->andWhere('p.provider IS NOT NULL')
+            ->andWhere('p.status = :pending')
+            ->setParameter('sf', $studentFeeId)
+            ->setParameter('pending', 'en_attente')
+            ->orderBy('p.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function findOneByProviderTransactionId(string $provider, string $transactionId): ?Payment
+    {
+        return $this->findOneBy(['provider' => $provider, 'providerTransactionId' => $transactionId]);
+    }
+
+    /**
+     * Journal des paiements par Mobile Money (filtrable par établissement et statut).
+     *
+     * @return Payment[]
+     */
+    public function findMobileMoney(?int $schoolId = null, ?string $status = null): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->leftJoin('p.student', 's')
+            ->addSelect('s')
+            ->andWhere('p.paymentMethod = :method')
+            ->setParameter('method', 'mobile_money')
+            ->orderBy('p.createdAt', 'DESC');
+
+        if ($schoolId) {
+            $qb->innerJoin('s.school', 'sc')
+               ->andWhere('sc.id = :schoolId')
+               ->setParameter('schoolId', $schoolId);
+        }
+
+        if ($status) {
+            $qb->andWhere('p.status = :status')->setParameter('status', $status);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Paiements en ligne encore en attente (pour la synchronisation planifiée).
+     * Limité aux paiements récents pour ne pas re-vérifier indéfiniment les abandons.
+     *
+     * @return Payment[]
+     */
+    public function findPendingOnline(int $maxAgeHours = 72, int $limit = 200): array
+    {
+        $since = new \DateTime(sprintf('-%d hours', max(1, $maxAgeHours)));
+
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.provider IS NOT NULL')
+            ->andWhere('p.providerTransactionId IS NOT NULL')
+            ->andWhere('p.status = :pending')
+            ->andWhere('p.createdAt >= :since')
+            ->setParameter('pending', 'en_attente')
+            ->setParameter('since', $since)
+            ->orderBy('p.createdAt', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Historique des paiements d'une liste d'élèves (les enfants d'un parent).
+     *
+     * @param int[] $studentIds
+     *
+     * @return Payment[]
+     */
+    public function findByStudentIds(array $studentIds): array
+    {
+        if ($studentIds === []) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.student IN (:ids)')
+            ->setParameter('ids', $studentIds)
+            ->orderBy('p.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
     }
 
     public function remove(Payment $entity, bool $flush = false): void

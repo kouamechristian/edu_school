@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\DocumentType;
 use App\Form\DocumentTypeType;
 use App\Repository\DocumentTypeRepository;
@@ -13,9 +14,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/document-types', name: 'admin_document_type_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_CORRESPONDANT_FICHIER')]
 class DocumentTypeController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(DocumentTypeRepository $documentTypeRepository): Response
     {
@@ -86,10 +89,12 @@ class DocumentTypeController extends AbstractController
         EntityManagerInterface $entityManager
     ): Response {
         if ($this->isCsrfTokenValid('delete'.$documentType->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($documentType);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Le type de document a été supprimé avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $documentType,
+                'Le type de document a été supprimé avec succès.',
+                'Suppression impossible : ce type de document est encore utilisé par des documents existants.'
+            );
         }
 
         return $this->redirectToRoute('admin_document_type_index');

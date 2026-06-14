@@ -1,124 +1,126 @@
 {# ==========================================================================
-   EDU-SCHOOL - Macros Twig Réutilisables
+   EDU-SCHOOL — Macros Twig réutilisables
    Fichier : templates/components/macros.html.twig
+
+   Import :
+     {% from 'components/macros.html.twig' import card_stat, badge_role, avatar,
+        breadcrumb, info_row, status_badge, quick_action, empty_state,
+        table_actions, alert_flash, skeleton_table, delete_modal %}
+
+   NB : les signatures historiques (card_stat, badge_role, avatar, table_actions,
+   alert_flash, skeleton_table, delete_modal) sont conservées pour la
+   rétrocompatibilité — seul le rendu visuel a été modernisé.
    ========================================================================== #}
 
 {# --------------------------------------------------------------------------
-   MACRO: card_stat
-   Carte statistique animée avec compteur JS, icône, couleur et tendance
-   @param title   string  Titre de la statistique
-   @param value   int     Valeur numérique à afficher
-   @param icon    string  Classe Font Awesome (ex: 'fa-users')
-   @param color   string  Variante Bootstrap (primary, success, info, warning, danger)
-   @param trend   float   Pourcentage de tendance (+/-), null si non applicable
+   breadcrumb — fil d'Ariane
+   @param items  array  Liste de { label, path? } ; le dernier = page courante
+   -------------------------------------------------------------------------- #}
+{% macro breadcrumb(items) %}
+<ul class="breadcrumb-modern">
+    <li><a href="{{ path('app_home') }}"><i class="fas fa-home"></i></a></li>
+    {% for item in items %}
+        <li>
+            {% if item.path is defined and item.path and not loop.last %}
+                <a href="{{ item.path }}">{{ item.label }}</a>
+            {% else %}
+                {{ item.label }}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   card_stat — carte statistique animée (compteur JS)
+   @param title  string   Libellé
+   @param value  int      Valeur (animée via .counter)
+   @param icon   string   Classe Font Awesome (ex: 'fa-users')
+   @param color  string   primary | success | info | warning | danger
+   @param trend  float    Tendance % (+/-), null si non applicable
    -------------------------------------------------------------------------- #}
 {% macro card_stat(title, value, icon, color, trend) %}
-<div class="card stat-card {{ color }} h-100">
-    <div class="card-body">
-        <div class="row align-items-center">
-            <div class="col">
-                <div class="text-uppercase text-{{ color }} fw-bold text-xs mb-1">
-                    {{ title }}
-                </div>
-                <div class="h5 mb-0 fw-bold text-gray-800">
-                    <span class="counter" data-target="{{ value }}">0</span>
-                </div>
-                {% if trend is not null and trend is defined %}
-                <div class="mt-2">
+<div class="stat-card {{ color }} h-100">
+    <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+            <div class="stat-label mb-1">{{ title }}</div>
+            <div class="stat-value">
+                <span class="counter" data-target="{{ value }}">0</span>
+            </div>
+            {% if trend is not null and trend is defined %}
+                <div class="mt-1 small">
                     {% if trend > 0 %}
-                        <span class="text-success small">
-                            <i class="fas fa-arrow-up me-1"></i>+{{ trend }}%
-                        </span>
+                        <span class="text-accent fw-semibold"><i class="fas fa-arrow-up me-1"></i>+{{ trend }}%</span>
                     {% elseif trend < 0 %}
-                        <span class="text-danger small">
-                            <i class="fas fa-arrow-down me-1"></i>{{ trend }}%
-                        </span>
+                        <span class="text-danger fw-semibold"><i class="fas fa-arrow-down me-1"></i>{{ trend }}%</span>
                     {% else %}
-                        <span class="text-muted small">
-                            <i class="fas fa-minus me-1"></i>0%
-                        </span>
+                        <span class="text-muted"><i class="fas fa-minus me-1"></i>0%</span>
                     {% endif %}
-                    <span class="text-muted small ms-1">vs mois dernier</span>
+                    <span class="text-muted ms-1">vs mois dernier</span>
                 </div>
-                {% endif %}
-            </div>
-            <div class="col-auto">
-                <i class="fas {{ icon }} fa-2x text-gray-300"></i>
-            </div>
+            {% endif %}
         </div>
+        <div class="stat-icon"><i class="fas {{ icon }}"></i></div>
     </div>
 </div>
 {% endmacro %}
 
 {# --------------------------------------------------------------------------
-   MACRO: alert_flash
-   Message flash stylisé comme toast notification
-   @param type    string  Type d'alerte (success, danger, warning, info)
-   @param message string  Contenu du message
+   quick_action — raccourci rapide (icône + libellé)
+   @param href   string   URL
+   @param icon   string   Classe Font Awesome
+   @param label  string   Libellé
+   @param color  string   primary | success | info | warning | danger | purple
    -------------------------------------------------------------------------- #}
-{% macro alert_flash(type, message) %}
-{% set icon_map = {
-    'success': 'fa-check-circle',
-    'danger': 'fa-exclamation-circle',
-    'error': 'fa-exclamation-circle',
-    'warning': 'fa-exclamation-triangle',
-    'info': 'fa-info-circle'
-} %}
-{% set title_map = {
-    'success': 'Succès',
-    'danger': 'Erreur',
-    'error': 'Erreur',
-    'warning': 'Attention',
-    'info': 'Information'
-} %}
-<div class="toast align-items-center text-bg-{{ type == 'error' ? 'danger' : type }} border-0 show"
-     role="alert" aria-live="assertive" aria-atomic="true"
-     data-bs-autohide="true" data-bs-delay="5000">
-    <div class="d-flex">
-        <div class="toast-body">
-            <i class="fas {{ icon_map[type] | default('fa-info-circle') }} me-2"></i>
-            <strong>{{ title_map[type] | default('Info') }} :</strong> {{ message }}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto"
-                data-bs-dismiss="toast" aria-label="Fermer"></button>
+{% macro quick_action(href, icon, label, color) %}
+{% set color = color | default('primary') %}
+<a href="{{ href }}" class="quick-action-card">
+    <div class="icon-wrapper bg-soft-{{ color }} text-{{ color }}">
+        <i class="fas {{ icon }}"></i>
     </div>
-</div>
+    <small class="fw-semibold">{{ label }}</small>
+</a>
 {% endmacro %}
 
 {# --------------------------------------------------------------------------
-   MACRO: table_actions
-   Boutons d'action pour les tableaux CRUD (éditer, supprimer)
-   @param editRoute   string  Nom de la route d'édition
-   @param deleteRoute string  Nom de la route de suppression
-   @param id          int     ID de l'entité
+   info_row — ligne label / valeur pour les fiches détaillées
+   @param label  string  Libellé
+   @param value  string  Valeur (texte ; pour du HTML, voir .info-row dans le CSS)
+   @param icon   string  (optionnel) Classe Font Awesome devant le libellé
    -------------------------------------------------------------------------- #}
-{% macro table_actions(editRoute, deleteRoute, id) %}
-<div class="btn-group btn-group-sm" role="group">
-    <a href="{{ path(editRoute, {id: id}) }}" class="btn btn-outline-primary" title="Modifier">
-        <i class="fas fa-edit"></i>
-    </a>
-    <button type="button" class="btn btn-outline-danger btn-delete"
-            data-delete-url="{{ path(deleteRoute, {id: id}) }}"
-            data-entity-id="{{ id }}"
-            title="Supprimer">
-        <i class="fas fa-trash-alt"></i>
-    </button>
+{% macro info_row(label, value, icon) %}
+<div class="info-row">
+    <div class="info-label">
+        {% if icon is defined and icon %}<i class="fas {{ icon }} me-2 text-muted"></i>{% endif %}{{ label }}
+    </div>
+    <div class="info-value">{{ value is empty ? '—' : value }}</div>
 </div>
 {% endmacro %}
 
 {# --------------------------------------------------------------------------
-   MACRO: badge_role
-   Badge coloré selon le rôle utilisateur
-   @param role string  Type de rôle (admin, directeur, enseignant, personnel, parent, eleve)
+   status_badge — badge de statut « doux »
+   @param label  string  Libellé
+   @param color  string  Variante (primary, success, info, warning, danger, secondary)
+   @param icon   string  (optionnel) icône
+   -------------------------------------------------------------------------- #}
+{% macro status_badge(label, color, icon) %}
+{% set color = color | default('secondary') %}
+<span class="badge badge-soft {{ color }}">
+    {% if icon is defined and icon %}<i class="fas {{ icon }} me-1"></i>{% endif %}{{ label }}
+</span>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   badge_role — badge coloré selon le rôle utilisateur
    -------------------------------------------------------------------------- #}
 {% macro badge_role(role) %}
 {% set role_config = {
-    'admin':       { 'color': 'danger',  'icon': 'fa-shield-alt',        'label': 'Administrateur' },
-    'directeur':   { 'color': 'purple',  'icon': 'fa-user-tie',          'label': 'Directeur' },
-    'enseignant':  { 'color': 'info',    'icon': 'fa-chalkboard-teacher','label': 'Enseignant' },
-    'personnel':   { 'color': 'warning', 'icon': 'fa-id-badge',         'label': 'Personnel' },
-    'parent':      { 'color': 'success', 'icon': 'fa-users',            'label': 'Parent' },
-    'eleve':       { 'color': 'primary', 'icon': 'fa-user-graduate',    'label': 'Élève' }
+    'admin':       { 'color': 'danger',  'icon': 'fa-shield-alt',         'label': 'Administrateur' },
+    'directeur':   { 'color': 'purple',  'icon': 'fa-user-tie',           'label': 'Directeur' },
+    'enseignant':  { 'color': 'info',    'icon': 'fa-chalkboard-teacher', 'label': 'Enseignant' },
+    'personnel':   { 'color': 'warning', 'icon': 'fa-id-badge',           'label': 'Personnel' },
+    'parent':      { 'color': 'success', 'icon': 'fa-users',              'label': 'Parent' },
+    'eleve':       { 'color': 'primary', 'icon': 'fa-user-graduate',      'label': 'Élève' }
 } %}
 {% set config = role_config[role] | default({ 'color': 'secondary', 'icon': 'fa-user', 'label': role | capitalize }) %}
 <span class="badge bg-{{ config.color }}">
@@ -127,31 +129,28 @@
 {% endmacro %}
 
 {# --------------------------------------------------------------------------
-   MACRO: avatar
-   Avatar dynamique avec initiales colorées selon le rôle
-   @param user  object  Entité User (doit avoir getInitials(), getUserType())
-   @param size  string  Taille CSS (sm, md, lg) - défaut md
+   avatar — avatar dynamique avec initiales colorées selon le rôle
+   @param user  object  Entité User (getInitials(), getUserType(), getFullName())
+   @param size  string  sm | md | lg (défaut md)
    -------------------------------------------------------------------------- #}
 {% macro avatar(user, size) %}
 {% set size = size | default('md') %}
-{% set size_map = { 'sm': '30px', 'md': '40px', 'lg': '56px' } %}
-{% set font_map = { 'sm': '0.7rem', 'md': '0.85rem', 'lg': '1.1rem' } %}
+{% set size_map = { 'sm': '32px', 'md': '40px', 'lg': '56px' } %}
+{% set font_map = { 'sm': '0.72rem', 'md': '0.85rem', 'lg': '1.1rem' } %}
 {% set color_map = {
-    'admin':      '#e74a3b',
-    'directeur':  '#8b5cf6',
-    'enseignant': '#36b9cc',
-    'personnel':  '#f6c23e',
-    'parent':     '#1cc88a',
-    'eleve':      '#4e73df'
+    'admin':      '#ef4444',
+    'directeur':  '#7c3aed',
+    'enseignant': '#0ea5e9',
+    'personnel':  '#f59e0b',
+    'parent':     '#10b981',
+    'eleve':      '#1e3a5f'
 } %}
-{% set bg_color = color_map[user.userType] | default('#858796') %}
+{% set bg_color = color_map[user.userType] | default('#64748b') %}
 {% set dim = size_map[size] | default('40px') %}
 {% set fs = font_map[size] | default('0.85rem') %}
-
 {% if user.avatar %}
     <img src="{{ asset('uploads/avatars/' ~ user.avatar) }}"
-         alt="{{ user.fullName }}"
-         class="rounded-circle"
+         alt="{{ user.fullName }}" class="rounded-circle"
          style="width: {{ dim }}; height: {{ dim }}; object-fit: cover;"
          title="{{ user.fullName }}">
 {% else %}
@@ -164,62 +163,89 @@
 {% endmacro %}
 
 {# --------------------------------------------------------------------------
-   MACRO: skeleton_table
-   Squelette de chargement pour les tableaux
-   @param rows    int  Nombre de lignes à afficher
-   @param cols    int  Nombre de colonnes
+   empty_state — bloc « aucune donnée »
+   @param icon     string  Classe Font Awesome
+   @param title    string  Titre
+   @param message  string  Message secondaire
+   -------------------------------------------------------------------------- #}
+{% macro empty_state(icon, title, message) %}
+<div class="empty-state">
+    <div class="empty-icon"><i class="fas {{ icon | default('fa-inbox') }}"></i></div>
+    <h6>{{ title | default('Aucune donnée') }}</h6>
+    {% if message is defined and message %}<p>{{ message }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   table_actions — boutons d'action CRUD (voir / éditer / supprimer)
+   @param editRoute    string
+   @param deleteRoute  string
+   @param id           int
+   @param showRoute    string  (optionnel) route de consultation
+   -------------------------------------------------------------------------- #}
+{% macro table_actions(editRoute, deleteRoute, id, showRoute) %}
+<div class="btn-group btn-group-sm" role="group">
+    {% if showRoute is defined and showRoute %}
+        <a href="{{ path(showRoute, {id: id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
+    {% endif %}
+    <a href="{{ path(editRoute, {id: id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+    <button type="button" class="btn btn-outline-danger btn-delete"
+            data-delete-url="{{ path(deleteRoute, {id: id}) }}" data-entity-id="{{ id }}" title="Supprimer">
+        <i class="fas fa-trash-alt"></i>
+    </button>
+</div>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   alert_flash — message flash stylisé en toast
+   -------------------------------------------------------------------------- #}
+{% macro alert_flash(type, message) %}
+{% set icon_map = { 'success': 'fa-check-circle', 'danger': 'fa-exclamation-circle', 'error': 'fa-exclamation-circle', 'warning': 'fa-exclamation-triangle', 'info': 'fa-info-circle' } %}
+{% set title_map = { 'success': 'Succès', 'danger': 'Erreur', 'error': 'Erreur', 'warning': 'Attention', 'info': 'Information' } %}
+<div class="toast align-items-center text-bg-{{ type == 'error' ? 'danger' : type }} border-0 show"
+     role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
+    <div class="d-flex">
+        <div class="toast-body">
+            <i class="fas {{ icon_map[type] | default('fa-info-circle') }} me-2"></i>
+            <strong>{{ title_map[type] | default('Info') }} :</strong> {{ message }}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>
+    </div>
+</div>
+{% endmacro %}
+
+{# --------------------------------------------------------------------------
+   skeleton_table — squelette de chargement pour tableaux
    -------------------------------------------------------------------------- #}
 {% macro skeleton_table(rows, cols) %}
 {% set rows = rows | default(5) %}
 {% set cols = cols | default(4) %}
 <div class="skeleton-loader">
     <table class="table">
-        <thead>
-            <tr>
-                {% for c in 1..cols %}
-                <th><div class="skeleton skeleton-text" style="width: {{ 60 + random(30) }}%"></div></th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in 1..rows %}
-            <tr>
-                {% for c in 1..cols %}
-                <td><div class="skeleton skeleton-text" style="width: {{ 40 + random(50) }}%"></div></td>
-                {% endfor %}
-            </tr>
-            {% endfor %}
-        </tbody>
+        <thead><tr>{% for c in 1..cols %}<th><div class="skeleton skeleton-text" style="width: {{ 60 + random(30) }}%"></div></th>{% endfor %}</tr></thead>
+        <tbody>{% for r in 1..rows %}<tr>{% for c in 1..cols %}<td><div class="skeleton skeleton-text" style="width: {{ 40 + random(50) }}%"></div></td>{% endfor %}</tr>{% endfor %}</tbody>
     </table>
 </div>
 {% endmacro %}
 
 {# --------------------------------------------------------------------------
-   MACRO: delete_modal
-   Modale de confirmation de suppression réutilisable
+   delete_modal — modale de confirmation de suppression réutilisable
+   (déjà incluse globalement dans base.html.twig ; macro fournie pour usage isolé)
    -------------------------------------------------------------------------- #}
 {% macro delete_modal() %}
 <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0">
-                <h5 class="modal-title text-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmer la suppression
-                </h5>
+                <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Confirmer la suppression</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-            <div class="modal-body">
-                <p>Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.</p>
-            </div>
+            <div class="modal-body"><p class="mb-0">Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.</p></div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Annuler
-                </button>
-                <form id="deleteForm" method="post" style="display:inline">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i>Annuler</button>
+                <form id="deleteForm" method="post" class="d-inline">
                     <input type="hidden" name="_token" value="">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash-alt me-1"></i>Supprimer
-                    </button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash-alt me-1"></i>Supprimer</button>
                 </form>
             </div>
         </div>

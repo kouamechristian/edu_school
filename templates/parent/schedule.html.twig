@@ -1,0 +1,22 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}Emploi du temps · {{ child.fullName }}{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> /
+        <a href="{{ path('parent_child_show', {id: child.id}) }}">{{ child.fullName }}</a> / Emploi du temps</div>
+{% endblock %}
+{% block page_title %}Emploi du temps de {{ child.fullName }}{% endblock %}
+{% block page_subtitle %}
+    {{ classroom ? classroom.name : 'Classe non affectée' }}
+    {% if classroom and classroom.schoolYear %} · {{ classroom.schoolYear.name }}{% endif %}
+{% endblock %}
+
+{% block subnav %}{% include 'parent/_child_nav.html.twig' with {active: 'emploi'} %}{% endblock %}
+{% block bottomnav %}{% include 'parent/_child_bottomnav.html.twig' %}{% endblock %}
+
+{% block body %}
+    <section class="pp-card pp-reveal" style="padding:0;overflow:hidden;">
+        {% include 'parent/_schedule_grid.html.twig' %}
+    </section>
+{% endblock %}

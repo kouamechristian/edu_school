@@ -24,11 +24,12 @@ class SchoolGroupType extends AbstractType
             ])
             ->add('code', TextType::class, [
                 'label' => 'Code du groupe',
+                'required' => false,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Ex: GRP001',
+                    'placeholder' => 'Laisser vide pour génération automatique',
                 ],
-                'help' => 'Code unique pour identifier le groupe',
+                'help' => 'Code unique pour identifier le groupe. Généré automatiquement si laissé vide.',
             ])
             ->add('description', TextareaType::class, [
                 'label' => 'Description',

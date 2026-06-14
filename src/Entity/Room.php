@@ -35,7 +35,6 @@ class Room
     private ?string $name = null;
 
     #[ORM\Column(length: 50)]
-    #[Assert\NotBlank(message: 'Le code de la salle est obligatoire')]
     #[Assert\Length(
         max: 50,
         maxMessage: 'Le code ne peut pas dépasser {{ limit }} caractères'

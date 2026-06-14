@@ -4,117 +4,91 @@
 
 {% block body %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
-                        <li class="breadcrumb-item"><a href="{{ path('admin_absence_index') }}">Absences</a></li>
-                        <li class="breadcrumb-item"><a href="{{ path('admin_absence_type_index') }}">Types d'absence</a></li>
-                        <li class="breadcrumb-item active">Nouveau type</li>
-                    </ol>
-                </div>
-                <h4 class="page-title">Créer un nouveau type d'absence</h4>
-            </div>
-        </div>
-    </div>
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Créer un type d\'absence',
+        icon: 'fa-cog',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Absences', path: path('admin_absence_index') },
+            { label: 'Types d\'absence', path: path('admin_absence_type_index') },
+            { label: 'Nouveau type' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_absence_type_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
 
-    <div class="row">
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4">
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Informations du type d'absence</h5>
-                </div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Informations du type d'absence</h6></div>
                 <div class="card-body">
                     {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.name, 'Nom du type', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.name) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.name, 'Nom du type', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
+                                {{ form_errors(form.name) }}
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.code, 'Code', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.code, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.code) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.code, 'Code', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.code, {'attr': {'class': 'form-control'}}) }}
+                                {{ form_errors(form.code) }}
                             </div>
                         </div>
-
                         <div class="mb-3">
                             {{ form_label(form.description, 'Description', {'label_attr': {'class': 'form-label'}}) }}
                             {{ form_widget(form.description, {'attr': {'class': 'form-control'}}) }}
                             {{ form_errors(form.description) }}
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.type, 'Type', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.type, {'attr': {'class': 'form-select'}}) }}
-                                    {{ form_errors(form.type) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.type, 'Type', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.type, {'attr': {'class': 'form-select'}}) }}
+                                {{ form_errors(form.type) }}
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.color, 'Couleur', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.color, {'attr': {'class': 'form-control form-control-color'}}) }}
-                                    {{ form_errors(form.color) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.color, 'Couleur', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.color, {'attr': {'class': 'form-control form-control-color'}}) }}
+                                {{ form_errors(form.color) }}
                             </div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        {{ form_widget(form.requiresJustification, {'attr': {'class': 'form-check-input'}}) }}
-                                        {{ form_label(form.requiresJustification, 'Nécessite une justification', {'label_attr': {'class': 'form-check-label'}}) }}
-                                    </div>
-                                    {{ form_errors(form.requiresJustification) }}
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form_widget(form.requiresJustification, {'attr': {'class': 'form-check-input'}}) }}
+                                    {{ form_label(form.requiresJustification, 'Nécessite une justification', {'label_attr': {'class': 'form-check-label'}}) }}
                                 </div>
+                                {{ form_errors(form.requiresJustification) }}
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        {{ form_widget(form.countsAsAbsence, {'attr': {'class': 'form-check-input'}}) }}
-                                        {{ form_label(form.countsAsAbsence, 'Compte comme une absence', {'label_attr': {'class': 'form-check-label'}}) }}
-                                    </div>
-                                    {{ form_errors(form.countsAsAbsence) }}
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form_widget(form.countsAsAbsence, {'attr': {'class': 'form-check-input'}}) }}
+                                    {{ form_label(form.countsAsAbsence, 'Compte comme une absence', {'label_attr': {'class': 'form-check-label'}}) }}
                                 </div>
+                                {{ form_errors(form.countsAsAbsence) }}
                             </div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    {{ form_label(form.penaltyPoints, 'Points de pénalité', {'label_attr': {'class': 'form-label'}}) }}
-                                    {{ form_widget(form.penaltyPoints, {'attr': {'class': 'form-control'}}) }}
-                                    {{ form_errors(form.penaltyPoints) }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form_label(form.penaltyPoints, 'Points de pénalité', {'label_attr': {'class': 'form-label'}}) }}
+                                {{ form_widget(form.penaltyPoints, {'attr': {'class': 'form-control'}}) }}
+                                {{ form_errors(form.penaltyPoints) }}
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <div class="form-check mt-4">
-                                        {{ form_widget(form.isActive, {'attr': {'class': 'form-check-input'}}) }}
-                                        {{ form_label(form.isActive, 'Type actif', {'label_attr': {'class': 'form-check-label'}}) }}
-                                    </div>
-                                    {{ form_errors(form.isActive) }}
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check mt-4">
+                                    {{ form_widget(form.isActive, {'attr': {'class': 'form-check-input'}}) }}
+                                    {{ form_label(form.isActive, 'Type actif', {'label_attr': {'class': 'form-check-label'}}) }}
                                 </div>
+                                {{ form_errors(form.isActive) }}
                             </div>
                         </div>
-
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-success">
-                                <i class="mdi mdi-check"></i> Créer le type
-                            </button>
-                            <a href="{{ path('admin_absence_type_index') }}" class="btn btn-secondary">
-                                <i class="mdi mdi-arrow-left"></i> Annuler
-                            </a>
+                        <div class="d-flex gap-2 pt-3 border-top">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Créer le type</button>
+                            <a href="{{ path('admin_absence_type_index') }}" class="btn btn-light"><i class="fas fa-times me-1"></i> Annuler</a>
                         </div>
                     {{ form_end(form) }}
                 </div>
@@ -123,25 +97,22 @@
 
         <div class="col-lg-4">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Conseils</h5>
-                </div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-lightbulb me-2"></i>Conseils</h6></div>
                 <div class="card-body">
                     <div class="alert alert-info">
                         <h6 class="alert-heading">Types d'absence</h6>
                         <ul class="mb-0">
-                            <li><strong>Absence :</strong> Absence complète de l'élève</li>
-                            <li><strong>Retard :</strong> Arrivée en retard</li>
-                            <li><strong>Sortie anticipée :</strong> Départ avant la fin des cours</li>
+                            <li><strong>Absence :</strong> absence complète de l'élève.</li>
+                            <li><strong>Retard :</strong> arrivée en retard.</li>
+                            <li><strong>Sortie anticipée :</strong> départ avant la fin des cours.</li>
                         </ul>
                     </div>
-
-                    <div class="alert alert-warning">
+                    <div class="alert alert-warning mb-0">
                         <h6 class="alert-heading">Configuration</h6>
                         <ul class="mb-0">
-                            <li>Le <strong>code</strong> doit être unique</li>
-                            <li>Les <strong>points de pénalité</strong> affectent le comportement</li>
-                            <li>La <strong>couleur</strong> aide à identifier visuellement le type</li>
+                            <li>Le <strong>code</strong> doit être unique.</li>
+                            <li>Les <strong>points de pénalité</strong> affectent le comportement.</li>
+                            <li>La <strong>couleur</strong> aide à identifier visuellement le type.</li>
                         </ul>
                     </div>
                 </div>

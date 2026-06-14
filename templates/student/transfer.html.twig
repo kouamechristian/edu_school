@@ -4,29 +4,290 @@
 
 {% block body %}
 <div class="container-fluid">
+    <!-- En-tête -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Transferts d'Élèves</h1>
-        <a href="{{ path('admin_student_index') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Retour à la liste
-        </a>
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-exchange-alt text-primary me-2"></i>
+                Transferts d'Élèves
+            </h1>
+            <p class="text-muted mb-0">Transférer un élève d'une classe vers une autre{% if current_school_year %} — {{ current_school_year.name }}{% endif %}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ path('admin_student_enrollment') }}" class="btn btn-outline-info">
+                <i class="fas fa-graduation-cap"></i> Inscriptions
+            </a>
+            <a href="{{ path('admin_student_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-12">
+    {% if classrooms|length == 0 %}
+        <div class="card shadow">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-door-closed fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted mb-3">Aucune classe disponible</h4>
+                <p class="text-muted mb-4">
+                    Vous devez créer des classes pour cet établissement avant de pouvoir transférer des élèves.
+                </p>
+                <a href="{{ path('admin_classroom_new') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i> Créer une classe
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <form method="POST" id="transferForm" enctype="multipart/form-data">
+            <input type="hidden" name="_token" value="{{ csrf_token('transfer_student') }}">
+
+            <!-- Étape 1 : choisir l'élève -->
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Fonctionnalité en cours de développement</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user me-2"></i>
+                        Étape 1 — Élève à transférer
+                    </h6>
                 </div>
                 <div class="card-body">
-                    <div class="text-center py-5">
-                        <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">Transferts d'élèves</h5>
-                        <p class="text-muted">Cette fonctionnalité permettra de transférer des élèves entre différentes classes ou établissements.</p>
-                        <p class="text-muted">Elle sera disponible dans une prochaine version.</p>
+                    <label for="student_id" class="form-label fw-bold">
+                        <i class="fas fa-search me-1"></i> Sélectionner l'élève
+                    </label>
+                    <select class="form-select" id="student_id" name="student_id" required>
+                        <option value="">— Choisir un élève —</option>
+                        {% for student in students %}
+                            <option value="{{ student.id }}"
+                                    data-mi="{{ student.matriculeInterne ?: '—' }}"
+                                    data-mn="{{ student.matriculeNational ?: '—' }}"
+                                    data-name="{{ student.lastName }} {{ student.firstName }}"
+                                    data-classid="{{ student.classroom ? student.classroom.id : '' }}"
+                                    data-class="{{ student.classroom ? student.classroom.name : 'Non affecté' }}"
+                                    data-levelid="{{ student.classroom and student.classroom.level ? student.classroom.level.id : (student.level ? student.level.id : '') }}"
+                                    data-level="{{ student.level ? student.level.name : '—' }}"
+                                    data-status-label="{{ student.statusLabel }}"
+                                    data-status-color="{{ student.statusColor }}">
+                                {{ student.lastName }} {{ student.firstName }}{% if student.classroom %} — {{ student.classroom.name }}{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Fiche de l'élève sélectionné -->
+            <div class="card shadow mb-4 d-none" id="studentInfoCard">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-id-card me-2"></i> Informations de l'élève
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6 col-lg-3">
+                            <div class="text-muted text-xs text-uppercase">Matricule interne</div>
+                            <div class="fw-bold" id="info-mi">—</div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="text-muted text-xs text-uppercase">Matricule national</div>
+                            <div class="fw-bold" id="info-mn">—</div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="text-muted text-xs text-uppercase">Nom &amp; Prénoms</div>
+                            <div class="fw-bold" id="info-name">—</div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="text-muted text-xs text-uppercase">Statut</div>
+                            <div id="info-status"><span class="badge bg-secondary">—</span></div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="text-muted text-xs text-uppercase">Classe actuelle</div>
+                            <div class="fw-bold" id="info-class">—</div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="text-muted text-xs text-uppercase">Niveau</div>
+                            <div class="fw-bold" id="info-level">—</div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Étape 2 : destination, motif et document -->
+            <div class="card shadow mb-4 d-none" id="transferDetailsCard">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        Étape 2 — Destination et justificatif
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="to_class_id" class="form-label fw-bold">
+                                <i class="fas fa-door-open me-1"></i> Classe de destination
+                            </label>
+                            <select class="form-select" id="to_class_id" name="to_class_id" required>
+                                <option value="">— Choisir une classe de destination —</option>
+                                {% for classroom in classrooms %}
+                                    <option value="{{ classroom.id }}" data-classid="{{ classroom.id }}"
+                                            data-levelid="{{ classroom.level ? classroom.level.id : '' }}">
+                                        {{ classroom.name }}{% if classroom.level %} ({{ classroom.level.name }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Le niveau de l'élève sera mis à jour pour correspondre à la classe de destination.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="document" class="form-label fw-bold">
+                                <i class="fas fa-paperclip me-1"></i> Document justificatif <span class="text-muted fw-normal">(optionnel)</span>
+                            </label>
+                            <input type="file" class="form-control" id="document" name="document"
+                                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                            <div class="form-text">PDF, image ou document Word.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="motif" class="form-label fw-bold">
+                                <i class="fas fa-comment-dots me-1"></i> Motif du transfert
+                            </label>
+                            <textarea class="form-control" id="motif" name="motif" rows="3" required
+                                      placeholder="Expliquez la raison du transfert…"></textarea>
+                        </div>
+                    </div>
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn btn-success" id="transferButton" disabled>
+                            <i class="fas fa-exchange-alt me-2"></i> Transférer l'élève
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Historique des transferts -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-history me-2"></i> Historique des transferts
+                </h6>
+                <span class="badge bg-primary">{{ transfers|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if transfers|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Élève</th>
+                                    <th>Classe d'origine</th>
+                                    <th>Classe de destination</th>
+                                    <th>Motif</th>
+                                    <th>Document</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for t in transfers %}
+                                    <tr>
+                                        <td>{{ t.createdAt ? t.createdAt|date('d/m/Y H:i') : '-' }}</td>
+                                        <td class="fw-bold">{{ t.student ? t.student.lastName ~ ' ' ~ t.student.firstName : '-' }}</td>
+                                        <td>{{ t.fromClassroom ? t.fromClassroom.name : '—' }}</td>
+                                        <td>{{ t.toClassroom ? t.toClassroom.name : '—' }}</td>
+                                        <td>{{ t.motif|length > 60 ? t.motif|slice(0, 60) ~ '…' : t.motif }}</td>
+                                        <td>
+                                            {% if t.documentPath %}
+                                                <a href="{{ asset(t.documentPath) }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Voir le document">
+                                                    <i class="fas fa-file"></i>
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-info-circle me-1"></i> Aucun transfert enregistré pour le moment.
+                    </div>
+                {% endif %}
+            </div>
         </div>
-    </div>
+    {% endif %}
 </div>
+
+<style>
+.text-xs { font-size: 0.7rem; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('transferForm');
+    if (!form) return;
+
+    const studentSelect = document.getElementById('student_id');
+    const infoCard = document.getElementById('studentInfoCard');
+    const detailsCard = document.getElementById('transferDetailsCard');
+    const toClass = document.getElementById('to_class_id');
+    const motif = document.getElementById('motif');
+    const button = document.getElementById('transferButton');
+
+    function fillStudentInfo() {
+        const opt = studentSelect.options[studentSelect.selectedIndex];
+        if (!studentSelect.value) {
+            infoCard.classList.add('d-none');
+            detailsCard.classList.add('d-none');
+            return;
+        }
+        document.getElementById('info-mi').textContent = opt.dataset.mi || '—';
+        document.getElementById('info-mn').textContent = opt.dataset.mn || '—';
+        document.getElementById('info-name').textContent = opt.dataset.name || '—';
+        document.getElementById('info-class').textContent = opt.dataset.class || '—';
+        document.getElementById('info-level').textContent = opt.dataset.level || '—';
+        document.getElementById('info-status').innerHTML =
+            '<span class="badge bg-' + (opt.dataset.statusColor || 'secondary') + '">' + (opt.dataset.statusLabel || '—') + '</span>';
+
+        // Destination : uniquement les classes du même niveau, hors classe actuelle.
+        const currentClassId = opt.dataset.classid;
+        const currentLevelId = opt.dataset.levelid;
+        Array.from(toClass.options).forEach(function (o) {
+            if (!o.value) return;
+            const sameClass = o.dataset.classid === currentClassId && currentClassId !== '';
+            const sameLevel = currentLevelId !== '' && o.dataset.levelid === currentLevelId;
+            const allowed = sameLevel && !sameClass;
+            o.disabled = !allowed;
+            o.hidden = !allowed;
+        });
+        if (toClass.value && toClass.options[toClass.selectedIndex].disabled) {
+            toClass.value = '';
+        }
+
+        infoCard.classList.remove('d-none');
+        detailsCard.classList.remove('d-none');
+    }
+
+    function updateButton() {
+        button.disabled = !studentSelect.value || !toClass.value || motif.value.trim() === '';
+    }
+
+    studentSelect.addEventListener('change', function () {
+        fillStudentInfo();
+        updateButton();
+    });
+    toClass.addEventListener('change', updateButton);
+    motif.addEventListener('input', updateButton);
+
+    form.addEventListener('submit', function (e) {
+        if (button.disabled) {
+            e.preventDefault();
+            return;
+        }
+        const name = studentSelect.options[studentSelect.selectedIndex].dataset.name || 'cet élève';
+        const dest = toClass.options[toClass.selectedIndex].text.trim();
+        if (!confirm('Transférer ' + name + ' vers « ' + dest + ' » ?')) {
+            e.preventDefault();
+        }
+    });
+
+    fillStudentInfo();
+    updateButton();
+});
+</script>
 {% endblock %}

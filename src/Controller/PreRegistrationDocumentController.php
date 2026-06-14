@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\PreRegistrationDocument;
 use App\Entity\DocumentType;
 use App\Repository\PreRegistrationDocumentRepository;
@@ -17,9 +18,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/admin/pre-registration-documents', name: 'admin_pre_registration_document_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_INSCRIPTION')]
 class PreRegistrationDocumentController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     #[Route('/upload/{preRegistrationId}', name: 'upload', methods: ['POST'])]
     public function upload(
         Request $request,
@@ -211,10 +214,12 @@ class PreRegistrationDocumentController extends AbstractController
 
             $preRegistrationId = $document->getPreRegistration()->getId();
             
-            $entityManager->remove($document);
-            $entityManager->flush();
-
-            $this->addFlash('success', 'Le document a été supprimé avec succès.');
+            $this->deleteEntity(
+                $entityManager,
+                $document,
+                'Le document a été supprimé avec succès.',
+                'Suppression impossible : ce document est encore lié à d\'autres données.'
+            );
 
             return $this->redirectToRoute('admin_pre_registration_show', ['id' => $preRegistrationId]);
         }
