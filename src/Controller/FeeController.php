@@ -21,6 +21,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/fees', name: 'admin_fee_')]
+// ROLE_CAISSE couvre la gestion des frais ; ROLE_ADMIN en hérite (cf. security.yaml),
+// donc les admins/fondateurs/super-admins y ont aussi accès.
 #[IsGranted('ROLE_CAISSE')]
 class FeeController extends AbstractController
 {

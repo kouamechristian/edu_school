@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 28px 32px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 70px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title-row { width: 100%; margin-bottom: 8px; }
+        .title-row td { font-size: 13px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 4px 6px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.center { text-align: center; }
+        table.list td.num { text-align: center; width: 34px; }
+        .footer { width: 100%; margin-top: 24px; font-size: 11px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>LISTE DES ÉLÈVES AYANT OBTENU UNE MOYENNE &gt;= {{ min|number_format(2, ',', ' ') }}/20</b></td>
+            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="list">
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Nom &amp; Prénoms</th>
+                <th style="width:16%">Classe</th>
+                <th style="width:20%">Niveau</th>
+                <th style="width:14%">Moyenne /20</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td class="num">{{ loop.index }}</td>
+                    <td>{{ row.student.lastName|upper }} {{ row.student.firstName }}</td>
+                    <td>{{ row.classroom }}</td>
+                    <td>{{ row.level }}</td>
+                    <td class="center">{{ row.average|number_format(2, ',', ' ') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="center">Aucun élève n'a obtenu cette moyenne.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td class="date">Total : <b>{{ rows|length }}</b> élève(s) &nbsp;·&nbsp; le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>

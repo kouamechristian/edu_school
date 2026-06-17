@@ -127,6 +127,12 @@ class SchoolType extends AbstractType
                     ),
                 ],
             ])
+            ->add('sousTutelle', TextType::class, [
+                'label' => 'Sous-tutelle',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: Ministère de l\'Éducation Nationale'],
+                'help' => 'Nom de l\'organisme de tutelle. Laisser vide si aucun.',
+            ])
             ->add('isActive', ChoiceType::class, [
                 'label' => 'Statut',
                 'choices' => [

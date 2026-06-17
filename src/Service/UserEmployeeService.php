@@ -19,6 +19,12 @@ class UserEmployeeService
      */
     public function createEmployeeForUser(User $user): Employee
     {
+        // Idempotence : ne jamais créer un second Employee pour le même User
+        // (la colonne employee.user_id est unique).
+        if ($existing = $user->getEmployee()) {
+            return $existing;
+        }
+
         $employee = new Employee();
         $employee->setUser($user);
         $employee->setFirstName($user->getFirstName() ?? '');

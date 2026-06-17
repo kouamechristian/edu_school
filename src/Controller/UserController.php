@@ -85,12 +85,9 @@ class UserController extends AbstractController
                 $user->setPassword($hashedPassword);
             }
 
-            // Créer un Employee si nécessaire
-            if (in_array($user->getUserType(), ['enseignant', 'personnel', 'directeur'])) {
-                $employee = $user->createEmployee();
-                $entityManager->persist($employee);
-            }
-
+            // L'Employee associé (et le Teacher éventuel) est créé automatiquement
+            // par UserEmployeeSubscriber::postPersist selon le type d'utilisateur.
+            // Ne pas le créer ici : cela provoquerait un doublon sur employee.user_id.
             $entityManager->persist($user);
 
             try {
@@ -142,12 +139,8 @@ class UserController extends AbstractController
                 $user->setPassword($hashedPassword);
             }
 
-            // Créer un Employee si nécessaire
-            if (in_array($user->getUserType(), ['enseignant', 'personnel', 'directeur']) && !$user->getEmployee()) {
-                $employee = $user->createEmployee();
-                $entityManager->persist($employee);
-            }
-
+            // L'Employee associé est synchronisé automatiquement par
+            // UserEmployeeSubscriber::postUpdate (création si absent, sinon mise à jour).
             try {
                 $entityManager->flush();
             } catch (UniqueConstraintViolationException $e) {

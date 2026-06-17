@@ -125,6 +125,112 @@ class GradeRepository extends ServiceEntityRepository
     }
 
     /**
+     * Moyenne générale annuelle d'un élève (toutes les périodes de l'année scolaire),
+     * pondérée par le coefficient de l'évaluation et celui de la matière.
+     */
+    public function calculateAnnualGeneralAverageByStudent(int $studentId, ?int $schoolYearId): ?float
+    {
+        $qb = $this->createQueryBuilder('g')
+            ->select('SUM(g.value * e.coefficient * s.coefficient) as totalPoints')
+            ->addSelect('SUM(e.coefficient * s.coefficient) as totalCoef')
+            ->leftJoin('g.evaluation', 'e')
+            ->leftJoin('e.subject', 's')
+            ->leftJoin('e.period', 'p')
+            ->andWhere('g.student = :student')
+            ->andWhere('e.isActive = :active')
+            ->andWhere('e.isPublished = :published')
+            ->andWhere('g.value IS NOT NULL')
+            ->andWhere('g.status IS NULL')
+            ->setParameter('student', $studentId)
+            ->setParameter('active', true)
+            ->setParameter('published', true);
+
+        if ($schoolYearId) {
+            $qb->andWhere('p.schoolYear = :year')->setParameter('year', $schoolYearId);
+        }
+
+        $result = $qb->getQuery()->getOneOrNullResult();
+
+        if (!$result || !$result['totalCoef'] || $result['totalCoef'] == 0) {
+            return null;
+        }
+
+        return round($result['totalPoints'] / $result['totalCoef'], 2);
+    }
+
+    /**
+     * Moyenne annuelle d'un élève dans une matière (toutes les périodes de l'année),
+     * pondérée par le coefficient de l'évaluation.
+     */
+    public function calculateAnnualAverageByStudentSubject(int $studentId, int $subjectId, ?int $schoolYearId): ?float
+    {
+        $qb = $this->createQueryBuilder('g')
+            ->select('SUM(g.value * e.coefficient) as totalPoints')
+            ->addSelect('SUM(e.coefficient) as totalCoef')
+            ->leftJoin('g.evaluation', 'e')
+            ->leftJoin('e.period', 'p')
+            ->andWhere('g.student = :student')
+            ->andWhere('e.subject = :subject')
+            ->andWhere('e.isActive = :active')
+            ->andWhere('e.isPublished = :published')
+            ->andWhere('g.value IS NOT NULL')
+            ->andWhere('g.status IS NULL')
+            ->setParameter('student', $studentId)
+            ->setParameter('subject', $subjectId)
+            ->setParameter('active', true)
+            ->setParameter('published', true);
+
+        if ($schoolYearId) {
+            $qb->andWhere('p.schoolYear = :year')->setParameter('year', $schoolYearId);
+        }
+
+        $result = $qb->getQuery()->getOneOrNullResult();
+
+        if (!$result || !$result['totalCoef'] || $result['totalCoef'] == 0) {
+            return null;
+        }
+
+        return round($result['totalPoints'] / $result['totalCoef'], 2);
+    }
+
+    /**
+     * Moyennes annuelles de toutes les matières d'un élève, en une requête groupée.
+     *
+     * @return array<int, float> [subjectId => moyenne]
+     */
+    public function annualSubjectAveragesByStudent(int $studentId, ?int $schoolYearId): array
+    {
+        $qb = $this->createQueryBuilder('g')
+            ->select('IDENTITY(e.subject) as sid')
+            ->addSelect('SUM(g.value * e.coefficient) as tp')
+            ->addSelect('SUM(e.coefficient) as tc')
+            ->leftJoin('g.evaluation', 'e')
+            ->leftJoin('e.period', 'p')
+            ->andWhere('g.student = :student')
+            ->andWhere('e.isActive = :active')
+            ->andWhere('e.isPublished = :published')
+            ->andWhere('g.value IS NOT NULL')
+            ->andWhere('g.status IS NULL')
+            ->setParameter('student', $studentId)
+            ->setParameter('active', true)
+            ->setParameter('published', true)
+            ->groupBy('e.subject');
+
+        if ($schoolYearId) {
+            $qb->andWhere('p.schoolYear = :year')->setParameter('year', $schoolYearId);
+        }
+
+        $out = [];
+        foreach ($qb->getQuery()->getScalarResult() as $row) {
+            if ($row['tc'] && $row['tc'] > 0) {
+                $out[(int) $row['sid']] = round($row['tp'] / $row['tc'], 2);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Statistiques de classe pour une évaluation
      */
     public function getEvaluationStatistics(int $evaluationId): array

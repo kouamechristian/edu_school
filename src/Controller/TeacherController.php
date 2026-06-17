@@ -8,6 +8,8 @@ use App\Repository\SubjectRepository;
 use App\Repository\UserRepository;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,6 +35,53 @@ class TeacherController extends AbstractController
         return $this->render('teacher/index.html.twig', [
             'teachers' => $teachers,
             'current_school' => $school,
+        ]);
+    }
+
+    /**
+     * Génère la liste des enseignants de l'établissement au format PDF.
+     */
+    #[Route('/pdf', name: 'pdf', methods: ['GET'])]
+    public function pdf(UserRepository $userRepository, SchoolContextService $contextService): Response
+    {
+        $school = $contextService->getCurrentSchool();
+
+        $teachers = $school
+            ? $userRepository->findByTypeInSchool('enseignant', $school->getId())
+            : $userRepository->findByType('enseignant');
+
+        // Logo embarqué en base64 (Dompdf lit ainsi l'image sans accès disque/URL).
+        $logoData = null;
+        if ($school && $school->getLogo()) {
+            $logoPath = $this->getParameter('kernel.project_dir') . '/public/' . ltrim($school->getLogo(), '/');
+            if (is_file($logoPath)) {
+                $mime = mime_content_type($logoPath) ?: 'image/png';
+                $logoData = 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($logoPath));
+            }
+        }
+
+        $html = $this->renderView('teacher/index_pdf.html.twig', [
+            'teachers' => $teachers,
+            'school' => $school,
+            'logo_data' => $logoData,
+            'generated_at' => new \DateTime(),
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = sprintf('LISTE_ENSEIGNANTS_%s.pdf', $school ? $school->getId() : 'tous');
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
         ]);
     }
 

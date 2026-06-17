@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 24px 26px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 12px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 70px; }
+        .header .logo img { max-height: 60px; max-width: 66px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 13px; }
+        .header .school .ministry { font-size: 10px; }
+        .header .school .tel { font-size: 9px; }
+        .title-row { width: 100%; margin-bottom: 8px; }
+        .title-row td { font-size: 12px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; font-size: 9px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.center { text-align: center; }
+        table.list td.lvl { text-align: left; font-weight: bold; }
+        table.list tr.grand td { background: #dfe6ee; font-weight: bold; }
+        .footer { width: 100%; margin-top: 20px; font-size: 10px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 140px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>RÉPARTITION DES ÉLÈVES PAR NIVEAU ET PAR ÂGE</b></td>
+            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="list">
+        <thead>
+            <tr>
+                <th class="lvl" style="width:22%">Niveau \ Âge</th>
+                {% for age in age_list %}<th>{{ age }} ans</th>{% endfor %}
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in by_level %}
+                <tr>
+                    <td class="lvl">{{ group.label }}</td>
+                    {% for age in age_list %}
+                        <td class="center">{{ group.ages[age] ?? 0 }}</td>
+                    {% endfor %}
+                    <td class="center">{{ group.total }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="{{ age_list|length + 2 }}" class="center">Aucun effectif disponible</td></tr>
+            {% endfor %}
+            {% if by_level is not empty %}
+                <tr class="grand">
+                    <td class="lvl">TOTAL</td>
+                    {% set col_total = 0 %}
+                    {% for age in age_list %}
+                        {% set s = 0 %}
+                        {% for group in by_level %}{% set s = s + (group.ages[age] ?? 0) %}{% endfor %}
+                        <td class="center">{{ s }}</td>
+                    {% endfor %}
+                    <td class="center">{% set g = 0 %}{% for group in by_level %}{% set g = g + group.total %}{% endfor %}{{ g }}</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>

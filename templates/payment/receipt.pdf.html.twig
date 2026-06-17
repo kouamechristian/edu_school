@@ -4,52 +4,167 @@
     <meta charset="UTF-8">
     <title>Reçu {{ payment.paymentNumber }}</title>
     <style>
-        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; }
-        .header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; }
-        .header .title { font-size: 18px; font-weight: bold; color: #1e3a5f; }
-        .amount { color: #1e3a5f; }
-        .muted { color: #666; }
-        .box { border: 1px solid #ddd; padding: 10px; border-radius: 6px; }
-        .row { display: table; width: 100%; }
-        .col { display: table-cell; vertical-align: top; width: 50%; }
-        .kv { margin: 0 0 6px 0; }
-        .kv strong { display: inline-block; min-width: 120px; }
-        .amount { font-size: 16px; font-weight: bold; }
-        .footer { margin-top: 12px; text-align: center; font-size: 10px; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }
+        @page { margin: 14px 26px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+
+        /* Un exemplaire occupe la moitié haute de la page */
+        .copy { padding-bottom: 4px; }
+        .copy-tag { text-align: right; font-size: 9px; font-weight: bold; letter-spacing: .5px; color: #1e3a5f; margin-bottom: 2px; }
+
+        /* En-tête établissement */
+        table.header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 5px; margin-bottom: 8px; }
+        table.header td { vertical-align: middle; }
+        table.header .logo { width: 70px; }
+        table.header .logo img { max-height: 54px; max-width: 66px; }
+        table.header .school { text-align: center; }
+        table.header .school .name { font-weight: bold; font-size: 13px; }
+        table.header .school .ministry { font-size: 10px; }
+        table.header .school .tel { font-size: 9px; }
+
+        /* Bandeau d'identification */
+        table.ident { width: 100%; background: #e9edf2; margin-bottom: 6px; }
+        table.ident td { padding: 4px 8px; vertical-align: top; font-size: 10px; }
+        table.ident .label { color: #333; }
+        table.ident b { font-weight: bold; }
+        table.ident .student { font-weight: bold; }
+        table.ident .right { text-align: right; }
+
+        .paid-line { margin: 4px 0 7px 0; font-size: 10px; }
+        .paid-line b { font-weight: bold; }
+
+        /* Tables de rubriques */
+        .section-title { font-weight: bold; font-size: 10px; margin: 6px 0 2px 0; }
+        table.rub { width: 100%; border-collapse: collapse; margin-bottom: 3px; }
+        table.rub th, table.rub td { border: 1px solid #000; padding: 2px 5px; font-size: 9px; }
+        table.rub th { background: #f2f2f2; font-weight: bold; text-align: center; }
+        table.rub td.money { text-align: right; }
+        table.rub td.center { text-align: center; }
+
+        /* Récapitulatif */
+        table.recap { width: 100%; margin-top: 8px; }
+        table.recap td { vertical-align: top; }
+        table.recap .totals { width: 55%; }
+        table.recap .totals table { width: 100%; border-collapse: collapse; }
+        table.recap .totals td { border: 1px solid #ccc; padding: 4px 10px; font-weight: bold; text-align: center; background: #f7f7f7; }
+        table.recap .sign { width: 45%; text-align: center; vertical-align: bottom; }
+        table.recap .sign .role { font-weight: bold; text-decoration: underline; }
+        table.recap .sign .hint { font-size: 9px; }
+
+        /* Pied de page */
+        table.cashinfo { width: 100%; margin-top: 12px; border-top: 1px solid #999; padding-top: 5px; font-size: 9px; }
+        table.cashinfo td { text-align: center; }
+        table.cashinfo .u { text-decoration: underline; }
+        .disclaimer { text-align: center; font-size: 8px; margin-top: 6px; }
+
+        /* Ligne de découpe entre les deux exemplaires */
+        .cut { border: 0; border-top: 1px dashed #555; margin: 6px 0 10px 0; }
+        .cut-label { text-align: center; font-size: 8px; color: #555; margin-bottom: 8px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="title">Reçu de paiement</div>
-        <div class="muted">N° {{ payment.paymentNumber }}{% if payment.reference %} — Réf. {{ payment.reference }}{% endif %}</div>
-    </div>
+    {% macro receipt(payment, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, tag) %}
+        <div class="copy">
+            <div class="copy-tag">{{ tag }}</div>
 
-    <div class="box">
-        <div class="row">
-            <div class="col">
-                <p class="kv"><strong>Élève</strong> {{ payment.student.fullName }}{% if payment.student.matriculeInterne %} ({{ payment.student.matriculeInterne }}){% endif %}</p>
-                <p class="kv"><strong>Frais</strong> {{ payment.fee.name }}</p>
-                <p class="kv"><strong>Date</strong> {{ payment.paymentDate ? payment.paymentDate|date('d/m/Y') : '-' }}</p>
-                <p class="kv"><strong>Méthode</strong> {{ payment.paymentMethodLabel }}</p>
+            <table class="header">
+                <tr>
+                    <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+                    <td class="school">
+                        <div class="name">{{ school ? school.name|upper : '' }}</div>
+                        <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                        {% if school and school.phone %}<div class="tel">Tel: {{ school.phone }}</div>{% endif %}
+                    </td>
+                    <td class="logo"></td>
+                </tr>
+            </table>
+
+            <table class="ident">
+                <tr>
+                    <td><span class="label">REÇU DE PAIEMENT N° :</span> <b>{{ payment.paymentNumber }}</b></td>
+                    <td><span class="label">DATE DE PAIEMENT :</span> <b>{{ payment.paymentDate ? payment.paymentDate|date('d/m/Y') : '-' }} {{ payment.createdAt ? payment.createdAt|date('H:i:s') : '' }}</b></td>
+                    <td class="right">{{ student and student.schoolYear ? student.schoolYear.name : '' }}</td>
+                </tr>
+                <tr>
+                    <td><span class="label">MATRICULE :</span> <b>{{ student and student.matriculeInterne ? student.matriculeInterne : '-' }}</b></td>
+                    <td colspan="2" class="student">{{ student ? student.fullName|upper : '' }}</td>
+                </tr>
+                <tr>
+                    <td><span class="label">MLE NATIONAL :</span> <b>{{ student and student.matriculeNational ? student.matriculeNational : '-' }}</b></td>
+                    <td colspan="2"><span class="label">CLASSE :</span> <b>{{ student and student.classroom ? student.classroom.name : '-' }}</b></td>
+                </tr>
+            </table>
+
+            <div class="paid-line">
+                MONTANT PAYE: <b>{{ payment.amount|number_format(0, ',', ' ') }}</b> ( {{ amount_in_words }} ) {{ payment.paymentMethodLabel|lower }}
             </div>
-            <div class="col">
-                <p class="kv"><strong>Statut</strong> {{ payment.statusLabel }}</p>
-                <p class="kv"><strong>Montant</strong> <span class="amount">{{ payment.amount|number_format(0, ',', ' ') }} F CFA</span></p>
-                <p class="kv"><strong>Caissière</strong> {{ payment.recordedBy ? payment.recordedBy.fullName : '-' }}</p>
-                <p class="kv"><strong>Caisse</strong> {{ payment.cashRegister ? payment.cashRegister.cashier.fullName : '-' }}</p>
+
+            {% for section in sections %}
+                <div class="section-title">{{ section.title|upper }}</div>
+                <table class="rub">
+                    <thead>
+                        <tr>
+                            <th style="width:34%">RUBRIQUE</th>
+                            <th>ECHEANCE</th>
+                            <th>MONTANT</th>
+                            <th>IMPUTATION</th>
+                            <th>MONTANT REGLE</th>
+                            <th>SOLDE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in section.rows %}
+                            <tr>
+                                <td>{{ row.rubrique }}</td>
+                                <td class="center">{{ row.echeance ? row.echeance|date('d/m/Y') : '-' }}</td>
+                                <td class="money">{{ row.montant|number_format(0, ',', ' ') }}</td>
+                                <td class="money">{{ row.imputation|number_format(0, ',', ' ') }}</td>
+                                <td class="money">{{ row.regle|number_format(0, ',', ' ') }}</td>
+                                <td class="money">{{ row.solde|number_format(0, ',', ' ') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="section-title">Aucun frais affecté à cet élève.</div>
+            {% endfor %}
+
+            <table class="recap">
+                <tr>
+                    <td class="totals">
+                        <table>
+                            <tr><td>Montant Total {{ total_due|number_format(0, ',', ' ') }} F CFA</td></tr>
+                            <tr><td>Montant Payé {{ total_paid|number_format(0, ',', ' ') }} F CFA</td></tr>
+                            <tr><td>Solde à ce jour {{ total_balance|number_format(0, ',', ' ') }} F CFA</td></tr>
+                        </table>
+                    </td>
+                    <td class="sign">
+                        <div class="role">L'ECONOME</div>
+                        <div class="hint">Signature et Cachet</div>
+                    </td>
+                </tr>
+            </table>
+
+            <table class="cashinfo">
+                <tr>
+                    <td><span class="u">CAISSE :</span> <b>{{ payment.cashRegister and payment.cashRegister.cashier ? payment.cashRegister.cashier.fullName|upper : '-' }}</b></td>
+                    <td><span class="u">CAISSIERE :</span> <b>{{ payment.recordedBy ? payment.recordedBy.fullName|upper : '-' }}</b></td>
+                    <td><span class="u">IMPRIME PAR :</span> <b>{{ payment.recordedBy ? payment.recordedBy.fullName|upper : '-' }}</b></td>
+                </tr>
+            </table>
+
+            <div class="disclaimer">
+                AUCUN REMBOURSEMENT MEME PARTIEL N'EST POSSIBLE. VERSEZ A LA CAISSE ET EXIGEZ VOS RECUS INFORMATISES
             </div>
         </div>
+    {% endmacro %}
 
-        {% if payment.notes %}
-            <hr>
-            <p class="kv"><strong>Notes</strong> {{ payment.notes }}</p>
-        {% endif %}
-    </div>
+    {% import _self as recu %}
 
-    <div class="footer muted">
-        Document généré le {{ "now"|date('d/m/Y H:i') }}
-    </div>
+    {{ recu.receipt(payment, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, 'EXEMPLAIRE CAISSE') }}
+
+    <hr class="cut">
+    <div class="cut-label">— — — — — — — — — — découper ici — — — — — — — — — —</div>
+
+    {{ recu.receipt(payment, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, 'EXEMPLAIRE PARENT') }}
 </body>
 </html>
-

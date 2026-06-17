@@ -127,6 +127,28 @@ class CourseController extends AbstractController
         ]);
     }
 
+    /**
+     * Liste JSON des enseignants qui enseignent une matière donnée
+     * (restreinte à l'établissement courant). Alimente le filtrage dynamique
+     * du champ « Enseignant » dans le formulaire de cours.
+     */
+    #[Route('/teachers-by-subject/{subjectId}', name: 'teachers_by_subject', methods: ['GET'], requirements: ['subjectId' => '\d+'])]
+    public function teachersBySubject(
+        int $subjectId,
+        \App\Repository\UserRepository $userRepository,
+        SchoolContextService $contextService
+    ): \Symfony\Component\HttpFoundation\JsonResponse {
+        $schoolId = $contextService->getCurrentSchool()?->getId();
+        $teachers = $userRepository->findTeachersBySubjectAndSchool($subjectId, $schoolId);
+
+        $data = array_map(static fn (\App\Entity\User $u) => [
+            'id' => $u->getId(),
+            'name' => $u->getFullName(),
+        ], $teachers);
+
+        return $this->json($data);
+    }
+
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {

@@ -181,19 +181,10 @@
 }
 </style>
 
-{# Bouton flottant #}
-<button class="chatbot-toggle" id="chatbot-toggle" title="Assistant IA EDU-BOT">
-    <i class="fas fa-comment-dots"></i>
-    <span class="chatbot-unread" id="chatbot-unread">1</span>
-</button>
-
 {# Fenêtre de chat #}
 <div class="chatbot-window" id="chatbot-window">
     <div class="chatbot-header">
-        <div>
-            <h6><i class="fas fa-robot me-2"></i>EDU-BOT</h6>
-            <small style="opacity:.8;font-size:.75rem">Assistant IA • {{ app.user.userType | capitalize }}</small>
-        </div>
+        <div></div>
         <button class="btn-close-chat" id="chatbot-close" title="Fermer">
             <i class="fas fa-times"></i>
         </button>
@@ -230,18 +221,20 @@
     let conversationHistory = [];
     let isOpen = false;
 
-    toggle.addEventListener('click', function() {
-        isOpen = !isOpen;
-        chatWindow.classList.toggle('open', isOpen);
-        toggle.querySelector('i').className = isOpen ? 'fas fa-times' : 'fas fa-comment-dots';
-        unreadBadge.style.display = 'none';
-        if (isOpen) input.focus();
-    });
+    if (toggle) {
+        toggle.addEventListener('click', function() {
+            isOpen = !isOpen;
+            chatWindow.classList.toggle('open', isOpen);
+            toggle.querySelector('i').className = isOpen ? 'fas fa-times' : 'fas fa-comment-dots';
+            if (unreadBadge) unreadBadge.style.display = 'none';
+            if (isOpen) input.focus();
+        });
+    }
 
     closeBtn.addEventListener('click', function() {
         isOpen = false;
         chatWindow.classList.remove('open');
-        toggle.querySelector('i').className = 'fas fa-comment-dots';
+        if (toggle) toggle.querySelector('i').className = 'fas fa-comment-dots';
     });
 
     function addMessage(text, isUser) {
@@ -282,7 +275,7 @@
             const answer = data.answer || data.error || 'Erreur inconnue';
             addMessage(answer, false);
             conversationHistory.push({ role: 'assistant', content: answer });
-            if (!isOpen) {
+            if (!isOpen && unreadBadge) {
                 unreadBadge.style.display = 'flex';
             }
         })

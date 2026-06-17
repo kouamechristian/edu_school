@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ report_title }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: report_title,
+        subtitle: 'Choisissez une classe',
+        icon: 'fa-list',
+        color: 'primary',
+        breadcrumb: [ { label: 'Élèves' }, { label: 'Rapports', path: path('admin_report_index') }, { label: 'Classe' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card">
+        <div class="card-body">
+            {% if classrooms is empty %}
+                <p class="text-muted mb-0">Aucune classe disponible pour l'établissement et l'année scolaire en cours.</p>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Classe</th>
+                                <th>Niveau</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for classroom in classrooms %}
+                                <tr>
+                                    <td><strong>{{ classroom.name }}</strong></td>
+                                    <td>{{ classroom.level ? classroom.level.name : '—' }}</td>
+                                    <td class="text-end">
+                                        {% if report == 'liste_classe' %}
+                                            <a href="{{ path('admin_student_classroom_students_pdf', {'id': classroom.id}) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ path('admin_report_fiche_notes', {'id': classroom.id}) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

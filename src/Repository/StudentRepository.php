@@ -417,4 +417,37 @@ class StudentRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Élèves actifs d'un établissement (année / classe optionnelles) avec leurs lignes
+     * de frais et les frais eux-mêmes pré-chargés, pour le suivi du recouvrement.
+     *
+     * @return Student[]
+     */
+    public function findForRecouvrement(int $schoolId, ?int $yearId = null, ?int $classroomId = null): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->leftJoin('s.studentFees', 'sf')
+            ->addSelect('sf')
+            ->leftJoin('sf.fee', 'f')
+            ->addSelect('f')
+            ->leftJoin('s.classroom', 'c')
+            ->addSelect('c')
+            ->where('s.school = :schoolId')
+            ->andWhere('s.isActive = :active')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('active', true)
+            ->orderBy('s.lastName', 'ASC')
+            ->addOrderBy('s.firstName', 'ASC');
+
+        if ($yearId) {
+            $qb->andWhere('s.schoolYear = :yearId')->setParameter('yearId', $yearId);
+        }
+
+        if ($classroomId) {
+            $qb->andWhere('s.classroom = :classroomId')->setParameter('classroomId', $classroomId);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

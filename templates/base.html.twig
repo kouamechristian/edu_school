@@ -678,6 +678,7 @@
             </li>
             {% endif %}
 
+           
             {# ==============================================================
                CONFIGURATION
                Paramétrage de l'établissement (cycles, niveaux, classes, frais...)
@@ -716,13 +717,11 @@
                             <i class="fas fa-door-open"></i><span>Classes</span>
                         </a>
                     </li>
-                    {% if is_granted('ROLE_CAISSE') %}
                     <li class="nav-item">
                         <a href="{{ path('admin_fee_index') }}" class="nav-link {{ current_route starts with 'admin_fee' ? 'active' : '' }}">
                             <i class="fas fa-money-bill"></i><span>Frais de scolarité</span>
                         </a>
                     </li>
-                    {% endif %}
                     <li class="nav-item">
                         <a href="{{ path('admin_document_type_index') }}" class="nav-link {{ current_route starts with 'admin_document_type' ? 'active' : '' }}">
                             <i class="fas fa-file-alt"></i><span>Types de Documents</span>
@@ -744,7 +743,7 @@
 
             {# ── Gestion des Élèves ── #}
             {% if is_granted('ROLE_INSCRIPTION') %}
-            {% set students_active = current_route starts with 'admin_student' or current_route starts with 'admin_pre_registration' or current_route starts with 'admin_dropout' %}
+            {% set students_active = current_route starts with 'admin_student' or current_route starts with 'admin_pre_registration' or current_route starts with 'admin_dropout' or current_route starts with 'admin_report' %}
             <div class="nav-section">Gestion des Élèves</div>
             <li class="nav-item">
                 <a href="#" class="nav-link dropdown-toggle {{ students_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuStudents" aria-expanded="{{ students_active ? 'true' : 'false' }}">
@@ -765,7 +764,6 @@
                     <li class="nav-item">
                         <a href="{{ path('admin_pre_registration_index') }}" class="nav-link {{ current_route starts with 'admin_pre_registration' ? 'active' : '' }}">
                             <i class="fas fa-clipboard-list"></i><span>Préinscriptions</span>
-                            <span class="badge bg-info sidebar-badge">Nouveau</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -788,6 +786,11 @@
                             <i class="fas fa-archive"></i><span>Archives</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_report_index') }}" class="nav-link {{ current_route starts with 'admin_report' ? 'active' : '' }}">
+                            <i class="fas fa-file-lines"></i><span>Rapports</span>
+                        </a>
+                    </li>
                 </ul>
             </li>
             {% endif %}
@@ -797,7 +800,7 @@
                Visible pour admins, directeurs et enseignants
                ============================================================== #}
             {% if is_granted('ROLE_DIRECTEUR') %}
-            {% set academic_active = current_route starts with 'admin_subject' or current_route starts with 'admin_course' or current_route starts with 'admin_teacher' %}
+            {% set academic_active = current_route starts with 'admin_subject' or current_route starts with 'admin_course' or current_route starts with 'admin_teacher' or current_route starts with 'admin_academic_report' %}
             <div class="nav-section">Académique</div>
             <li class="nav-item">
                 <a href="#" class="nav-link dropdown-toggle {{ academic_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuAcademic" aria-expanded="{{ academic_active ? 'true' : 'false' }}">
@@ -825,9 +828,42 @@
                             <i class="fas fa-chalkboard-user"></i><span>Enseignants</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_academic_report_index') }}" class="nav-link {{ current_route starts with 'admin_academic_report' ? 'active' : '' }}">
+                            <i class="fas fa-file-lines"></i><span>Rapports</span>
+                        </a>
+                    </li>
                 </ul>
             </li>
             {% endif %}
+
+             {# ==============================================================
+               RESSOURCES HUMAINES
+               Gestion des employés et de leurs contrats.
+               ============================================================== #}
+            {% if is_granted('ROLE_RH') %}
+            {% set hr_active = current_route starts with 'admin_employee' or current_route starts with 'admin_contract' %}
+            <div class="nav-section">Ressources Humaines</div>
+            <li class="nav-item">
+                <a href="#" class="nav-link dropdown-toggle {{ hr_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuHr" aria-expanded="{{ hr_active ? 'true' : 'false' }}">
+                    <i class="fas fa-users-gear"></i>
+                    <span>Ressources Humaines</span>
+                </a>
+                <ul class="nav flex-column collapse {{ hr_active ? 'show' : '' }}" id="menuHr">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_employee_index') }}" class="nav-link {{ current_route starts with 'admin_employee' ? 'active' : '' }}">
+                            <i class="fas fa-id-badge"></i><span>Employés</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_contract_index') }}" class="nav-link {{ current_route starts with 'admin_contract' ? 'active' : '' }}">
+                            <i class="fas fa-file-contract"></i><span>Contrats</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            {% endif %}
+
 
             {# ==============================================================
                NOTES & ÉVALUATIONS
@@ -872,7 +908,6 @@
                 <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#absenceSubmenu" aria-expanded="false">
                     <i class="fas fa-calendar-check"></i>
                     <span>Absences</span>
-                    <span class="badge bg-danger sidebar-badge">5</span>
                 </a>
                 <ul class="collapse" id="absenceSubmenu">
                     <li class="nav-item">
@@ -966,11 +1001,48 @@
             </li>
             {% endif %}
 
-           
+            {# ==============================================================
+               RECOUVREMENT - Menu déroulant
+               Visible pour les agents de recouvrement (et caisse/admin par héritage)
+               ============================================================== #}
+            {% if is_granted('ROLE_RECOUVREMENT') %}
+            {% set recouvrement_active = current_route starts with 'admin_recouvrement' %}
+            <div class="nav-section">Recouvrement</div>
+            <li class="nav-item">
+                <a href="#" class="nav-link dropdown-toggle {{ recouvrement_active ? 'active' : '' }}"
+                   data-bs-toggle="collapse"
+                   data-bs-target="#recouvrementSubmenu"
+                   aria-expanded="{{ recouvrement_active ? 'true' : 'false' }}">
+                    <i class="fas fa-hand-holding-dollar"></i>
+                    <span>Recouvrement</span>
+                </a>
+                <ul class="collapse {{ recouvrement_active ? 'show' : '' }}" id="recouvrementSubmenu">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_recouvrement_dashboard') }}" class="nav-link {{ current_route == 'admin_recouvrement_dashboard' ? 'active' : '' }}">
+                            <i class="fas fa-gauge"></i>
+                            <span>Accueil</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_recouvrement_index') }}" class="nav-link {{ current_route in ['admin_recouvrement_index', 'admin_recouvrement_pdf'] ? 'active' : '' }}">
+                            <i class="fas fa-list"></i>
+                            <span>Recouvrement</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_recouvrement_relance') }}" class="nav-link {{ current_route starts with 'admin_recouvrement_relance' ? 'active' : '' }}">
+                            <i class="fas fa-bell"></i>
+                            <span>Relance</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            {% endif %}
+
             {# ==============================================================
                COMMUNICATION
                Visible pour tous les rôles connectés
-               ============================================================== #}
+               ============================================================== 
             {% set unread_notifs = unread_notifications_count() %}
             {% set comm_active = current_route starts with 'notification_' %}
             <div class="nav-section">Communication</div>
@@ -999,12 +1071,12 @@
                         </a>
                     </li>
                 </ul>
-            </li>
+            </li>  #}
 
             {# ==============================================================
                RESSOURCES
                Visible pour admins, directeurs et enseignants
-               ============================================================== #}
+               ============================================================== 
             {% if is_granted('ROLE_ADMIN') or (app.user and app.user.userType in ['directeur', 'enseignant']) %}
             <div class="nav-section">Ressources</div>
             <li class="nav-item">
@@ -1024,9 +1096,9 @@
                     </li>
                 </ul>
             </li>
-            {% endif %}
+            {% endif %}#}
 
-            {# Section Intelligence Artificielle — visible pour les admins #}
+            {# Section Intelligence Artificielle — visible pour les admins 
             {% if is_granted('ROLE_ADMIN') %}
             <div class="nav-section">Intelligence Artificielle</div>
             <li class="nav-item">
@@ -1036,7 +1108,7 @@
                 </a>
             </li>
             {% endif %}
-        </ul>
+        </ul>#}
     </nav>
 
     {# ================================================================
@@ -1167,7 +1239,7 @@
                 </div>
             </div>
 
-            {# ── Messages ── #}
+            {# ── Messages ── 
             <div class="topbar-item dropdown">
                 <a href="#" class="topbar-link" data-bs-toggle="dropdown">
                     <i class="fas fa-envelope fa-fw"></i>
@@ -1189,7 +1261,7 @@
                         <i class="fas fa-envelope me-1"></i>Voir tous les messages
                     </a>
                 </div>
-            </div>
+            </div> #}
 
             {# ── Menu utilisateur avec avatar dynamique coloré par rôle ── #}
             {% set avatar_colors = {

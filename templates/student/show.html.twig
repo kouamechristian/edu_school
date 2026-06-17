@@ -16,6 +16,7 @@
         ]
     } %}
         {% block actions %}
+            <a href="{{ path('admin_student_card', {'id': student.id}) }}" target="_blank" rel="noopener" class="btn btn-success"><i class="fas fa-id-card me-1"></i> Carte d'accès</a>
             <a href="{{ path('admin_student_edit', {'id': student.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
             <a href="{{ path('admin_student_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
         {% endblock %}
@@ -318,6 +319,7 @@
                 <div class="card-body">
                     <div class="list-group list-group-flush">
                         <a href="{{ path('admin_student_edit', {'id': student.id}) }}" class="list-group-item list-group-item-action border-0 px-0"><i class="fas fa-edit me-2 text-warning"></i>Modifier les informations</a>
+                        <a href="{{ path('admin_student_card', {'id': student.id}) }}" target="_blank" rel="noopener" class="list-group-item list-group-item-action border-0 px-0"><i class="fas fa-id-card me-2 text-success"></i>Carte d'accès (PDF)</a>
                         <a href="#" class="list-group-item list-group-item-action border-0 px-0"><i class="fas fa-graduation-cap me-2 text-primary"></i>Voir les notes</a>
                         <a href="#" class="list-group-item list-group-item-action border-0 px-0"><i class="fas fa-calendar-alt me-2 text-info"></i>Voir les absences</a>
                         <a href="#" class="list-group-item list-group-item-action border-0 px-0"><i class="fas fa-file-alt me-2 text-success"></i>Générer un rapport</a>

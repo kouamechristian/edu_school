@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rapports — Académique{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Rapports',
+        subtitle: 'Effectifs, statistiques et résultats scolaires',
+        icon: 'fa-file-lines',
+        color: 'primary',
+        breadcrumb: [ { label: 'Académique' }, { label: 'Rapports' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 6%;">#</th>
+                            <th style="width: 64%;">Nom du rapport</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                            <tr>
+                                <td class="text-muted">{{ loop.index }}</td>
+                                <td>
+                                    {% if report.status == 'soon' %}
+                                        <i class="fas fa-hourglass-half text-muted me-2"></i>
+                                    {% else %}
+                                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    {% endif %}
+                                    <strong>{{ report.name }}</strong>
+                                </td>
+                                <td class="text-end">
+                                    {% if report.status == 'ready' %}
+                                        <a href="{{ path(report.route) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </a>
+                                    {% elseif report.status == 'select' %}
+                                        <a href="{{ path(report.route, report.route_args) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-list me-1"></i> Choisir une classe
+                                        </a>
+                                    {% else %}
+                                        <span class="badge bg-secondary"><i class="fas fa-clock me-1"></i> Bientôt</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

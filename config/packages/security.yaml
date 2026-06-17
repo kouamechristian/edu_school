@@ -17,16 +17,24 @@ security:
         # ROLE_CORRESPONDANT_FICHIER : ses documents + la Gestion des élèves (via ROLE_INSCRIPTION).
         ROLE_CORRESPONDANT_FICHIER: [ROLE_INSCRIPTION]
 
-        # ── ROLE_CAISSE est indépendant : il n'est hérité par aucun rôle supérieur.
-        #    Il couvre la Gestion financière (caisse, paiements, factures, frais, bourses,
-        #    plans, transactions) ET la Gestion des élèves (via ROLE_INSCRIPTION). ──
+        # ── ROLE_RECOUVREMENT : module Recouvrement (suivi des soldes, relances).
+        #    Rôle opérationnel autonome ; hérité par ROLE_CAISSE (donc par ROLE_ADMIN). ──
+        ROLE_RECOUVREMENT: ROLE_USER
+
+        # ── ROLE_CAISSE couvre la Gestion financière (caisse, paiements, factures,
+        #    frais, bourses, plans, transactions), le Recouvrement (via ROLE_RECOUVREMENT)
+        #    ET la Gestion des élèves (via ROLE_INSCRIPTION). Hérité par ROLE_ADMIN. ──
         ROLE_CAISSE: [ROLE_INSCRIPTION]
+
+        # ── ROLE_RH : Gestion des Ressources Humaines (employés et contrats).
+        #    Rôle opérationnel autonome, hérité par ROLE_ADMIN (cf. ci-dessous). ──
+        ROLE_RH: ROLE_USER
 
         # ── Le directeur : seulement Académique, Notes & Évaluations et Gestion (absences) ──
         ROLE_DIRECTEUR: [ROLE_ENSEIGNANT, ROLE_EDUCATEUR]
 
-        # ── L'administrateur dispose de tout (sauf la caisse, indépendante) ──
-        ROLE_ADMIN: [ROLE_DIRECTEUR, ROLE_INSCRIPTION, ROLE_CORRESPONDANT_FICHIER]
+        # ── L'administrateur dispose de tout, y compris la caisse / gestion financière et les RH ──
+        ROLE_ADMIN: [ROLE_DIRECTEUR, ROLE_CAISSE, ROLE_INSCRIPTION, ROLE_CORRESPONDANT_FICHIER, ROLE_RH, ROLE_RECOUVREMENT]
 
         # ── Le fondateur supervise (accès complet, limité à ses établissements) ──
         ROLE_FONDATEUR: [ROLE_ADMIN]

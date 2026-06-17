@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 28px 32px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 18px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 70px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title-row { width: 100%; margin-bottom: 8px; }
+        .title-row td { font-size: 13px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        table.students { width: 100%; border-collapse: collapse; }
+        table.students th, table.students td { border: 1px solid #000; padding: 5px 6px; }
+        table.students th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.students td.num { text-align: center; width: 36px; }
+        table.students .empty { text-align: center; }
+        .footer { width: 100%; margin-top: 28px; font-size: 12px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">
+                {% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}
+            </td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>LISTE DES ELEVES</b>: {{ classroom.name }}/({{ classroom.id }})</td>
+            <td class="right"><b>Année Scolaire:</b> {{ classroom.schoolYear ? classroom.schoolYear.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="students">
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Contact</th>
+                <th>WhatsApp</th>
+                <th>Nom</th>
+                <th>Matricule</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if students is empty %}
+                <tr><td class="empty" colspan="5">Aucune information disponible</td></tr>
+            {% else %}
+                {% for student in students %}
+                <tr>
+                    <td class="num">{{ loop.index }}</td>
+                    <td>{{ student.parentPhone ?: '' }}</td>
+                    <td>{{ student.emergencyPhone ?: '' }}</td>
+                    <td>{{ student.lastName }} {{ student.firstName }}</td>
+                    <td>{{ student.matriculeInterne ?: '' }}</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -34,6 +34,7 @@
                             <div class="info-row"><div class="info-label">Type</div><div class="info-value"><span class="badge badge-soft secondary">{{ school.typeLabel }}</span></div></div>
                             <div class="info-row"><div class="info-label">Groupe</div><div class="info-value">{% if school.schoolGroup %}<a href="{{ path('admin_school_group_show', {'id': school.schoolGroup.id}) }}">{{ school.schoolGroup.name }}</a>{% else %}<span class="text-muted">Aucun</span>{% endif %}</div></div>
                             {% if school.director %}<div class="info-row"><div class="info-label">Directeur</div><div class="info-value">{{ school.director }}</div></div>{% endif %}
+                            {% if school.sousTutelle %}<div class="info-row"><div class="info-label">Sous-tutelle</div><div class="info-value">{{ school.sousTutelle }}</div></div>{% endif %}
                         </div></div>
                         <div class="col-md-6"><div class="info-list">
                             {% if school.phone %}<div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">{{ school.phone }}</div></div>{% endif %}

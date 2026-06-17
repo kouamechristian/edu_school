@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 24px 28px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 64px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title-row { width: 100%; margin-bottom: 8px; }
+        .title-row td { font-size: 12px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        .summary { width: 100%; margin-bottom: 10px; font-size: 11px; }
+        .summary td { padding: 4px 8px; border: 1px solid #ccc; text-align: center; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 4px 6px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.num { text-align: center; width: 30px; }
+        table.list td.money { text-align: right; }
+        table.list td.center { text-align: center; }
+        .late { color: #b00; font-weight: bold; }
+        .ok { color: #060; }
+        .empty { text-align: center; }
+        .footer { width: 100%; margin-top: 20px; font-size: 11px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>ÉTAT DE RECOUVREMENT</b> — {{ category_label }} ({{ status_label }})</td>
+            <td class="right"><b>Année scolaire:</b> {{ current_school_year ? current_school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="summary">
+        <tr>
+            <td>Élèves : <b>{{ totals.count }}</b></td>
+            <td>À jour : <b>{{ totals.a_jour }}</b></td>
+            <td>En retard : <b>{{ totals.en_retard }}</b></td>
+            <td>Total dû : <b>{{ totals.due|number_format(0, ',', ' ') }}</b></td>
+            <td>Payé : <b>{{ totals.paid|number_format(0, ',', ' ') }}</b></td>
+            <td>Reste : <b>{{ totals.balance|number_format(0, ',', ' ') }}</b></td>
+        </tr>
+    </table>
+
+    <table class="list">
+        <thead>
+            <tr>
+                <th>N°</th><th>Matricule</th><th>Élève</th><th>Classe</th>
+                <th>Montant dû</th><th>Payé</th><th>Reste</th><th>Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if rows is empty %}
+                <tr><td class="empty" colspan="8">Aucune information disponible</td></tr>
+            {% else %}
+                {% for row in rows %}
+                    {% set s = row.student %}
+                    <tr>
+                        <td class="num">{{ loop.index }}</td>
+                        <td>{{ s.matriculeInterne ?: '' }}</td>
+                        <td>{{ s.lastName }} {{ s.firstName }}</td>
+                        <td>{{ s.classroom ? s.classroom.name : '' }}</td>
+                        <td class="money">{{ row.due|number_format(0, ',', ' ') }}</td>
+                        <td class="money">{{ row.paid|number_format(0, ',', ' ') }}</td>
+                        <td class="money">{{ row.balance|number_format(0, ',', ' ') }}</td>
+                        <td class="center {{ row.status == 'en_retard' ? 'late' : 'ok' }}">{{ row.status == 'en_retard' ? 'En retard' : 'À jour' }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Le Comptable / La Direction</td>
+        </tr>
+    </table>
+</body>
+</html>

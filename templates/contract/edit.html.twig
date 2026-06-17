@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier le Contrat{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-9">
+            {% embed 'components/page_header.html.twig' with {
+                title: 'Modifier le Contrat',
+                subtitle: contract.reference ~ ' — ' ~ contract.employee.fullName,
+                icon: 'fa-file-contract',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Contrats', path: path('admin_contract_index') },
+                    { label: contract.reference, path: path('admin_contract_show', {'id': contract.id}) },
+                    { label: 'Modifier' }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_contract_show', {'id': contract.id}) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        {{ include('contract/_form.html.twig') }}
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_contract_show', {'id': contract.id}) }}" class="btn btn-light"><i class="fas fa-times me-1"></i> Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer les modifications</button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            <div class="card card-accent danger mt-4">
+                <div class="card-body">
+                    <h6 class="fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Zone dangereuse</h6>
+                    <p class="text-muted small">La suppression de ce contrat est irréversible.</p>
+                    <form method="post" action="{{ path('admin_contract_delete', {'id': contract.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce contrat ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ contract.id) }}">
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i> Supprimer le contrat</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

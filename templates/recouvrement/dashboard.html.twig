@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Recouvrement — Accueil{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Recouvrement',
+        subtitle: current_school ? current_school.name ~ (current_school_year is defined and current_school_year ? '  ·  ' ~ current_school_year.name : '') : 'Accueil',
+        icon: 'fa-gauge',
+        color: 'primary',
+        breadcrumb: [ { label: 'Recouvrement' }, { label: 'Accueil' } ]
+    } %}
+        {% block actions %}
+            {% if current_school %}
+                <a href="{{ path('admin_recouvrement_index') }}" class="btn btn-outline-primary"><i class="fas fa-list me-1"></i> Détail</a>
+                <a href="{{ path('admin_recouvrement_relance') }}" class="btn btn-outline-danger"><i class="fas fa-bell me-1"></i> Relances</a>
+            {% endif %}
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if not current_school %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Veuillez sélectionner un établissement pour accéder au recouvrement.</div>
+    {% else %}
+        {# ── Cartes de synthèse ── #}
+        <div class="row g-3 mb-4">
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100"><div class="card-body">
+                    <div class="text-muted small">Total dû</div>
+                    <div class="h5 mb-0">{{ totals.due|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-success border-3"><div class="card-body">
+                    <div class="text-muted small">Total payé</div>
+                    <div class="h5 mb-0 text-success">{{ totals.paid|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-warning border-3"><div class="card-body">
+                    <div class="text-muted small">Reste à recouvrer</div>
+                    <div class="h5 mb-0 text-warning">{{ totals.balance|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-primary border-3"><div class="card-body">
+                    <div class="text-muted small">Taux de recouvrement</div>
+                    <div class="h4 mb-0 text-primary">{{ recovery_rate }} %</div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4 col-6">
+                <div class="card stat-card h-100"><div class="card-body">
+                    <div class="text-muted small">Élèves</div>
+                    <div class="h4 mb-0">{{ totals.count }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-4 col-6">
+                <div class="card stat-card h-100 border-start border-success border-3"><div class="card-body">
+                    <div class="text-muted small">À jour</div>
+                    <div class="h4 mb-0 text-success">{{ totals.a_jour }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-4 col-6">
+                <div class="card stat-card h-100 border-start border-danger border-3"><div class="card-body">
+                    <div class="text-muted small">En retard</div>
+                    <div class="h4 mb-0 text-danger">{{ totals.en_retard }}</div>
+                </div></div>
+            </div>
+        </div>
+
+        {# ── Répartition par classe ── #}
+        <div class="card">
+            <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-school me-2"></i>Répartition par classe</h6></div>
+            <div class="card-body">
+                {% if by_classroom is empty %}
+                    {{ empty_state('fa-school', 'Aucune donnée', 'Aucun élève à suivre pour cet établissement.') }}
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Classe</th>
+                                    <th class="text-center">Élèves</th>
+                                    <th class="text-center">À jour</th>
+                                    <th class="text-center">En retard</th>
+                                    <th class="text-end">Dû</th>
+                                    <th class="text-end">Payé</th>
+                                    <th class="text-end">Reste</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in by_classroom %}
+                                    <tr>
+                                        <td><strong>{{ c.label }}</strong></td>
+                                        <td class="text-center">{{ c.count }}</td>
+                                        <td class="text-center text-success">{{ c.a_jour }}</td>
+                                        <td class="text-center text-danger">{{ c.en_retard }}</td>
+                                        <td class="text-end">{{ c.due|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end">{{ c.paid|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end fw-bold">{{ c.balance|number_format(0, ',', ' ') }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

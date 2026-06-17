@@ -87,11 +87,16 @@ class Employee
     #[ORM\OneToOne(mappedBy: 'employee', targetEntity: Teacher::class, cascade: ['persist', 'remove'])]
     private ?Teacher $teacher = null;
 
+    #[ORM\OneToMany(mappedBy: 'employee', targetEntity: Contract::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['startDate' => 'DESC'])]
+    private Collection $contracts;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
         $this->schools = new ArrayCollection();
+        $this->contracts = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -332,6 +337,49 @@ class Employee
     {
         $this->teacher = $teacher;
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Contract>
+     */
+    public function getContracts(): Collection
+    {
+        return $this->contracts;
+    }
+
+    public function addContract(Contract $contract): static
+    {
+        if (!$this->contracts->contains($contract)) {
+            $this->contracts->add($contract);
+            $contract->setEmployee($this);
+        }
+
+        return $this;
+    }
+
+    public function removeContract(Contract $contract): static
+    {
+        if ($this->contracts->removeElement($contract)) {
+            if ($contract->getEmployee() === $this) {
+                $contract->setEmployee(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Retourne le contrat actif le plus récent, le cas échéant.
+     */
+    public function getActiveContract(): ?Contract
+    {
+        foreach ($this->contracts as $contract) {
+            if ($contract->getStatus() === 'active') {
+                return $contract;
+            }
+        }
+
+        return null;
     }
 
     public function __toString(): string

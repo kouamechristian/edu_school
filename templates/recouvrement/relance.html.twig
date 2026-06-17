@@ -1,0 +1,101 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Recouvrement — Relances{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Relances',
+        subtitle: current_school ? current_school.name ~ (current_school_year is defined and current_school_year ? '  ·  ' ~ current_school_year.name : '') : 'Élèves en retard',
+        icon: 'fa-bell',
+        color: 'danger',
+        breadcrumb: [ { label: 'Recouvrement', path: path('admin_recouvrement_dashboard') }, { label: 'Relances' } ]
+    } %}
+        {% block actions %}
+            {% if current_school %}
+                <a href="{{ path('admin_recouvrement_index') }}" class="btn btn-outline-primary"><i class="fas fa-list me-1"></i> Détail recouvrement</a>
+            {% endif %}
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if not current_school %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Veuillez sélectionner un établissement pour accéder aux relances.</div>
+    {% else %}
+        <div class="row g-3 mb-4">
+            <div class="col-md-4 col-6">
+                <div class="card stat-card h-100 border-start border-danger border-3"><div class="card-body">
+                    <div class="text-muted small">Élèves en retard</div>
+                    <div class="h4 mb-0 text-danger">{{ rows|length }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-4 col-6">
+                <div class="card stat-card h-100 border-start border-warning border-3"><div class="card-body">
+                    <div class="text-muted small">Reste à recouvrer</div>
+                    <div class="h5 mb-0 text-warning">{{ totals.balance|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                </div></div>
+            </div>
+        </div>
+
+        {# ── Filtre par classe ── #}
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-4">
+                <select name="classroom" class="form-select" onchange="this.form.submit()">
+                    <option value="">Toutes les classes</option>
+                    {% for classroom in classrooms %}
+                        <option value="{{ classroom.id }}" {{ filters.classroom == classroom.id ? 'selected' : '' }}>{{ classroom.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+
+        <div class="card">
+            <div class="card-body">
+                {% if rows is empty %}
+                    {{ empty_state('fa-circle-check', 'Aucun élève en retard', 'Tous les élèves sont à jour pour ce filtre.') }}
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Élève</th>
+                                    <th>Classe</th>
+                                    <th>Contact parent</th>
+                                    <th class="text-end">Dû</th>
+                                    <th class="text-end">Payé</th>
+                                    <th class="text-end">Reste</th>
+                                    <th class="text-end">Relance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                    {% set s = row.student %}
+                                    <tr>
+                                        <td><strong>{{ s.lastName }} {{ s.firstName }}</strong><br><small class="text-muted">{{ s.matriculeInterne ?: '—' }}</small></td>
+                                        <td>{{ s.classroom ? s.classroom.name : '—' }}</td>
+                                        <td>
+                                            {% if s.parentPhone %}<i class="fas fa-phone me-1 text-muted"></i>{{ s.parentPhone }}<br>{% endif %}
+                                            {% if s.parentName %}<small class="text-muted">{{ s.parentName }}</small>{% endif %}
+                                            {% if not s.parentPhone and not s.parentName %}<span class="text-muted">—</span>{% endif %}
+                                        </td>
+                                        <td class="text-end">{{ row.due|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end">{{ row.paid|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end fw-bold text-danger">{{ row.balance|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end">
+                                            <a href="{{ path('admin_recouvrement_relance_letter', {'id': s.id}) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger" title="Lettre de relance (PDF)">
+                                                <i class="fas fa-file-pdf me-1"></i> Lettre
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

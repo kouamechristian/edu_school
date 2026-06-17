@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 28px 32px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 12px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 70px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title-row { width: 100%; margin-bottom: 6px; }
+        .title-row td { font-size: 13px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        .meta { width: 100%; margin-bottom: 10px; font-size: 12px; }
+        .meta td { padding: 3px 0; }
+        .meta .fill { border-bottom: 1px dotted #000; display: inline-block; min-width: 180px; }
+        table.notes { width: 100%; border-collapse: collapse; }
+        table.notes th, table.notes td { border: 1px solid #000; padding: 6px 6px; }
+        table.notes th { text-align: center; font-weight: bold; background: #f2f2f2; font-size: 11px; }
+        table.notes td.num { text-align: center; width: 30px; }
+        table.notes td.note { width: 60px; }
+        table.notes .empty { text-align: center; }
+        .footer { width: 100%; margin-top: 22px; font-size: 12px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>FICHE PRÉPARATOIRE DES NOTES</b></td>
+            <td class="right"><b>Année Scolaire:</b> {{ classroom.schoolYear ? classroom.schoolYear.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="meta">
+        <tr>
+            <td><b>Classe :</b> {{ classroom.name }}{% if classroom.level %} ({{ classroom.level.name }}){% endif %}</td>
+            <td><b>Matière :</b> <span class="fill">&nbsp;</span></td>
+        </tr>
+        <tr>
+            <td><b>Enseignant :</b> <span class="fill">&nbsp;</span></td>
+            <td><b>Période :</b> <span class="fill">&nbsp;</span></td>
+        </tr>
+    </table>
+
+    <table class="notes">
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Matricule</th>
+                <th>Nom &amp; Prénom</th>
+                <th class="note">Note 1</th>
+                <th class="note">Note 2</th>
+                <th class="note">Note 3</th>
+                <th class="note">Moyenne</th>
+                <th>Observation</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if students is empty %}
+                <tr><td class="empty" colspan="8">Aucun élève dans cette classe</td></tr>
+            {% else %}
+                {% for student in students %}
+                    <tr>
+                        <td class="num">{{ loop.index }}</td>
+                        <td>{{ student.matriculeInterne ?: '' }}</td>
+                        <td>{{ student.lastName }} {{ student.firstName }}</td>
+                        <td class="note">&nbsp;</td>
+                        <td class="note">&nbsp;</td>
+                        <td class="note">&nbsp;</td>
+                        <td class="note">&nbsp;</td>
+                        <td>&nbsp;</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td>Fait le {{ generated_at|date('d/m/Y') }}</td>
+            <td class="sign">Signature de l'enseignant</td>
+        </tr>
+    </table>
+</body>
+</html>

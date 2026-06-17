@@ -17,6 +17,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\NotNull;
 
 class SubjectType extends AbstractType
 {
@@ -48,8 +49,10 @@ class SubjectType extends AbstractType
                 'choice_label' => 'name',
                 'attr' => ['class' => 'form-select'],
                 'placeholder' => 'Sélectionnez un niveau',
-                'required' => false,
-                'help' => 'Laissez vide pour une matière commune à tous les niveaux',
+                'required' => true,
+                'constraints' => [
+                    new NotNull(['message' => 'Le niveau est obligatoire.']),
+                ],
                 'query_builder' => function ($repository) use ($schoolId) {
                     $qb = $repository->createQueryBuilder('l')
                         ->where('l.isActive = :active')

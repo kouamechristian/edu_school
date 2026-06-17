@@ -58,6 +58,10 @@ class School
     #[Assert\Length(max: 20)]
     private ?string $badgeBackgroundColor = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255)]
+    private ?string $sousTutelle = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
@@ -199,6 +203,17 @@ class School
     public function setBadgeBackgroundColor(?string $badgeBackgroundColor): static
     {
         $this->badgeBackgroundColor = $badgeBackgroundColor;
+        return $this;
+    }
+
+    public function getSousTutelle(): ?string
+    {
+        return $this->sousTutelle;
+    }
+
+    public function setSousTutelle(?string $sousTutelle): static
+    {
+        $this->sousTutelle = $sousTutelle;
         return $this;
     }
 

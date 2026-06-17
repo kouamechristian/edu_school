@@ -299,6 +299,32 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
+     * Trouver les enseignants actifs qui enseignent une matière donnée,
+     * éventuellement restreints à un établissement.
+     */
+    public function findTeachersBySubjectAndSchool(int $subjectId, ?int $schoolId): array
+    {
+        $qb = $this->createQueryBuilder('u')
+            ->innerJoin('u.teachingSubjects', 'ts')
+            ->andWhere('ts.id = :subject')
+            ->andWhere('u.userType = :type')
+            ->andWhere('u.isActive = :active')
+            ->setParameter('subject', $subjectId)
+            ->setParameter('type', 'enseignant')
+            ->setParameter('active', true)
+            ->orderBy('u.lastName', 'ASC')
+            ->addOrderBy('u.firstName', 'ASC');
+
+        if ($schoolId) {
+            $qb->innerJoin('u.schools', 's')
+               ->andWhere('s.id = :school')
+               ->setParameter('school', $schoolId);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * Trouver les élèves d'une classe
      */
     public function findByClassroom(int $classroomId): array

@@ -13,6 +13,8 @@ use App\Repository\DocumentTypeRepository;
 use App\Repository\StudentRepository;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -219,6 +221,62 @@ class PreRegistrationController extends AbstractController
             'pre_registration' => $preRegistration,
             'document_types' => $documentTypes,
         ]);
+    }
+
+    /**
+     * Génère la fiche d'inscription d'une préinscription au format PDF (consultable et téléchargeable).
+     */
+    #[Route('/{id}/fiche', name: 'fiche', methods: ['GET'])]
+    public function fiche(PreRegistration $preRegistration): Response
+    {
+        $school = $preRegistration->getSchool();
+
+        $logoData = $this->imageDataUri($school?->getLogo());
+        $photoData = $this->imageDataUri($preRegistration->getPhoto());
+
+        $html = $this->renderView('pre_registration/fiche_pdf.html.twig', [
+            'pre_registration' => $preRegistration,
+            'school' => $school,
+            'logo_data' => $logoData,
+            'photo_data' => $photoData,
+            'generated_at' => new \DateTime(),
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = sprintf('FICHE_INSCRIPTION_%s.pdf', $preRegistration->getMatriculeInterne() ?: $preRegistration->getId());
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
+        ]);
+    }
+
+    /**
+     * Construit une data-URI base64 à partir d'un chemin d'image relatif à /public.
+     */
+    private function imageDataUri(?string $relativePath): ?string
+    {
+        if (!$relativePath) {
+            return null;
+        }
+
+        $path = $this->getParameter('kernel.project_dir') . '/public/' . ltrim($relativePath, '/');
+        if (!is_file($path)) {
+            return null;
+        }
+
+        $mime = mime_content_type($path) ?: 'image/png';
+
+        return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($path));
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]

@@ -1,0 +1,188 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Recouvrement{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Recouvrement',
+        subtitle: current_school ? current_school.name ~ (current_school_year is defined and current_school_year ? '  ·  ' ~ current_school_year.name : '') : 'Suivi des paiements',
+        icon: 'fa-hand-holding-dollar',
+        color: 'primary',
+        breadcrumb: [ { label: 'Recouvrement', path: path('admin_recouvrement_dashboard') }, { label: 'Détail' } ]
+    } %}
+        {% block actions %}
+            <a id="pdfBtn" href="{{ path('admin_recouvrement_pdf', {'category': filters.category, 'classroom': filters.classroom}) }}" target="_blank" class="btn btn-danger">
+                <i class="fas fa-file-pdf me-1"></i> Lire / Télécharger PDF
+            </a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if not current_school %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Veuillez sélectionner un établissement pour accéder au recouvrement.</div>
+    {% else %}
+        {# ── Cartes de synthèse ── #}
+        <div class="row g-3 mb-4">
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100"><div class="card-body">
+                    <div class="text-muted small">Élèves</div>
+                    <div class="h4 mb-0">{{ totals.count }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-success border-3"><div class="card-body">
+                    <div class="text-muted small">À jour</div>
+                    <div class="h4 mb-0 text-success">{{ totals.a_jour }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-danger border-3"><div class="card-body">
+                    <div class="text-muted small">En retard</div>
+                    <div class="h4 mb-0 text-danger">{{ totals.en_retard }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-warning border-3"><div class="card-body">
+                    <div class="text-muted small">Reste à recouvrer</div>
+                    <div class="h5 mb-0 text-warning">{{ totals.balance|number_format(0, ',', ' ') }}</div>
+                </div></div>
+            </div>
+        </div>
+
+        {# ── Filtres serveur (catégorie + classe) ── #}
+        <div class="card filter-card mb-4">
+            <div class="card-body">
+                <form method="get" id="serverFilters" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Type de frais</label>
+                        <select name="category" class="form-select" onchange="document.getElementById('serverFilters').submit()">
+                            <option value="">Tous les frais</option>
+                            <option value="scolarite" {{ filters.category == 'scolarite' ? 'selected' : '' }}>Scolarité</option>
+                            <option value="article" {{ filters.category == 'article' ? 'selected' : '' }}>Article</option>
+                            <option value="autre_frais" {{ filters.category == 'autre_frais' ? 'selected' : '' }}>Autres frais</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Classe</label>
+                        <select name="classroom" class="form-select" onchange="document.getElementById('serverFilters').submit()">
+                            <option value="">Toutes les classes</option>
+                            {% for classroom in classrooms %}
+                                <option value="{{ classroom.id }}" {{ filters.classroom == classroom.id ? 'selected' : '' }}>{{ classroom.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Recherche dynamique</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" id="liveSearch" class="form-control" placeholder="Nom, matricule, classe..." autocomplete="off">
+                        </div>
+                    </div>
+                </form>
+
+                {# ── Filtre dynamique par statut ── #}
+                <div class="btn-group btn-group-sm mt-3" role="group" id="statusFilter">
+                    <button type="button" class="btn btn-outline-secondary active" data-status="">Tous</button>
+                    <button type="button" class="btn btn-outline-success" data-status="a_jour">À jour</button>
+                    <button type="button" class="btn btn-outline-danger" data-status="en_retard">En retard</button>
+                </div>
+            </div>
+        </div>
+
+        {# ── Tableau ── #}
+        <div class="card table-card">
+            <div class="card-body">
+                {% if rows is empty %}
+                    {{ empty_state('fa-hand-holding-dollar', 'Aucun élève', 'Aucun élève ne correspond aux critères sélectionnés.') }}
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="recouvrementTable">
+                            <thead>
+                                <tr>
+                                    <th>Matricule</th><th>Élève</th><th>Classe</th>
+                                    <th class="text-end">Montant dû</th><th class="text-end">Payé</th><th class="text-end">Reste</th>
+                                    <th class="text-center">Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                    {% set s = row.student %}
+                                    <tr data-status="{{ row.status }}"
+                                        data-search="{{ (s.fullName ~ ' ' ~ (s.matriculeInterne ?: '') ~ ' ' ~ (s.classroom ? s.classroom.name : ''))|lower }}">
+                                        <td><small class="text-muted">{{ s.matriculeInterne ?: '—' }}</small></td>
+                                        <td><strong>{{ s.fullName }}</strong></td>
+                                        <td>{{ s.classroom ? s.classroom.name : '—' }}</td>
+                                        <td class="text-end">{{ row.due|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end text-success">{{ row.paid|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end fw-bold {{ row.balance > 0 ? 'text-danger' : '' }}">{{ row.balance|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-center">
+                                            {% if row.status == 'a_jour' %}
+                                                <span class="badge badge-soft success"><i class="fas fa-check me-1"></i>À jour</span>
+                                            {% else %}
+                                                <span class="badge badge-soft danger"><i class="fas fa-exclamation-circle me-1"></i>En retard</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-muted small mt-3" id="visibleCount"></div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+(function () {
+    const search = document.getElementById('liveSearch');
+    const table = document.getElementById('recouvrementTable');
+    if (!table) return;
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const statusBtns = Array.from(document.querySelectorAll('#statusFilter button'));
+    const counter = document.getElementById('visibleCount');
+    const pdfBtn = document.getElementById('pdfBtn');
+    let activeStatus = '';
+
+    function apply() {
+        const q = (search.value || '').trim().toLowerCase();
+        let visible = 0;
+        rows.forEach(function (tr) {
+            const matchText = !q || tr.dataset.search.indexOf(q) !== -1;
+            const matchStatus = !activeStatus || tr.dataset.status === activeStatus;
+            const show = matchText && matchStatus;
+            tr.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        if (counter) counter.textContent = visible + ' élève(s) affiché(s)';
+
+        // Synchronise le filtre de statut avec le bouton PDF.
+        if (pdfBtn) {
+            const url = new URL(pdfBtn.href, window.location.origin);
+            if (activeStatus) { url.searchParams.set('status', activeStatus); }
+            else { url.searchParams.delete('status'); }
+            pdfBtn.href = url.toString();
+        }
+    }
+
+    search.addEventListener('input', apply);
+    statusBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            statusBtns.forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            activeStatus = btn.dataset.status;
+            apply();
+        });
+    });
+
+    apply();
+})();
+</script>
+{% endblock %}

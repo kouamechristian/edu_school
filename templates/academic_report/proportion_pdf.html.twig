@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 24px 28px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 12px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 76px; }
+        .header .logo img { max-height: 64px; max-width: 70px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 13px; }
+        .header .school .ministry { font-size: 10px; }
+        .header .school .tel { font-size: 9px; }
+        .title-row { width: 100%; margin-bottom: 8px; }
+        .title-row td { font-size: 12px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        table.list { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 5px; font-size: 9px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.center { text-align: center; }
+        table.list tr.grand td { background: #dfe6ee; font-weight: bold; }
+        table.list tr.level td { background: #e9edf2; font-weight: bold; }
+        .sub { font-weight: bold; font-size: 11px; margin: 6px 0 3px; }
+        .footer { width: 100%; margin-top: 16px; font-size: 10px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 140px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>PROPORTION D'ÉLÈVES N'AYANT PAS OBTENU LA MOYENNE</b></td>
+            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <div class="sub">Par classe</div>
+    <table class="list">
+        <thead>
+            <tr>
+                <th style="width:22%">Classe</th>
+                <th style="width:24%">Niveau</th>
+                <th>Élèves notés</th>
+                <th>Sous la moyenne</th>
+                <th>Proportion</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in classes %}
+                <tr>
+                    <td>{{ c.label }}</td>
+                    <td>{{ c.levelLabel }}</td>
+                    <td class="center">{{ c.graded }}</td>
+                    <td class="center">{{ c.redouble }}</td>
+                    <td class="center">{{ c.graded > 0 ? (c.redouble / c.graded * 100)|number_format(1, ',', ' ') : '0,0' }} %</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="center">Aucune donnée disponible</td></tr>
+            {% endfor %}
+            {% if classes is not empty %}
+                <tr class="grand">
+                    <td colspan="2">TOTAL GÉNÉRAL</td>
+                    <td class="center">{{ overall.graded }}</td>
+                    <td class="center">{{ overall.redouble }}</td>
+                    <td class="center">{{ overall.graded > 0 ? (overall.redouble / overall.graded * 100)|number_format(1, ',', ' ') : '0,0' }} %</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div class="sub">Par niveau</div>
+    <table class="list">
+        <thead>
+            <tr>
+                <th style="width:40%">Niveau</th>
+                <th>Élèves notés</th>
+                <th>Sous la moyenne</th>
+                <th>Proportion</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lvl in levels %}
+                <tr>
+                    <td>{{ lvl.label }}</td>
+                    <td class="center">{{ lvl.graded }}</td>
+                    <td class="center">{{ lvl.redouble }}</td>
+                    <td class="center">{{ lvl.graded > 0 ? (lvl.redouble / lvl.graded * 100)|number_format(1, ',', ' ') : '0,0' }} %</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4" class="center">Aucune donnée disponible</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>

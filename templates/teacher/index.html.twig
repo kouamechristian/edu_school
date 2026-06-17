@@ -11,7 +11,13 @@
         icon: 'fa-chalkboard-user',
         color: 'primary',
         breadcrumb: [ { label: 'Académique' }, { label: 'Enseignants' } ]
-    } %}{% endembed %}
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_teacher_pdf') }}" target="_blank" class="btn btn-secondary">
+                <i class="fas fa-file-pdf me-1"></i> Liste des enseignants
+            </a>
+        {% endblock %}
+    {% endembed %}
 
     {% include '_flash.html.twig' %}
 

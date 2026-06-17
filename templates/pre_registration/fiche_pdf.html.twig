@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 26px 30px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 10px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 64px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+
+        .title-row { width: 100%; margin-bottom: 10px; }
+        .title-row td { vertical-align: middle; }
+        .title-row .title { font-size: 15px; font-weight: bold; color: #1e3a5f; }
+        .title-row .meta { font-size: 10px; }
+        .title-row .right { text-align: right; }
+        .photo-box { width: 84px; height: 100px; border: 1px solid #999; }
+        .photo-box img { width: 84px; height: 100px; }
+        .photo-empty { width: 84px; height: 100px; border: 1px dashed #999; text-align: center; color: #999; font-size: 9px; line-height: 100px; }
+
+        .section-title { background: #1e3a5f; color: #fff; font-weight: bold; font-size: 11px; padding: 3px 8px; margin: 10px 0 0 0; }
+        table.fields { width: 100%; border-collapse: collapse; }
+        table.fields td { border: 1px solid #ccc; padding: 4px 8px; font-size: 11px; vertical-align: top; }
+        table.fields td.k { background: #f4f6f8; font-weight: bold; width: 24%; }
+
+        .badge-status { display: inline-block; padding: 1px 8px; border: 1px solid #1e3a5f; border-radius: 3px; font-size: 10px; }
+
+        .footer { width: 100%; margin-top: 26px; font-size: 11px; }
+        .footer td { vertical-align: top; width: 50%; }
+        .footer .sign { text-align: center; }
+        .footer .line { border-bottom: 1px solid #000; height: 36px; }
+        .note { font-size: 9px; color: #666; margin-top: 6px; }
+    </style>
+</head>
+<body>
+    {% set pr = pre_registration %}
+
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td>
+                <div class="title">FICHE D'INSCRIPTION</div>
+                <div class="meta">
+                    N° {{ pr.matriculeInterne ?: pr.id }} —
+                    Année scolaire : <b>{{ pr.schoolYear ? pr.schoolYear.name : '—' }}</b><br>
+                    Statut : <span class="badge-status">{{ pr.statusLabel }}</span> —
+                    Établi le {{ generated_at|date('d/m/Y') }}
+                </div>
+            </td>
+            <td class="right">
+                {% if photo_data %}
+                    <div class="photo-box"><img src="{{ photo_data }}" alt="Photo"></div>
+                {% else %}
+                    <div class="photo-empty">Photo</div>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-title">IDENTITÉ DE L'ÉLÈVE</div>
+    <table class="fields">
+        <tr>
+            <td class="k">Nom &amp; Prénoms</td><td>{{ pr.lastName|upper }} {{ pr.firstName }}</td>
+            <td class="k">Sexe</td><td>{{ pr.genderLabel }}</td>
+        </tr>
+        <tr>
+            <td class="k">Date de naissance</td><td>{{ pr.dateOfBirth ? pr.dateOfBirth|date('d/m/Y') : '—' }}</td>
+            <td class="k">Lieu de naissance</td><td>{{ pr.placeOfBirth ?: '—' }}</td>
+        </tr>
+        <tr>
+            <td class="k">Nationalité</td><td>{{ pr.nationality ?: '—' }}</td>
+            <td class="k">Doublant</td><td>{{ pr.isRepeating ? 'Oui' : 'Non' }}</td>
+        </tr>
+        <tr>
+            <td class="k">Matricule interne</td><td>{{ pr.matriculeInterne ?: '—' }}</td>
+            <td class="k">Matricule national</td><td>{{ pr.matriculeNational ?: '—' }}</td>
+        </tr>
+        <tr>
+            <td class="k">N° extrait de naissance</td><td>{{ pr.birthCertificateNumber ?: '—' }}</td>
+            <td class="k">N° CMU</td><td>{{ pr.cmuNumber ?: '—' }}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">SCOLARITÉ</div>
+    <table class="fields">
+        <tr>
+            <td class="k">Niveau demandé</td><td>{{ pr.requestedLevel ? pr.requestedLevel.name : '—' }}</td>
+            <td class="k">Dernière école fréquentée</td><td>{{ pr.lastSchoolAttended ?: '—' }}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">COORDONNÉES DE L'ÉLÈVE</div>
+    <table class="fields">
+        <tr>
+            <td class="k">Téléphone</td><td>{{ pr.phone ?: '—' }}</td>
+            <td class="k">Email</td><td>{{ pr.email ?: '—' }}</td>
+        </tr>
+        <tr>
+            <td class="k">Adresse</td><td colspan="3">{{ pr.address ?: '—' }}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">PARENT / TUTEUR</div>
+    <table class="fields">
+        <tr>
+            <td class="k">Nom du parent</td><td>{{ pr.parentName ?: '—' }}</td>
+            <td class="k">Fonction</td><td>{{ pr.parentFunction ?: '—' }}</td>
+        </tr>
+        <tr>
+            <td class="k">Téléphone</td><td>{{ pr.parentPhone ?: '—' }}</td>
+            <td class="k">Email</td><td>{{ pr.parentEmail ?: '—' }}</td>
+        </tr>
+        <tr>
+            <td class="k">Domicile</td><td colspan="3">{{ pr.parentAddress ?: '—' }}</td>
+        </tr>
+        <tr>
+            <td class="k">Contact d'urgence</td><td>{{ pr.emergencyContact ?: '—' }}</td>
+            <td class="k">Tél. d'urgence</td><td>{{ pr.emergencyPhone ?: '—' }}</td>
+        </tr>
+    </table>
+
+    {% if pr.medicalInfo or pr.notes %}
+        <div class="section-title">INFORMATIONS COMPLÉMENTAIRES</div>
+        <table class="fields">
+            {% if pr.medicalInfo %}<tr><td class="k">Infos médicales</td><td colspan="3">{{ pr.medicalInfo }}</td></tr>{% endif %}
+            {% if pr.notes %}<tr><td class="k">Observations</td><td colspan="3">{{ pr.notes }}</td></tr>{% endif %}
+        </table>
+    {% endif %}
+
+    <table class="footer">
+        <tr>
+            <td class="sign">
+                <div>Signature du parent / tuteur</div>
+                <div class="line"></div>
+            </td>
+            <td class="sign">
+                <div>Cachet et signature de l'établissement</div>
+                <div class="line"></div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="note">Document généré le {{ generated_at|date('d/m/Y H:i') }}. Les informations ci-dessus sont déclarées exactes par le parent / tuteur.</div>
+</body>
+</html>

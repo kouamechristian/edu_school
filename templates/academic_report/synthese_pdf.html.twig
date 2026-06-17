@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 26px 30px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 70px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title-row { width: 100%; margin-bottom: 12px; }
+        .title-row td { font-size: 13px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        table.cards { width: 100%; border-collapse: separate; border-spacing: 6px; margin-bottom: 12px; }
+        table.cards td { border: 1px solid #ccc; border-radius: 4px; padding: 8px 10px; text-align: center; background: #f7f9fb; width: 25%; }
+        table.cards .v { font-size: 16px; font-weight: bold; color: #1e3a5f; }
+        table.cards .l { font-size: 9px; color: #555; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 4px 6px; font-size: 10px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.center { text-align: center; }
+        table.list tr.grand td { background: #dfe6ee; font-weight: bold; }
+        .footer { width: 100%; margin-top: 22px; font-size: 11px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>SYNTHÈSE GÉNÉRALE DES RÉSULTATS SCOLAIRES</b></td>
+            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="cards">
+        <tr>
+            <td><div class="v">{{ overall.count }}</div><div class="l">Effectif total</div></td>
+            <td><div class="v">{{ overall.graded }}</div><div class="l">Élèves notés</div></td>
+            <td><div class="v">{{ overall.admis }}</div><div class="l">Admis (moy. &gt;= 10)</div></td>
+            <td><div class="v">{{ overall.redouble }}</div><div class="l">Redoublants (&lt; 10)</div></td>
+        </tr>
+        <tr>
+            <td><div class="v">{{ overall.pct|number_format(1, ',', ' ') }} %</div><div class="l">Taux de réussite</div></td>
+            <td><div class="v">{{ overall.average is not null ? overall.average|number_format(2, ',', ' ') : '—' }}</div><div class="l">Moyenne générale</div></td>
+            <td><div class="v">{{ overall.classes }}</div><div class="l">Classes</div></td>
+            <td><div class="v">{{ levels|length }}</div><div class="l">Niveaux</div></td>
+        </tr>
+    </table>
+
+    <table class="list">
+        <thead>
+            <tr>
+                <th style="width:30%">Niveau</th>
+                <th>Effectif noté</th>
+                <th>Admis</th>
+                <th>Redouble</th>
+                <th>% Réussite</th>
+                <th>Moyenne</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lvl in levels %}
+                <tr>
+                    <td>{{ lvl.label }}</td>
+                    <td class="center">{{ lvl.graded }} / {{ lvl.count }}</td>
+                    <td class="center">{{ lvl.admis }}</td>
+                    <td class="center">{{ lvl.redouble }}</td>
+                    <td class="center">{{ lvl.pct|number_format(1, ',', ' ') }} %</td>
+                    <td class="center">{{ lvl.average is not null ? lvl.average|number_format(2, ',', ' ') : '—' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="6" class="center">Aucune donnée disponible</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Le Directeur des Études</td>
+        </tr>
+    </table>
+</body>
+</html>

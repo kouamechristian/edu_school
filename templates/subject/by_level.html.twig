@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% set level_name = level ? level.name : 'Commun à tous les niveaux' %}
+
+{% block title %}Matières — {{ level_name }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: level_name,
+        subtitle: 'Matières du niveau',
+        icon: 'fa-book',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Matières', path: path('admin_subject_index') },
+            { label: level_name }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_subject_index') }}" class="btn btn-light me-2"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+            <a href="{{ level ? path('admin_subject_new', {'level': level.id}) : path('admin_subject_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouvelle Matière</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Matières <span class="badge badge-soft ms-1">{{ subjects|length }}</span></h6></div>
+        <div class="card-body">
+            {% if subjects is empty %}
+                {{ empty_state('fa-book', 'Aucune matière', 'Cliquez sur « Nouvelle Matière » pour en ajouter à ce niveau.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr><th>Code</th><th>Nom</th><th>Type</th><th>Coef.</th><th>Heures/sem.</th><th>Couleur</th><th>Statut</th><th class="text-end" width="160">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for subject in subjects %}
+                            <tr>
+                                <td><strong>{{ subject.code }}</strong></td>
+                                <td>{{ subject.name }}</td>
+                                <td>{% if subject.type %}<span class="badge bg-info">{{ subject.typeLabel }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                                <td>{{ subject.coefficient ?? '—' }}</td>
+                                <td>{{ subject.hoursPerWeek ?? '—' }}h</td>
+                                <td>{% if subject.color %}<span class="badge" style="background-color: {{ subject.color }}; color: #fff;">{{ subject.color }}</span>{% else %}—{% endif %}</td>
+                                <td><span class="badge badge-soft {{ subject.isActive ? 'success' : 'danger' }}">{{ subject.isActive ? 'Active' : 'Inactive' }}</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_subject_show', {'id': subject.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
+                                        <a href="{{ path('admin_subject_edit', {'id': subject.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        <form method="post" action="{{ path('admin_subject_toggle', {'id': subject.id}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ subject.id) }}">
+                                            <button type="submit" class="btn btn-outline-secondary" title="{{ subject.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ subject.isActive ? 'ban' : 'check' }}"></i></button>
+                                        </form>
+                                        <form method="post" action="{{ path('admin_subject_delete', {'id': subject.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette matière ?');" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ subject.id) }}">
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

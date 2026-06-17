@@ -20,6 +20,10 @@ use App\Repository\LevelRepository;
 use App\Service\FeeAssignmentService;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -476,21 +480,126 @@ class StudentController extends AbstractController
     #[Route('/dashboard/classe/{id}', name: 'classroom_students', methods: ['GET'])]
     public function classroomStudents(Classroom $classroom, StudentRepository $studentRepository): Response
     {
-        $students = $studentRepository->createQueryBuilder('s')
-            ->leftJoin('s.classroom', 'c')
-            ->where('c.id = :classId')
-            ->andWhere('s.isActive = :active')
-            ->setParameter('classId', $classroom->getId())
-            ->setParameter('active', true)
-            ->orderBy('s.lastName', 'ASC')
-            ->addOrderBy('s.firstName', 'ASC')
-            ->getQuery()
-            ->getResult();
-
         return $this->render('student/classroom_students.html.twig', [
             'classroom' => $classroom,
-            'students' => $students,
+            'students' => $studentRepository->findActiveByClassroom($classroom->getId()),
         ]);
+    }
+
+    /**
+     * Génère la liste des élèves d'une classe au format PDF (modèle officiel).
+     */
+    #[Route('/dashboard/classe/{id}/pdf', name: 'classroom_students_pdf', methods: ['GET'])]
+    public function classroomStudentsPdf(Classroom $classroom, StudentRepository $studentRepository): Response
+    {
+        $students = $studentRepository->findActiveByClassroom($classroom->getId());
+        $school = $classroom->getSchool();
+
+        // Logo embarqué en base64 (Dompdf lit ainsi l'image sans accès disque/URL).
+        $logoData = null;
+        if ($school && $school->getLogo()) {
+            $logoPath = $this->getParameter('kernel.project_dir') . '/public/' . ltrim($school->getLogo(), '/');
+            if (is_file($logoPath)) {
+                $mime = mime_content_type($logoPath) ?: 'image/png';
+                $logoData = 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($logoPath));
+            }
+        }
+
+        $html = $this->renderView('student/classroom_students_pdf.html.twig', [
+            'classroom' => $classroom,
+            'students' => $students,
+            'school' => $school,
+            'logo_data' => $logoData,
+            'generated_at' => new \DateTime(),
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = sprintf('LISTE_CLASSE_%d.pdf', $classroom->getId());
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
+        ]);
+    }
+
+    /**
+     * Génère la carte d'accès d'un élève (PDF avec QR code), consultable et téléchargeable.
+     */
+    #[Route('/{id}/carte', name: 'card', methods: ['GET'])]
+    public function accessCard(Student $student): Response
+    {
+        $school = $student->getSchool();
+
+        // Logo, photo et cachet embarqués en base64 (Dompdf lit ainsi l'image sans accès disque/URL).
+        $logoData = $this->imageDataUri($school?->getLogo());
+        $photoData = $this->imageDataUri($student->getPhoto());
+        $cachetData = $this->imageDataUri($school?->getCachetDirection());
+
+        // QR code : identifiant d'accès de l'élève (lisible par un lecteur au point de contrôle).
+        $payload = sprintf(
+            "EDU-SCHOOL CARTE D'ACCES\nMatricule: %s\nMat. National: %s\nNom: %s\nClasse: %s\nEtablissement: %s",
+            $student->getMatriculeInterne() ?: '-',
+            $student->getMatriculeNational() ?: '-',
+            $student->getFullName(),
+            $student->getClassroom()?->getName() ?: '-',
+            $school?->getName() ?: '-'
+        );
+        $qrResult = (new PngWriter())->write(QrCode::create($payload)->setSize(220)->setMargin(4));
+
+        $html = $this->renderView('student/card_pdf.html.twig', [
+            'student' => $student,
+            'school' => $school,
+            'logo_data' => $logoData,
+            'photo_data' => $photoData,
+            'cachet_data' => $cachetData,
+            'qr_data' => $qrResult->getDataUri(),
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        // Dimensions du modèle officiel : 156 × 105 points (≈ 55 × 37 mm).
+        $dompdf->setPaper([0, 0, 156, 105]);
+        $dompdf->render();
+
+        $filename = sprintf('CARTE_ACCES_%s.pdf', $student->getMatriculeInterne() ?: $student->getId());
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
+        ]);
+    }
+
+    /**
+     * Construit une data-URI base64 à partir d'un chemin d'image relatif à /public.
+     */
+    private function imageDataUri(?string $relativePath): ?string
+    {
+        if (!$relativePath) {
+            return null;
+        }
+
+        $path = $this->getParameter('kernel.project_dir') . '/public/' . ltrim($relativePath, '/');
+        if (!is_file($path)) {
+            return null;
+        }
+
+        $mime = mime_content_type($path) ?: 'image/png';
+
+        return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($path));
     }
 
     /**

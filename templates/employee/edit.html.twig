@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier l'Employé{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-9">
+            {% embed 'components/page_header.html.twig' with {
+                title: 'Modifier l\'Employé',
+                subtitle: employee.fullName,
+                icon: 'fa-id-badge',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Employés', path: path('admin_employee_index') },
+                    { label: employee.fullName, path: path('admin_employee_show', {'id': employee.id}) },
+                    { label: 'Modifier' }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_employee_show', {'id': employee.id}) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card">
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.firstName) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.lastName) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">{{ form_row(form.employeeType) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.position) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.department) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">{{ form_row(form.phone) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.gender) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.dateOfBirth) }}</div>
+                        </div>
+                        <div class="mb-3">{{ form_row(form.address) }}</div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">{{ form_row(form.salary) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.hireDate) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.terminationDate) }}</div>
+                        </div>
+                        <div class="form-check mb-3">{{ form_widget(form.isActive) }} {{ form_label(form.isActive) }}</div>
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ path('admin_employee_show', {'id': employee.id}) }}" class="btn btn-light"><i class="fas fa-times me-1"></i> Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer les modifications</button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            <div class="card card-accent danger mt-4">
+                <div class="card-body">
+                    <h6 class="fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Zone dangereuse</h6>
+                    <p class="text-muted small">La suppression de cette fiche employé est irréversible et supprimera ses contrats associés.</p>
+                    <form method="post" action="{{ path('admin_employee_delete', {'id': employee.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette fiche employé ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ employee.id) }}">
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i> Supprimer la fiche</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

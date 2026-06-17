@@ -1,0 +1,81 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Gestion des Contrats{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Gestion des Contrats',
+        subtitle: current_school ? current_school.name ~ '  ·  ' ~ contracts|length ~ ' contrat(s)' : 'Ressources Humaines',
+        icon: 'fa-file-contract',
+        color: 'primary',
+        breadcrumb: [ { label: 'Ressources Humaines' }, { label: 'Contrats' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_contract_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau Contrat</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if not current_school %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Veuillez sélectionner un établissement pour voir les contrats.</div>
+    {% else %}
+        <div class="card filter-card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Statut</label>
+                        <select name="status" class="form-select">
+                            <option value="">Tous les statuts</option>
+                            <option value="draft" {% if status == 'draft' %}selected{% endif %}>Brouillon</option>
+                            <option value="active" {% if status == 'active' %}selected{% endif %}>En cours</option>
+                            <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>Suspendu</option>
+                            <option value="terminated" {% if status == 'terminated' %}selected{% endif %}>Rompu</option>
+                            <option value="expired" {% if status == 'expired' %}selected{% endif %}>Expiré</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card table-card">
+            <div class="card-body">
+                {% if contracts is empty %}
+                    {{ empty_state('fa-file-contract', 'Aucun contrat', 'Aucun contrat ne correspond à vos critères.') }}
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr><th>Référence</th><th>Employé</th><th>Type</th><th>Période</th><th>Salaire</th><th>Statut</th><th class="text-end">Actions</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for contract in contracts %}
+                                    <tr>
+                                        <td><strong class="text-primary">{{ contract.reference }}</strong></td>
+                                        <td><a href="{{ path('admin_employee_show', {'id': contract.employee.id}) }}">{{ contract.employee.fullName }}</a></td>
+                                        <td><span class="badge badge-soft secondary">{{ contract.contractTypeLabel }}</span></td>
+                                        <td><small>{{ contract.startDate|date('d/m/Y') }} → {{ contract.endDate ? contract.endDate|date('d/m/Y') : 'Indéterminée' }}</small></td>
+                                        <td>{{ contract.baseSalary ? contract.baseSalary|number_format(2, ',', ' ') : '—' }}</td>
+                                        <td><span class="badge badge-soft {{ contract.statusBadgeClass }}">{{ contract.statusLabel }}</span></td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ path('admin_contract_show', {'id': contract.id}) }}" class="btn btn-outline-info" title="Détails"><i class="fas fa-eye"></i></a>
+                                                <a href="{{ path('admin_contract_edit', {'id': contract.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rapports — Élèves{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Rapports',
+        subtitle: 'Effectifs, listes et fiches imprimables',
+        icon: 'fa-file-lines',
+        color: 'primary',
+        breadcrumb: [ { label: 'Élèves' }, { label: 'Rapports' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 70%;">Nom du rapport</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    <strong>{{ report.name }}</strong>
+                                </td>
+                                <td class="text-end">
+                                    {% if report.type == 'pdf' %}
+                                        <a href="{{ path('admin_report_' ~ report.key) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ path('admin_report_classe_selection', {'report': report.key}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-list me-1"></i> Choisir une classe
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

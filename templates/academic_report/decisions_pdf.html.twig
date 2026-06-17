@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 24px 28px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 12px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 76px; }
+        .header .logo img { max-height: 62px; max-width: 70px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 13px; }
+        .header .school .ministry { font-size: 10px; }
+        .header .school .tel { font-size: 9px; }
+        .title-row { width: 100%; margin-bottom: 8px; }
+        .title-row td { font-size: 12px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        .class-title { background: #1e3a5f; color: #fff; font-weight: bold; font-size: 10px; padding: 3px 8px; margin: 8px 0 2px; }
+        table.list { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 5px; font-size: 9px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.center { text-align: center; }
+        table.list td.num { text-align: center; width: 30px; }
+        .adm { color: #0a7d2c; font-weight: bold; }
+        .red { color: #b00; font-weight: bold; }
+        .footer { width: 100%; margin-top: 14px; font-size: 10px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 140px; }
+        .note { font-size: 8px; color: #666; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>LISTE DES ÉLÈVES AVEC DÉCISION DE FIN D'ANNÉE</b></td>
+            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    {% for class in classes %}
+        <div class="class-title">{{ class.levelLabel }} — {{ class.label }}</div>
+        <table class="list">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Nom &amp; Prénoms</th>
+                    <th style="width:18%">Moyenne /20</th>
+                    <th style="width:18%">Décision</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in class.entries %}
+                    <tr>
+                        <td class="num">{{ loop.index }}</td>
+                        <td>{{ e.student.lastName|upper }} {{ e.student.firstName }}</td>
+                        <td class="center">{{ e.average is not null ? e.average|number_format(2, ',', ' ') : '—' }}</td>
+                        <td class="center {{ e.average is null ? '' : (e.average >= 10 ? 'adm' : 'red') }}">{{ e.decision }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" class="center">Aucun élève</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Aucune donnée disponible.</p>
+    {% endfor %}
+
+    <div class="note">Décision calculée sur la moyenne annuelle : Admis si moyenne &gt;= 10/20, sinon Redouble. « — » : élève non noté.</div>
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Le Conseil de Classe</td>
+        </tr>
+    </table>
+</body>
+</html>

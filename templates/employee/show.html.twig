@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails de l'Employé{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: employee.fullName,
+        subtitle: employee.employeeTypeLabel,
+        icon: 'fa-id-badge',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Employés', path: path('admin_employee_index') },
+            { label: employee.fullName }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_contract_new', {'employee': employee.id}) }}" class="btn btn-success"><i class="fas fa-file-signature me-1"></i> Nouveau contrat</a>
+            <a href="{{ path('admin_employee_edit', {'id': employee.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+            <a href="{{ path('admin_employee_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-user me-2"></i>{{ employee.fullName }}</h6>
+            <span class="badge badge-soft {{ employee.isActive ? 'success' : 'danger' }}">{{ employee.isActive ? 'Actif' : 'Inactif' }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted border-bottom pb-2 mb-3">Informations professionnelles</h6>
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Type</div><div class="info-value"><span class="badge badge-soft secondary">{{ employee.employeeTypeLabel }}</span></div></div>
+                        <div class="info-row"><div class="info-label">Poste</div><div class="info-value">{{ employee.position ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Département</div><div class="info-value">{{ employee.department ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Salaire de référence</div><div class="info-value">{{ employee.salary ? employee.salary|number_format(2, ',', ' ') : '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Embauché le</div><div class="info-value">{{ employee.hireDate ? employee.hireDate|date('d/m/Y') : '—' }}</div></div>
+                        {% if employee.terminationDate %}<div class="info-row"><div class="info-label">Fin de fonction</div><div class="info-value">{{ employee.terminationDate|date('d/m/Y') }}</div></div>{% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted border-bottom pb-2 mb-3">Coordonnées</h6>
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">{{ employee.phone ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Genre</div><div class="info-value">{{ employee.gender == 'M' ? 'Masculin' : (employee.gender == 'F' ? 'Féminin' : '—') }}</div></div>
+                        <div class="info-row"><div class="info-label">Date de naissance</div><div class="info-value">{{ employee.dateOfBirth ? employee.dateOfBirth|date('d/m/Y') : '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Adresse</div><div class="info-value">{{ employee.address ?: '—' }}</div></div>
+                        {% if employee.user %}<div class="info-row"><div class="info-label">Compte</div><div class="info-value">{{ employee.user.username }}</div></div>{% endif %}
+                        <div class="info-row"><div class="info-label">Établissements</div><div class="info-value">{% for s in employee.schools %}<span class="badge badge-soft info">{{ s.name }}</span> {% else %}—{% endfor %}</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card table-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-file-contract me-2"></i>Contrats ({{ employee.contracts|length }})</h6>
+            <a href="{{ path('admin_contract_new', {'employee': employee.id}) }}" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i> Ajouter</a>
+        </div>
+        <div class="card-body">
+            {% if employee.contracts is empty %}
+                <p class="text-muted mb-0 text-center py-3">Aucun contrat enregistré pour cet employé.</p>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr><th>Référence</th><th>Type</th><th>Période</th><th>Salaire</th><th>Statut</th><th class="text-end">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for contract in employee.contracts %}
+                                <tr>
+                                    <td><strong class="text-primary">{{ contract.reference }}</strong></td>
+                                    <td><span class="badge badge-soft secondary">{{ contract.contractTypeLabel }}</span></td>
+                                    <td><small>{{ contract.startDate|date('d/m/Y') }} → {{ contract.endDate ? contract.endDate|date('d/m/Y') : 'Indéterminée' }}</small></td>
+                                    <td>{{ contract.baseSalary ? contract.baseSalary|number_format(2, ',', ' ') : '—' }}</td>
+                                    <td><span class="badge badge-soft {{ contract.statusBadgeClass }}">{{ contract.statusLabel }}</span></td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ path('admin_contract_show', {'id': contract.id}) }}" class="btn btn-outline-info" title="Détails"><i class="fas fa-eye"></i></a>
+                                            <a href="{{ path('admin_contract_edit', {'id': contract.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

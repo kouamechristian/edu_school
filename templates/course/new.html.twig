@@ -57,4 +57,95 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const subjectSelect = document.getElementById('course_subject');
+    const teacherSelect = document.getElementById('course_teacher');
+    if (!subjectSelect || !teacherSelect) {
+        return;
+    }
+
+    const base = '{{ path('admin_course_index') }}'; // .../admin/courses/
+    const placeholderText = (teacherSelect.options[0] && teacherSelect.options[0].value === '')
+        ? teacherSelect.options[0].textContent
+        : 'Sélectionnez un enseignant';
+
+    // Vide le champ enseignant (compatible TomSelect ou select natif).
+    function clearTeachers() {
+        const ts = teacherSelect.tomselect;
+        if (ts) {
+            ts.clear(true);
+            ts.clearOptions();
+            ts.refreshOptions(false);
+        } else {
+            teacherSelect.innerHTML = '';
+            const ph = document.createElement('option');
+            ph.value = '';
+            ph.textContent = placeholderText;
+            teacherSelect.appendChild(ph);
+        }
+    }
+
+    // Remplit le champ enseignant avec la liste reçue.
+    function setTeachers(list, selectedId, selectedLabel) {
+        const options = [];
+        let found = false;
+        list.forEach(function (t) {
+            options.push({ value: String(t.id), text: t.name });
+            if (selectedId && String(selectedId) === String(t.id)) { found = true; }
+        });
+        // Édition : conserver l'enseignant déjà enregistré même s'il n'enseigne
+        // plus cette matière, pour ne pas le perdre silencieusement.
+        if (selectedId && !found) {
+            options.push({ value: String(selectedId), text: (selectedLabel || 'Enseignant actuel') + ' (hors matière)' });
+        }
+
+        const ts = teacherSelect.tomselect;
+        if (ts) {
+            ts.clear(true);
+            ts.clearOptions();
+            options.forEach(function (o) { ts.addOption(o); });
+            ts.refreshOptions(false);
+            if (selectedId) { ts.setValue(String(selectedId), true); }
+        } else {
+            teacherSelect.innerHTML = '';
+            const ph = document.createElement('option');
+            ph.value = '';
+            ph.textContent = placeholderText;
+            teacherSelect.appendChild(ph);
+            options.forEach(function (o) {
+                const opt = document.createElement('option');
+                opt.value = o.value;
+                opt.textContent = o.text;
+                if (selectedId && String(selectedId) === o.value) { opt.selected = true; }
+                teacherSelect.appendChild(opt);
+            });
+        }
+    }
+
+    function loadTeachers(subjectId, selectedId, selectedLabel) {
+        if (!subjectId) { clearTeachers(); return; }
+        fetch(base + 'teachers-by-subject/' + encodeURIComponent(subjectId), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (list) { setTeachers(list, selectedId, selectedLabel); })
+            .catch(function () { /* erreur réseau : on laisse le champ vide */ });
+    }
+
+    subjectSelect.addEventListener('change', function () {
+        loadTeachers(subjectSelect.value, null, null);
+    });
+
+    // Init différé (setTimeout 0) pour s'exécuter APRÈS l'initialisation de
+    // TomSelect, qui se fait aussi sur DOMContentLoaded.
+    setTimeout(function () {
+        const currentLabel = teacherSelect.options[teacherSelect.selectedIndex]
+            ? teacherSelect.options[teacherSelect.selectedIndex].textContent
+            : null;
+        loadTeachers(subjectSelect.value, teacherSelect.value, currentLabel);
+    }, 0);
+});
+</script>
 {% endblock %}

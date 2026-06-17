@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 20px 22px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 5px; margin-bottom: 10px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 64px; }
+        .header .logo img { max-height: 52px; max-width: 58px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 12px; }
+        .header .school .ministry { font-size: 9px; }
+        .header .school .tel { font-size: 8px; }
+        .title-row { width: 100%; margin-bottom: 6px; }
+        .title-row td { font-size: 11px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        table.matrix { width: 100%; border-collapse: collapse; }
+        table.matrix th, table.matrix td { border: 1px solid #000; padding: 2px 3px; font-size: 8px; }
+        table.matrix th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.matrix td.center { text-align: center; }
+        table.matrix td.cls { font-weight: bold; }
+        .footer { width: 100%; margin-top: 12px; font-size: 9px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>TABLEAU RÉCAPITULATIF DES MOYENNES PAR MATIÈRE</b></td>
+            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="matrix">
+        <thead>
+            <tr>
+                <th style="text-align:left">Classe</th>
+                {% for subject in subjects %}<th>{{ subject.name }}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for class in classes %}
+                <tr>
+                    <td class="cls">{{ class.label }}</td>
+                    {% for subject in subjects %}
+                        <td class="center">{{ class.subjectAverages[subject.id] is defined ? class.subjectAverages[subject.id]|number_format(2, ',', ' ') : '—' }}</td>
+                    {% endfor %}
+                </tr>
+            {% else %}
+                <tr><td class="center" colspan="{{ subjects|length + 1 }}">Aucune donnée disponible</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td>le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>

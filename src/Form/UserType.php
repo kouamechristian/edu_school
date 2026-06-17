@@ -137,6 +137,8 @@ class UserType extends AbstractType
                     'Directeur (ROLE_DIRECTEUR)' => 'ROLE_DIRECTEUR',
                     'Agent d\'inscription (ROLE_INSCRIPTION)' => 'ROLE_INSCRIPTION',
                     'Caissier (ROLE_CAISSE)' => 'ROLE_CAISSE',
+                    'Agent de recouvrement (ROLE_RECOUVREMENT)' => 'ROLE_RECOUVREMENT',
+                    'Ressources Humaines (ROLE_RH)' => 'ROLE_RH',
                     'Enseignant (ROLE_ENSEIGNANT)' => 'ROLE_ENSEIGNANT',
                     'Éducateur (ROLE_EDUCATEUR)' => 'ROLE_EDUCATEUR',
                     'Correspondant fichier (ROLE_CORRESPONDANT_FICHIER)' => 'ROLE_CORRESPONDANT_FICHIER',

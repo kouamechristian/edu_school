@@ -184,7 +184,7 @@
                                 <th class="text-end">Mt. annulé</th>
                                 <th class="text-end">Mt. restant</th>
                                 <th>Date insc.</th>
-                                <th width="90">Actions</th>
+                                <th width="120">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -202,7 +202,10 @@
                                     <td class="text-end fw-bold">{{ fin.remaining|number_format(0, ',', ' ') }} F</td>
                                     <td>{{ s.createdAt ? s.createdAt|date('d/m/Y') : '-' }}</td>
                                     <td>
-                                        <a href="{{ path('admin_student_show', {'id': s.id}) }}" class="btn btn-sm btn-outline-primary" title="Voir"><i class="fas fa-eye"></i></a>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ path('admin_student_show', {'id': s.id}) }}" class="btn btn-outline-primary" title="Voir"><i class="fas fa-eye"></i></a>
+                                            <a href="{{ path('admin_student_card', {'id': s.id}) }}" target="_blank" rel="noopener" class="btn btn-outline-success" title="Carte d'accès (lire / télécharger)"><i class="fas fa-id-card"></i></a>
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}

@@ -100,6 +100,7 @@
                                     <td class="text-muted">{{ pre_registration.createdAt|date('d/m/Y H:i') }}</td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
+                                            <a href="{{ path('admin_pre_registration_fiche', {'id': pre_registration.id}) }}" target="_blank" rel="noopener" class="btn btn-outline-danger" title="Fiche d'inscription (lire / télécharger)"><i class="fas fa-file-pdf"></i></a>
                                             <a href="{{ path('admin_pre_registration_edit', {'id': pre_registration.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
                                             {% if pre_registration.isPending() %}
                                                 <form method="post" action="{{ path('admin_pre_registration_change_status', {'id': pre_registration.id, 'status': 'documents_required'}) }}" class="d-inline" onsubmit="return confirm('Demander des documents ?')">

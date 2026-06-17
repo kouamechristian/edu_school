@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 32px 38px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #000; line-height: 1.5; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 8px; margin-bottom: 18px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 64px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 15px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+
+        .meta { width: 100%; margin-bottom: 16px; }
+        .meta td { vertical-align: top; font-size: 11px; }
+        .meta .right { text-align: right; }
+
+        .object { margin: 18px 0 14px 0; font-weight: bold; font-size: 13px; text-decoration: underline; }
+        .amount-box { border: 1px solid #1e3a5f; border-collapse: collapse; width: 60%; margin: 12px 0; }
+        .amount-box td { border: 1px solid #1e3a5f; padding: 6px 10px; font-size: 12px; }
+        .amount-box td.k { background: #f4f6f8; font-weight: bold; width: 55%; }
+        .amount-box td.v { text-align: right; }
+        .amount-box .total td { font-weight: bold; background: #fbeaea; }
+
+        p { margin: 8px 0; text-align: justify; }
+        .sign { margin-top: 36px; width: 100%; }
+        .sign td { vertical-align: top; width: 50%; }
+        .sign .right { text-align: center; }
+        .sign .line { border-bottom: 1px solid #000; height: 40px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="meta">
+        <tr>
+            <td>
+                <b>À l'attention du parent / tuteur de :</b><br>
+                {{ student.lastName|upper }} {{ student.firstName }}<br>
+                {% if student.parentName %}Parent : {{ student.parentName }}<br>{% endif %}
+                Classe : {{ student.classroom ? student.classroom.name : '—' }}<br>
+                Matricule : {{ student.matriculeInterne ?: '—' }}
+            </td>
+            <td class="right">
+                {{ school ? school.name : '' }}, le {{ generated_at|date('d/m/Y') }}<br>
+                Année scolaire : {{ current_school_year ? current_school_year.name : '—' }}
+            </td>
+        </tr>
+    </table>
+
+    <div class="object">Objet : Relance pour solde de scolarité impayé</div>
+
+    <p>Madame, Monsieur,</p>
+
+    <p>
+        Sauf erreur ou omission de notre part, il ressort de nos écritures que la scolarité de votre enfant
+        <b>{{ student.lastName|upper }} {{ student.firstName }}</b>, inscrit(e) en classe de
+        <b>{{ student.classroom ? student.classroom.name : '—' }}</b>, présente à ce jour un solde restant dû.
+    </p>
+
+    <table class="amount-box">
+        <tr><td class="k">Montant total dû</td><td class="v">{{ due|number_format(0, ',', ' ') }} F CFA</td></tr>
+        <tr><td class="k">Montant déjà payé</td><td class="v">{{ paid|number_format(0, ',', ' ') }} F CFA</td></tr>
+        <tr class="total"><td class="k">Reste à payer</td><td class="v">{{ balance|number_format(0, ',', ' ') }} F CFA</td></tr>
+    </table>
+
+    <p>
+        Nous vous prions de bien vouloir procéder au règlement de ce solde dans les meilleurs délais
+        auprès de notre service de la comptabilité, afin de régulariser la situation de votre enfant.
+    </p>
+
+    <p>
+        Comptant sur votre diligence habituelle, nous vous prions d'agréer, Madame, Monsieur,
+        l'expression de nos salutations distinguées.
+    </p>
+
+    <table class="sign">
+        <tr>
+            <td></td>
+            <td class="right">
+                <div>La Direction / Le Service Comptable</div>
+                <div class="line"></div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

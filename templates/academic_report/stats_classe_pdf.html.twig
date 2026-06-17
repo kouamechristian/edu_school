@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 24px 26px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 12px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 70px; }
+        .header .logo img { max-height: 60px; max-width: 66px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 13px; }
+        .header .school .ministry { font-size: 10px; }
+        .header .school .tel { font-size: 9px; }
+        .title-row { width: 100%; margin-bottom: 8px; }
+        .title-row td { font-size: 12px; }
+        .title-row .right { text-align: right; }
+        .title-row b { font-weight: bold; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; font-size: 9px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.center { text-align: center; }
+        table.list tr.grand td { background: #dfe6ee; font-weight: bold; }
+        .footer { width: 100%; margin-top: 18px; font-size: 10px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 140px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>{{ report_title|default('TABLEAUX STATISTIQUES DES RÉSULTATS SCOLAIRES PAR CLASSE') }}</b></td>
+            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    <table class="list">
+        <thead>
+            <tr>
+                <th style="width:16%">Classe</th>
+                <th style="width:18%">Niveau</th>
+                <th>Noté / Effectif</th>
+                <th>Admis</th>
+                <th>Redouble</th>
+                <th>% Réussite</th>
+                <th>Moyenne</th>
+                <th>Min</th>
+                <th>Max</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in classes %}
+                <tr>
+                    <td>{{ c.label }}</td>
+                    <td>{{ c.levelLabel }}</td>
+                    <td class="center">{{ c.graded }} / {{ c.count }}</td>
+                    <td class="center">{{ c.admis }}</td>
+                    <td class="center">{{ c.redouble }}</td>
+                    <td class="center">{{ c.pct|number_format(1, ',', ' ') }} %</td>
+                    <td class="center">{{ c.average is not null ? c.average|number_format(2, ',', ' ') : '—' }}</td>
+                    <td class="center">{{ c.min is not null ? c.min|number_format(2, ',', ' ') : '—' }}</td>
+                    <td class="center">{{ c.max is not null ? c.max|number_format(2, ',', ' ') : '—' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="9" class="center">Aucune donnée disponible</td></tr>
+            {% endfor %}
+            {% if classes is not empty %}
+                <tr class="grand">
+                    <td colspan="2">TOTAL GÉNÉRAL</td>
+                    <td class="center">{{ overall.graded }} / {{ overall.count }}</td>
+                    <td class="center">{{ overall.admis }}</td>
+                    <td class="center">{{ overall.redouble }}</td>
+                    <td class="center">{{ overall.pct|number_format(1, ',', ' ') }} %</td>
+                    <td class="center">{{ overall.average is not null ? overall.average|number_format(2, ',', ' ') : '—' }}</td>
+                    <td class="center">{{ overall.min is not null ? overall.min|number_format(2, ',', ' ') : '—' }}</td>
+                    <td class="center">{{ overall.max is not null ? overall.max|number_format(2, ',', ' ') : '—' }}</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>
