@@ -117,6 +117,7 @@
                 Total d'heures d'absence : <b>{{ absence_total ?? 0 }} H</b><br>
                 Justifiées : <b>{{ absence_justified ?? 0 }} H</b><br>
                 Non justifiées : <b>{{ absence_unjustified ?? 0 }} H</b>
+                {% if (absence_penalty ?? 0) > 0 %}<br>Pénalité conduite : <b>− {{ absence_penalty }} pts</b>{% endif %}
             </td>
             <td>
                 {% if general_average is not null %}

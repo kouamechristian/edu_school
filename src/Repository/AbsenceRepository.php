@@ -204,6 +204,26 @@ class AbsenceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Absences actives d'un élève pour une période (avec leur type chargé),
+     * pour le calcul des heures et de la pénalité de conduite.
+     *
+     * @return Absence[]
+     */
+    public function findActiveByStudentAndPeriod(int $studentId, int $periodId): array
+    {
+        return $this->createQueryBuilder('a')
+            ->leftJoin('a.absenceType', 'at')->addSelect('at')
+            ->andWhere('a.student = :studentId')
+            ->andWhere('a.period = :periodId')
+            ->andWhere('a.isActive = :active')
+            ->setParameter('studentId', $studentId)
+            ->setParameter('periodId', $periodId)
+            ->setParameter('active', true)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Compte les absences par élève, période et type
      */
     public function countByStudentPeriodAndType(int $studentId, int $periodId, string $type): int
