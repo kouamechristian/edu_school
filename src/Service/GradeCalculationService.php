@@ -48,15 +48,21 @@ class GradeCalculationService
 
             if ($average !== null) {
                 $subjectCoef = (float) $subject->getCoefficient();
-                
+                // Note ramenée sur le barème de la matière (« note sur bulletin »),
+                // prise en compte dans la moyenne générale.
+                $bareme = (int) ($subject->getNoteSurBulletin() ?: 20);
+                $noteBareme = $average * $bareme / 20;
+
                 $results['subjects'][] = [
                     'subject' => $subject,
                     'average' => $average,
+                    'bareme' => $bareme,
+                    'note_bareme' => round($noteBareme, 2),
                     'coefficient' => $subjectCoef,
-                    'weighted_average' => $average * $subjectCoef,
+                    'weighted_average' => round($noteBareme * $subjectCoef, 2),
                 ];
 
-                $totalPoints += $average * $subjectCoef;
+                $totalPoints += $noteBareme * $subjectCoef;
                 $totalCoefficient += $subjectCoef;
             }
         }
@@ -197,17 +203,30 @@ class GradeCalculationService
             }
         }
 
-        // Pré-calcul des moyennes par matière (pour le rang) et générales.
-        $subjectAverages = []; // [subjectId][studentId] => avg
-        $generalAverages = []; // [studentId] => avg
+        // Barème par matière (« note sur bulletin », 20 par défaut).
+        $baremeBySubject = [];
+        foreach ($subjects as $subject) {
+            $baremeBySubject[$subject->getId()] = (int) ($subject->getNoteSurBulletin() ?: 20);
+        }
+
+        // Pré-calcul des moyennes par matière (pour le rang) et générales. La moyenne
+        // générale intègre le barème : Σ(note_sur_barème × coef) / Σ(coef).
+        $subjectAverages = []; // [subjectId][studentId] => avg (/20)
+        $generalAverages = []; // [studentId] => moyenne générale (avec barème)
         foreach ($classStudents as $cs) {
-            $generalAverages[$cs->getId()] = $this->gradeRepository->calculateGeneralAverageByStudentAndPeriod($cs->getId(), $periodId, true);
+            $tp = 0.0;
+            $tc = 0.0;
             foreach ($subjects as $subject) {
                 $avg = $this->gradeRepository->calculateAverageByStudentSubjectAndPeriod($cs->getId(), $subject->getId(), $periodId, true);
-                if ($avg !== null) {
-                    $subjectAverages[$subject->getId()][$cs->getId()] = $avg;
+                if ($avg === null) {
+                    continue;
                 }
+                $subjectAverages[$subject->getId()][$cs->getId()] = $avg;
+                $coef = (float) $subject->getCoefficient();
+                $tp += ($avg * $baremeBySubject[$subject->getId()] / 20) * $coef;
+                $tc += $coef;
             }
+            $generalAverages[$cs->getId()] = $tc > 0 ? round($tp / $tc, 2) : null;
         }
 
         // Lignes du bulletin pour l'élève cible.
@@ -224,11 +243,12 @@ class GradeCalculationService
             }
 
             $coef = (float) $subject->getCoefficient();
-            // La moyenne reste pondérée sur /20 (cohérence mention/moyenne générale) ;
-            // la note affichée de la matière est ramenée sur son barème « note sur bulletin ».
-            $moyCoef = round($avg * $coef, 2);
-            $bareme = (int) ($subject->getNoteSurBulletin() ?: 20);
-            $moyBareme = round($avg * $bareme / 20, 2);
+            // Note ramenée sur le barème de la matière, prise en compte dans la moyenne
+            // générale (Moy. Coef = note_sur_barème × coef).
+            $bareme = $baremeBySubject[$sid] ?? 20;
+            $noteBareme = $avg * $bareme / 20;
+            $moyBareme = round($noteBareme, 2);
+            $moyCoef = round($noteBareme * $coef, 2);
             $rankInfo = $this->rankAmong($subjectAverages[$sid] ?? [], $student->getId());
 
             $rows[] = [
