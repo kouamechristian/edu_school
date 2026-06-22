@@ -19,6 +19,32 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 class SubjectEquivalent
 {
+    /**
+     * Liste des matières disponibles pour le champ « matière parente » (subject_paren).
+     */
+    public const SUBJECTS = [
+        'FRANÇAIS',
+        'MATHÉMATIQUE',
+        'HISTOIRE-GÉOGRAPHIE',
+        'PHYSIQUE-CHIMIE',
+        'SVT',
+        'PHILOSOPHIE',
+        'ANGLAIS',
+        'ESPAGNOL',
+        'ALLEMAND',
+        'EPS',
+        'MUSIQUE',
+        'EDHC',
+        'CONDUITE',
+        'ART-PLASTIQUE',
+        'DICTÉE',
+        "ACTIVITÉ D'ÉVEIL AU MILIEU",
+        'EXPLOITATION DE TEXTE',
+        'COMPOSITION FRANÇAISE',
+        'ORTHOGRAPHE',
+        'EXPRESSION ORALE',
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -36,6 +62,13 @@ class SubjectEquivalent
     #[Assert\NotBlank(message: 'Le libellé est obligatoire.')]
     #[Assert\Length(max: 150)]
     private ?string $libelle = null;
+
+    /**
+     * Matière parente (choisie dans SubjectEquivalent::SUBJECTS).
+     */
+    #[ORM\Column(name: 'subject_paren', length: 100, nullable: true)]
+    #[Assert\Choice(choices: self::SUBJECTS, message: 'Veuillez choisir une matière valide.')]
+    private ?string $subjectParent = null;
 
     /**
      * Établissement propriétaire (1 établissement → N équivalents).
@@ -98,6 +131,17 @@ class SubjectEquivalent
     public function setLibelle(?string $libelle): static
     {
         $this->libelle = $libelle;
+        return $this;
+    }
+
+    public function getSubjectParent(): ?string
+    {
+        return $this->subjectParent;
+    }
+
+    public function setSubjectParent(?string $subjectParent): static
+    {
+        $this->subjectParent = $subjectParent;
         return $this;
     }
 
