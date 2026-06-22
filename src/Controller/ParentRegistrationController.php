@@ -119,9 +119,9 @@ class ParentRegistrationController extends AbstractController
             return 'Le mot de passe doit contenir au moins 6 caractères.';
         }
 
-        // Le téléphone sert d'identifiant : on impose un minimum exploitable.
-        if (mb_strlen($phone) < 6) {
-            return 'Veuillez saisir un numéro de téléphone valide.';
+        // Le téléphone sert d'identifiant : exactement 10 chiffres.
+        if (!preg_match('/^\d{10}$/', $phone)) {
+            return 'Le numéro de téléphone doit contenir exactement 10 chiffres.';
         }
 
         return null;

@@ -46,7 +46,7 @@ class StudentType extends AbstractType
             ->add('phone', TelType::class, [
                 'label' => 'Téléphone',
                 'required' => false,
-                'attr' => ['class' => 'form-control']
+                'attr' => ['class' => 'form-control', 'maxlength' => 10, 'inputmode' => 'numeric', 'pattern' => '\d{10}', 'placeholder' => '0700000000', 'title' => 'Exactement 10 chiffres'],
             ])
             ->add('email', EmailType::class, [
                 'label' => 'Email',
@@ -116,7 +116,7 @@ class StudentType extends AbstractType
             ->add('parentPhone', TelType::class, [
                 'label' => 'Téléphone du parent',
                 'required' => false,
-                'attr' => ['class' => 'form-control']
+                'attr' => ['class' => 'form-control', 'maxlength' => 10, 'inputmode' => 'numeric', 'pattern' => '\d{10}', 'placeholder' => '0700000000', 'title' => 'Exactement 10 chiffres'],
             ])
             ->add('parentEmail', EmailType::class, [
                 'label' => 'Email du parent',
@@ -141,7 +141,7 @@ class StudentType extends AbstractType
             ->add('emergencyPhone', TelType::class, [
                 'label' => 'Téléphone d\'urgence',
                 'required' => false,
-                'attr' => ['class' => 'form-control']
+                'attr' => ['class' => 'form-control', 'maxlength' => 10, 'inputmode' => 'numeric', 'pattern' => '\d{10}', 'placeholder' => '0700000000', 'title' => 'Exactement 10 chiffres'],
             ])
             ->add('medicalInfo', TextareaType::class, [
                 'label' => 'Informations médicales',

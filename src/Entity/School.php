@@ -36,7 +36,7 @@ class School
     private ?string $address = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Assert\Length(max: 20)]
+    #[Assert\Regex(pattern: '/^(\d{10})?$/', message: 'Le numéro de téléphone doit contenir exactement 10 chiffres.')]
     private ?string $phone = null;
 
     #[ORM\Column(length: 100, nullable: true)]

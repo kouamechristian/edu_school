@@ -74,7 +74,7 @@ class SchoolType extends AbstractType
             ->add('phone', TelType::class, [
                 'label' => 'Téléphone',
                 'required' => false,
-                'attr' => ['class' => 'form-control', 'placeholder' => '01 23 45 67 89'],
+                'attr' => ['class' => 'form-control', 'maxlength' => 10, 'inputmode' => 'numeric', 'pattern' => '\d{10}', 'placeholder' => '0700000000', 'title' => 'Exactement 10 chiffres'],
             ])
             ->add('email', EmailType::class, [
                 'label' => 'Email',

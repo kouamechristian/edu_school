@@ -151,7 +151,8 @@
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-phone"></i></span>
                         <input type="tel" name="phone" id="phone" class="form-control"
-                               value="{{ old.phone }}" required placeholder="Ex : 0700000000">
+                               value="{{ old.phone }}" required maxlength="10" inputmode="numeric"
+                               pattern="\d{10}" title="Exactement 10 chiffres" placeholder="Ex : 0700000000">
                     </div>
                     <div class="field-help">Ce numéro vous servira d'identifiant pour vous connecter.</div>
                 </div>

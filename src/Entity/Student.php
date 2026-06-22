@@ -30,7 +30,7 @@ class Student
     private ?string $lastName = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Assert\Length(max: 20)]
+    #[Assert\Regex(pattern: '/^(\d{10})?$/', message: 'Le numéro de téléphone doit contenir exactement 10 chiffres.')]
     private ?string $phone = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -75,6 +75,7 @@ class Student
     private ?string $parentName = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Regex(pattern: '/^(\d{10})?$/', message: 'Le numéro de téléphone doit contenir exactement 10 chiffres.')]
     private ?string $parentPhone = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -90,6 +91,7 @@ class Student
     private ?string $emergencyContact = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Regex(pattern: '/^(\d{10})?$/', message: 'Le numéro de téléphone doit contenir exactement 10 chiffres.')]
     private ?string $emergencyPhone = null;
 
     #[ORM\Column(length: 255, nullable: true)]

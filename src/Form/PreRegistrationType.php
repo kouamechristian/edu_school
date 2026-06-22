@@ -66,7 +66,11 @@ class PreRegistrationType extends AbstractType
                 'required' => false,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => '06 12 34 56 78',
+                    'maxlength' => 10,
+                    'inputmode' => 'numeric',
+                    'pattern' => '\d{10}',
+                    'placeholder' => '0700000000',
+                    'title' => 'Exactement 10 chiffres',
                 ],
             ])
             ->add('email', EmailType::class, [
@@ -146,7 +150,11 @@ class PreRegistrationType extends AbstractType
                 'required' => false,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => '06 12 34 56 78',
+                    'maxlength' => 10,
+                    'inputmode' => 'numeric',
+                    'pattern' => '\d{10}',
+                    'placeholder' => '0700000000',
+                    'title' => 'Exactement 10 chiffres',
                 ],
             ])
             ->add('parentEmail', EmailType::class, [
@@ -180,7 +188,11 @@ class PreRegistrationType extends AbstractType
                 'required' => false,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => '06 12 34 56 78',
+                    'maxlength' => 10,
+                    'inputmode' => 'numeric',
+                    'pattern' => '\d{10}',
+                    'placeholder' => '0700000000',
+                    'title' => 'Exactement 10 chiffres',
                 ],
             ])
             ->add('medicalInfo', TextType::class, [
