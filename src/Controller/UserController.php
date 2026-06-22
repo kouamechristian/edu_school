@@ -23,7 +23,7 @@ class UserController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(Request $request, UserRepository $userRepository, SchoolContextService $contextService): Response
+    public function index(Request $request, UserRepository $userRepository, SchoolContextService $contextService, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         // Récupérer l'établissement courant
         $currentSchool = $contextService->getCurrentSchool();
@@ -57,6 +57,8 @@ class UserController extends AbstractController
 
         // Statistiques filtrées par établissement
         $stats = $userRepository->countByTypeInSchool($schoolId);
+
+        $users = $paginator->paginate($users, $request->query->getInt('page', 1), 50);
 
         return $this->render('user/index.html.twig', [
             'users' => $users,

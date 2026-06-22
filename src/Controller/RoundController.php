@@ -22,7 +22,7 @@ class RoundController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(RoundRepository $roundRepository, SchoolContextService $contextService): Response
+    public function index(RoundRepository $roundRepository, SchoolContextService $contextService, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         $currentSchool = $contextService->getCurrentSchool();
 
@@ -36,7 +36,7 @@ class RoundController extends AbstractController
         }
 
         return $this->render('round/index.html.twig', [
-            'rounds' => $roundRepository->findBySchool($currentSchool->getId()),
+            'rounds' => $paginator->paginate($roundRepository->findBySchool($currentSchool->getId()), $request->query->getInt('page', 1), 50),
             'current_school' => $currentSchool,
         ]);
     }

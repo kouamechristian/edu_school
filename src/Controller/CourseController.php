@@ -27,7 +27,8 @@ class CourseController extends AbstractController
         CourseRepository $courseRepository,
         ClassroomRepository $classroomRepository,
         SchoolContextService $contextService,
-        Request $request
+        Request $request,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         $currentSchoolYear = $contextService->getCurrentSchoolYear();
@@ -54,6 +55,7 @@ class CourseController extends AbstractController
         if ($classroomId) {
             $courses = $courseRepository->findByClassroom($classroomId);
         }
+        $courses = $paginator->paginate($courses, $request->query->getInt('page', 1), 50);
 
         return $this->render('course/index.html.twig', [
             'courses' => $courses,
@@ -145,6 +147,36 @@ class CourseController extends AbstractController
             'id' => $u->getId(),
             'name' => $u->getFullName(),
         ], $teachers);
+
+        return $this->json($data);
+    }
+
+    /**
+     * Liste JSON des matières liées au niveau d'une classe donnée
+     * (restreinte à l'établissement courant). Alimente le filtrage dynamique
+     * du champ « Matière » dans le formulaire de cours.
+     */
+    #[Route('/subjects-by-classroom/{classroomId}', name: 'subjects_by_classroom', methods: ['GET'], requirements: ['classroomId' => '\d+'])]
+    public function subjectsByClassroom(
+        int $classroomId,
+        ClassroomRepository $classroomRepository,
+        \App\Repository\SubjectRepository $subjectRepository,
+        SchoolContextService $contextService
+    ): \Symfony\Component\HttpFoundation\JsonResponse {
+        $classroom = $classroomRepository->find($classroomId);
+        $levelId = $classroom?->getLevel()?->getId();
+
+        if (!$levelId) {
+            return $this->json([]);
+        }
+
+        $schoolId = $contextService->getCurrentSchool()?->getId();
+        $subjects = $subjectRepository->findBySchoolAndLevel($schoolId, $levelId);
+
+        $data = array_map(static fn (\App\Entity\Subject $s) => [
+            'id' => $s->getId(),
+            'name' => $s->getName(),
+        ], $subjects);
 
         return $this->json($data);
     }

@@ -30,7 +30,7 @@
 </section>
 
 {# ── Payer la scolarité ─────────────────────────────────────── #}
-{% set unpaid_fees = child.studentFees|filter(sf => sf.remainingAmount > 0 and sf.fee.isActive) %}
+{% set unpaid_fees = (registration ? registration.studentFees : child.studentFees)|filter(sf => sf.remainingAmount > 0 and sf.fee.isActive) %}
 {% if unpaid_fees|length > 0 %}
 <section class="pp-card pp-reveal" style="margin-top:1.1rem;">
     <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-credit-card"></i> Payer la scolarité</div>

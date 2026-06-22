@@ -31,10 +31,13 @@
                 </div>
                 <div class="flex-grow-1">
                     <h4 class="mb-1">{{ student.firstName }} {{ student.lastName }}</h4>
+                    {% set current = student.latestRegistration %}
                     <div class="d-flex flex-wrap gap-2 align-items-center">
                         <span class="badge badge-soft"><i class="fas fa-hashtag me-1"></i>{{ student.matriculeInterne }}</span>
+                        {% if current and current.classroom %}<span class="badge badge-soft primary"><i class="fas fa-chalkboard me-1"></i>{{ current.classroom.name }}</span>{% endif %}
                         {% if student.level %}<span class="badge badge-soft info"><i class="fas fa-layer-group me-1"></i>{{ student.level.name }}</span>{% endif %}
                         <span class="badge bg-{{ student.statusColor }}">{{ student.statusLabel }}</span>
+                        {% if current and current.boursier %}<span class="badge bg-success"><i class="fas fa-award me-1"></i>Boursier</span>{% endif %}
                     </div>
                 </div>
             </div>
@@ -83,21 +86,63 @@
                 </div>
             </div>
 
-            {# Informations scolaires #}
+            {# Scolarité & inscriptions (l'historique est porté par les inscriptions) #}
             <div class="card mb-4">
-                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-school me-2"></i>Informations scolaires</h6></div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-school me-2"></i>Scolarité &amp; inscriptions</h6>
+                    <span class="badge bg-primary">{{ student.registrations|length }} année(s)</span>
+                </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6"><div class="info-list">
-                            <div class="info-row"><div class="info-label">Niveau</div><div class="info-value">{{ student.level ? student.level.name : '—' }}</div></div>
-                            <div class="info-row"><div class="info-label">Année scolaire</div><div class="info-value">{{ student.schoolYear ? student.schoolYear.name : '—' }}</div></div>
-                        </div></div>
-                        <div class="col-md-6"><div class="info-list">
-                            <div class="info-row"><div class="info-label">École</div><div class="info-value">{{ student.school ? student.school.name : '—' }}</div></div>
-                            <div class="info-row"><div class="info-label">Doublant</div><div class="info-value">{{ student.isRepeating ? 'Oui' : 'Non' }}</div></div>
-                            <div class="info-row"><div class="info-label">Dernière école fréquentée</div><div class="info-value">{{ student.lastSchoolAttended ?: '—' }}</div></div>
-                            <div class="info-row"><div class="info-label">Date d'inscription</div><div class="info-value">{{ student.createdAt ? student.createdAt|date('d/m/Y') : '—' }}</div></div>
-                        </div></div>
+                    {% set current = student.latestRegistration %}
+                    {% if current %}
+                        <div class="row mb-3">
+                            <div class="col-md-6"><div class="info-list">
+                                <div class="info-row"><div class="info-label">Année en cours</div><div class="info-value fw-semibold">{{ current.schoolYear ? current.schoolYear.name : '—' }}</div></div>
+                                <div class="info-row"><div class="info-label">Classe</div><div class="info-value">{% if current.classroom %}{{ current.classroom.name }}{% else %}<span class="text-muted">Non affecté à une classe</span>{% endif %}</div></div>
+                                <div class="info-row"><div class="info-label">Niveau</div><div class="info-value">{{ current.level ? current.level.name : '—' }}</div></div>
+                            </div></div>
+                            <div class="col-md-6"><div class="info-list">
+                                <div class="info-row"><div class="info-label">Statut</div><div class="info-value"><span class="badge bg-{{ student.statusColor }}">{{ student.statusLabel }}</span></div></div>
+                                <div class="info-row"><div class="info-label">Redoublant</div><div class="info-value">{{ current.repeating ? 'Oui' : 'Non' }}</div></div>
+                                <div class="info-row"><div class="info-label">Boursier</div><div class="info-value">{% if current.boursier %}<span class="badge bg-success">Oui</span>{% else %}Non{% endif %}</div></div>
+                            </div></div>
+                        </div>
+                    {% endif %}
+
+                    <h6 class="text-muted mb-2"><i class="fas fa-clock-rotate-left me-1"></i>Historique des inscriptions</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Année</th>
+                                    <th>Classe</th>
+                                    <th>Niveau</th>
+                                    <th class="text-center">Statut</th>
+                                    <th class="text-center">Redoublant</th>
+                                    <th class="text-center">Boursier</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in student.registrations|reverse %}
+                                    <tr class="{{ current and r.id == current.id ? 'table-active' : '' }}">
+                                        <td class="fw-semibold">{{ r.schoolYear ? r.schoolYear.name : '—' }}</td>
+                                        <td>{{ r.classroom ? r.classroom.name : '—' }}</td>
+                                        <td>{{ r.level ? r.level.name : '—' }}</td>
+                                        <td class="text-center">{% if current and r.id == current.id %}<span class="badge bg-{{ student.statusColor }}">{{ student.statusLabel }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                                        <td class="text-center">{% if r.repeating %}<span class="badge badge-soft warning">Oui</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                                        <td class="text-center">{% if r.boursier %}<span class="badge badge-soft success">Oui</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="6" class="text-center text-muted py-3"><i class="fas fa-info-circle me-1"></i>Aucune inscription enregistrée pour cet élève.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="info-list mt-3">
+                        <div class="info-row"><div class="info-label">École</div><div class="info-value">{{ student.school ? student.school.name : '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Dernière école fréquentée</div><div class="info-value">{{ student.lastSchoolAttended ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Première inscription</div><div class="info-value">{{ student.createdAt ? student.createdAt|date('d/m/Y') : '—' }}</div></div>
                     </div>
                 </div>
             </div>

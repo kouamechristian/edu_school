@@ -14,7 +14,7 @@
             <p class="text-muted mb-0">Transférer un élève d'une classe vers une autre{% if current_school_year %} — {{ current_school_year.name }}{% endif %}</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ path('admin_student_enrollment') }}" class="btn btn-outline-info">
+            <a href="{{ path('admin_registration_index') }}" class="btn btn-outline-info">
                 <i class="fas fa-graduation-cap"></i> Inscriptions
             </a>
             <a href="{{ path('admin_student_index') }}" class="btn btn-secondary">

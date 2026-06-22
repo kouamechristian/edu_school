@@ -32,6 +32,43 @@ class EvaluationRepository extends ServiceEntityRepository
     }
 
     /**
+     * Liste filtrée des évaluations d'un établissement / année, avec filtres optionnels
+     * (classe, période, enseignant). Sans filtre classe/période, renvoie toutes les
+     * évaluations de l'établissement et de l'année courants.
+     */
+    public function findFiltered(
+        ?int $schoolId,
+        ?int $yearId,
+        ?int $classroomId = null,
+        ?int $periodId = null,
+        ?int $teacherId = null
+    ): array {
+        $qb = $this->createQueryBuilder('e')
+            ->innerJoin('e.classroom', 'c')
+            ->andWhere('e.isActive = :active')
+            ->setParameter('active', true)
+            ->orderBy('e.date', 'DESC');
+
+        if ($schoolId) {
+            $qb->andWhere('c.school = :school')->setParameter('school', $schoolId);
+        }
+        if ($yearId) {
+            $qb->andWhere('c.schoolYear = :year')->setParameter('year', $yearId);
+        }
+        if ($classroomId) {
+            $qb->andWhere('e.classroom = :classroom')->setParameter('classroom', $classroomId);
+        }
+        if ($periodId) {
+            $qb->andWhere('e.period = :period')->setParameter('period', $periodId);
+        }
+        if ($teacherId) {
+            $qb->andWhere('e.teacher = :teacher')->setParameter('teacher', $teacherId);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * Trouve les évaluations par période
      */
     public function findByPeriod(int $periodId): array

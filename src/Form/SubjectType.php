@@ -5,6 +5,7 @@ namespace App\Form;
 use App\Entity\Level;
 use App\Entity\School;
 use App\Entity\Subject;
+use App\Entity\SubjectEquivalent;
 use App\Entity\SubjectType as SubjectTypeEntity;
 use App\Service\SchoolContextService;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -76,6 +77,27 @@ class SubjectType extends AbstractType
                 'attr' => ['class' => 'form-select'],
                 'query_builder' => fn ($repository) => $repository->createQueryBuilder('t')
                     ->orderBy('t.orderNumber', 'ASC'),
+            ])
+            ->add('subjectEquivalent', EntityType::class, [
+                'label' => 'Équivalence',
+                'class' => SubjectEquivalent::class,
+                'choice_label' => fn (SubjectEquivalent $eq) => trim($eq->getCode() . ' — ' . $eq->getLibelle(), ' —'),
+                'placeholder' => 'Aucune équivalence',
+                'required' => false,
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Équivalence du référentiel rattachée à cette matière.',
+                'query_builder' => function ($repository) use ($schoolId) {
+                    $qb = $repository->createQueryBuilder('e')
+                        ->orderBy('e.numeroOrdre', 'ASC')
+                        ->addOrderBy('e.code', 'ASC');
+
+                    if ($schoolId) {
+                        $qb->andWhere('e.school = :school')
+                           ->setParameter('school', $schoolId);
+                    }
+
+                    return $qb;
+                },
             ])
             ->add('coefficient', NumberType::class, [
                 'label' => 'Coefficient',

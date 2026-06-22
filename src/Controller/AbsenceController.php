@@ -37,7 +37,8 @@ class AbsenceController extends AbstractController
         ClassroomRepository $classroomRepository,
         PeriodRepository $periodRepository,
         SchoolContextService $contextService,
-        Request $request
+        Request $request,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         $currentYear = $contextService->getCurrentSchoolYear();
@@ -88,6 +89,8 @@ class AbsenceController extends AbstractController
                 return $absence->getDate()->format('Y-m-d') === $filterDate->format('Y-m-d');
             });
         }
+
+        $absences = $paginator->paginate($absences, $request->query->getInt('page', 1), 50);
 
         return $this->render('absence/index.html.twig', [
             'absences' => $absences,
@@ -197,6 +200,49 @@ class AbsenceController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}/set-status', name: 'admin_absence_set_status', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function setStatus(
+        Request $request,
+        Absence $absence
+    ): Response {
+        $status = $request->request->get('justification_status');
+
+        if (!$this->isCsrfTokenValid('set_status' . $absence->getId(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('admin_absence_index');
+        }
+
+        if (!in_array($status, ['justified', 'unjustified', 'pending'], true)) {
+            $this->addFlash('danger', 'Statut invalide.');
+            return $this->redirectToRoute('admin_absence_index');
+        }
+
+        $absence->setJustificationStatus($status);
+
+        if ($status === 'pending') {
+            $absence->setJustifiedBy(null);
+            $absence->setJustificationDate(null);
+        } else {
+            $absence->setJustifiedBy($this->getUser());
+            $absence->setJustificationDate(new \DateTime());
+        }
+
+        $this->entityManager->flush();
+
+        $statusLabel = match($status) {
+            'justified' => 'justifiée',
+            'unjustified' => 'non justifiée',
+            default => 'en attente'
+        };
+        $this->addFlash('success', "Absence marquée comme {$statusLabel}.");
+
+        if ($request->request->get('redirect') === 'show') {
+            return $this->redirectToRoute('admin_absence_show', ['id' => $absence->getId()]);
+        }
+
+        return $this->redirectToRoute('admin_absence_index');
+    }
+
     #[Route('/{id}/delete', name: 'admin_absence_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function delete(
         Request $request,
@@ -215,16 +261,18 @@ class AbsenceController extends AbstractController
     #[Route('/types', name: 'admin_absence_type_index', methods: ['GET'])]
     public function indexTypes(
         AbsenceTypeRepository $absenceTypeRepository,
-        SchoolContextService $contextService
+        SchoolContextService $contextService,
+        Request $request,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
-        
+
         if (!$currentSchool) {
             $this->addFlash('warning', 'Veuillez sélectionner un établissement.');
             return $this->redirectToRoute('admin_absence_index');
         }
 
-        $absenceTypes = $absenceTypeRepository->findActiveBySchool($currentSchool->getId());
+        $absenceTypes = $paginator->paginate($absenceTypeRepository->findActiveBySchool($currentSchool->getId()), $request->query->getInt('page', 1), 50);
 
         return $this->render('absence_type/index.html.twig', [
             'absence_types' => $absenceTypes,

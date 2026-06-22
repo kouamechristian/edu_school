@@ -31,7 +31,7 @@ class Payment
     #[Assert\NotBlank(message: 'Le frais est obligatoire')]
     private ?Fee $fee = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'payments')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?StudentFee $studentFee = null;
 

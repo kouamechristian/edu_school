@@ -35,16 +35,21 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    {% if evaluation.lockedByBulletin %}
+                        <div class="alert alert-secondary d-flex align-items-center"><i class="fas fa-lock me-2"></i> Les notes sont <strong class="mx-1">verrouillées</strong> : un bulletin a été généré pour cette classe/période. Elles ne sont plus modifiables.</div>
+                    {% elseif evaluation.isValidated %}
+                        <div class="alert alert-success d-flex align-items-center"><i class="fas fa-check-circle me-2"></i> Évaluation <strong class="mx-1">validée</strong>. Cliquez sur « Annuler » pour modifier à nouveau les notes.</div>
+                    {% endif %}
+
+                    <form method="post" id="gradesForm">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
                                         <th style="width: 5%;">#</th>
-                                        <th style="width: 30%;">Élève</th>
-                                        <th style="width: 15%;">Note (/ {{ evaluation.maxGrade }})</th>
-                                        <th style="width: 20%;">Statut</th>
-                                        <th style="width: 30%;">Commentaire</th>
+                                        <th style="width: 45%;">Élève</th>
+                                        <th style="width: 22%;">Note (/ {{ evaluation.maxGrade }})</th>
+                                        <th style="width: 28%;">Appréciation</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -55,38 +60,42 @@
                                             <td class="fw-semibold">{{ student.fullName }}</td>
                                             <td>
                                                 <input type="number" name="grades[{{ student.id }}][value]"
-                                                       class="form-control form-control-sm" step="0.25" min="0"
+                                                       class="form-control form-control-sm grade-input" step="0.25" min="0"
                                                        max="{{ evaluation.maxGrade }}"
-                                                       value="{{ grade ? grade.value : '' }}" placeholder="Ex : 15.50">
+                                                       data-target="appr-{{ student.id }}"
+                                                       {% if not editable %}readonly{% endif %}
+                                                       value="{{ grade and grade.value is not null ? grade.value : '' }}" placeholder="Ex : 15.50">
                                             </td>
                                             <td>
-                                                <select name="grades[{{ student.id }}][status]" class="form-select form-select-sm">
-                                                    <option value="">—</option>
-                                                    <option value="absent" {{ grade and grade.status == 'absent' ? 'selected' : '' }}>Absent</option>
-                                                    <option value="dispense" {{ grade and grade.status == 'dispense' ? 'selected' : '' }}>Dispensé</option>
-                                                    <option value="non_rendu" {{ grade and grade.status == 'non_rendu' ? 'selected' : '' }}>Non rendu</option>
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <input type="text" name="grades[{{ student.id }}][comment]"
-                                                       class="form-control form-control-sm"
-                                                       value="{{ grade ? grade.comment : '' }}" placeholder="Commentaire...">
+                                                <span id="appr-{{ student.id }}" class="badge badge-soft secondary fs-6">{{ (grade and grade.value is not null) ? getAppreciation(grade.value / evaluation.maxGrade * 20) : '—' }}</span>
                                             </td>
                                         </tr>
                                     {% else %}
-                                        <tr><td colspan="5">{{ empty_state('fa-user-slash', 'Aucun élève', 'Aucun élève trouvé dans cette classe.') }}</td></tr>
+                                        <tr><td colspan="4">{{ empty_state('fa-user-slash', 'Aucun élève', 'Aucun élève trouvé dans cette classe.') }}</td></tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
-
-                        {% if students|length > 0 %}
-                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2">
-                                <div class="text-muted"><i class="fas fa-info-circle me-1"></i><strong>{{ students|length }}</strong> élève(s) dans cette classe</div>
-                                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer toutes les notes</button>
-                            </div>
-                        {% endif %}
                     </form>
+
+                    {% if students|length > 0 %}
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2">
+                            <div class="text-muted"><i class="fas fa-info-circle me-1"></i><strong>{{ students|length }}</strong> élève(s) dans cette classe</div>
+                            <div class="d-flex gap-2 align-items-center">
+                                {% if evaluation.lockedByBulletin %}
+                                    <span class="badge bg-secondary py-2 px-3"><i class="fas fa-lock me-1"></i> Verrouillée (bulletin généré)</span>
+                                {% elseif evaluation.isValidated %}
+                                    <span class="badge bg-success py-2 px-3"><i class="fas fa-check me-1"></i> Validée</span>
+                                    <form method="post" action="{{ path('admin_evaluation_grades_cancel', {'id': evaluation.id}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('cancel_validation' ~ evaluation.id) }}">
+                                        <button type="submit" class="btn btn-outline-warning"><i class="fas fa-pen me-1"></i> Annuler pour modifier</button>
+                                    </form>
+                                {% else %}
+                                    <button type="submit" form="gradesForm" class="btn btn-success"><i class="fas fa-check me-1"></i> Valider</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -131,9 +140,10 @@
                 <div class="card-body">
                     <p class="small mb-2"><strong>Saisie des notes :</strong></p>
                     <ul class="small mb-0 ps-3">
-                        <li>Saisissez une note OU un statut</li>
+                        <li>Saisissez la note de l'élève (sur {{ evaluation.maxGrade }})</li>
+                        <li>L'appréciation est calculée automatiquement</li>
                         <li>Utilisez 0.25 pour les quarts de points</li>
-                        <li>Laissez vide si pas encore noté</li>
+                        <li>Laissez vide si l'élève n'est pas encore noté</li>
                         <li>Cliquez sur « Enregistrer » pour sauvegarder</li>
                     </ul>
                 </div>
@@ -141,4 +151,36 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var maxGrade = parseFloat('{{ evaluation.maxGrade }}') || 20;
+
+    function appreciation(raw) {
+        if (raw === '' || raw === null || isNaN(raw)) {
+            return '—';
+        }
+        var n = parseFloat(raw);
+        if (maxGrade > 0) {
+            n = n / maxGrade * 20;
+        }
+        if (n >= 18) return 'Excellent';
+        if (n >= 16) return 'Très bien';
+        if (n >= 14) return 'Bien';
+        if (n >= 12) return 'Assez bien';
+        if (n >= 10) return 'Passable';
+        if (n >= 8) return 'Insuffisant';
+        return 'Très insuffisant';
+    }
+
+    document.querySelectorAll('.grade-input').forEach(function (input) {
+        input.addEventListener('input', function () {
+            var span = document.getElementById(input.dataset.target);
+            if (span) {
+                span.textContent = appreciation(input.value);
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

@@ -80,6 +80,12 @@
                 </div></div>
             </div>
             <div class="col-6 col-xl-3">
+                <div class="stat-card danger h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Dépenses</div><div class="stat-value text-danger" style="font-size:1.1rem;">{{ (depenses_total ?? 0)|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
+                    <div class="stat-icon"><i class="fas fa-money-bill-trend-up"></i></div>
+                </div></div>
+            </div>
+            <div class="col-6 col-xl-3">
                 <div class="stat-card warning h-100"><div class="card-body d-flex align-items-center justify-content-between">
                     <div><div class="stat-label mb-1">Solde actuel</div><div class="stat-value" style="font-size:1.1rem;">{{ current_balance|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
                     <div class="stat-icon"><i class="fas fa-cash-register"></i></div>
@@ -108,7 +114,8 @@
                     </div></div>
                     <div class="info-row"><div class="info-label">Solde d'ouverture</div><div class="info-value">{{ cash_register.openingBalance|number_format(0, ',', ' ') }} F</div></div>
                     <div class="info-row"><div class="info-label">Total encaissements</div><div class="info-value text-success">+ {{ payments_total|number_format(0, ',', ' ') }} F</div></div>
-                    <div class="info-row"><div class="info-label">Total versements</div><div class="info-value text-danger">- {{ deposits_total|number_format(0, ',', ' ') }} F</div></div>
+                    <div class="info-row"><div class="info-label">Total versements (validés)</div><div class="info-value text-danger">- {{ deposits_total|number_format(0, ',', ' ') }} F</div></div>
+                    <div class="info-row"><div class="info-label">Total dépenses</div><div class="info-value text-danger">- {{ (depenses_total ?? 0)|number_format(0, ',', ' ') }} F</div></div>
                     <div class="info-row"><div class="info-label">Solde actuel</div><div class="info-value fw-bold">{{ current_balance|number_format(0, ',', ' ') }} F</div></div>
                     <div class="info-row"><div class="info-label">Ouverte le</div><div class="info-value">{{ cash_register.openedAt ? cash_register.openedAt|date('d/m/Y à H:i') : '—' }}</div></div>
                 </div>

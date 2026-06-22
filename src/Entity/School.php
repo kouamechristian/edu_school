@@ -29,7 +29,7 @@ class School
 
     #[ORM\Column(length: 50)]
     #[Assert\NotBlank]
-    #[Assert\Choice(choices: ['maternelle', 'primaire', 'college', 'lycee', 'universite'])]
+    #[Assert\Choice(choices: ['PRESCOLAIRE-PRIMAIRE', 'SECONDAIRE GENERAL', 'TECHNIQUE ET PROFESSIONNEL', 'UNIVERSITE'])]
     private ?string $type = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -269,11 +269,10 @@ class School
     public function getTypeLabel(): string
     {
         return match($this->type) {
-            'maternelle' => 'Maternelle',
-            'primaire' => 'Primaire',
-            'college' => 'Collège',
-            'lycee' => 'Lycée',
-            'universite' => 'Université',
+            'PRESCOLAIRE-PRIMAIRE' => 'Préscolaire-Primaire',
+            'SECONDAIRE GENERAL' => 'Secondaire Général',
+            'TECHNIQUE ET PROFESSIONNEL' => 'Technique et Professionnel',
+            'UNIVERSITE' => 'Université',
             default => $this->type
         };
     }

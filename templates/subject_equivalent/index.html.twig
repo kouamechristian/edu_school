@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Matières équivalentes{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Matières équivalentes',
+        subtitle: current_school ? current_school.name : 'Regroupements de matières',
+        icon: 'fa-code-compare',
+        color: 'primary',
+        breadcrumb: [ { label: 'Matières', path: path('admin_subject_index') }, { label: 'Équivalences' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_subject_equivalent_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouvelle équivalence</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des équivalences <span class="badge badge-soft ms-1">{{ equivalents.getTotalItemCount }}</span></h6></div>
+        <div class="card-body">
+            {% if equivalents is empty %}
+                {{ empty_state('fa-code-compare', 'Aucune équivalence', 'Cliquez sur « Nouvelle équivalence » pour en créer une.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="text-center">N° ordre</th><th>Code</th><th>Libellé</th>
+                                <th class="text-end" width="140">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in equivalents %}
+                            <tr>
+                                <td class="text-center">{{ e.numeroOrdre ?? '—' }}</td>
+                                <td><span class="badge badge-soft secondary">{{ e.code }}</span></td>
+                                <td class="fw-semibold">{{ e.libelle }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_subject_equivalent_edit', {'id': e.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        <form method="post" action="{{ path('admin_subject_equivalent_delete', {'id': e.id}) }}" onsubmit="return confirm('Supprimer cette équivalence ?');" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ e.id) }}">
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% include '_pagination.html.twig' with { pagination: equivalents } %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

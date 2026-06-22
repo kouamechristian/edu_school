@@ -44,6 +44,7 @@ class Subject
     #[ORM\JoinColumn(name: 'type_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?SubjectType $type = null;
 
+
     #[ORM\Column(nullable: true)]
     #[Assert\PositiveOrZero]
     private ?int $hoursPerWeek = null;
@@ -64,6 +65,13 @@ class Subject
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
+
+    /**
+     * Équivalence du référentiel rattachée à cette matière (au plus une).
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?SubjectEquivalent $subjectEquivalent = null;
 
     public function __construct()
     {
@@ -227,6 +235,17 @@ class Subject
     public function setUpdatedAt(\DateTimeInterface $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
+        return $this;
+    }
+
+    public function getSubjectEquivalent(): ?SubjectEquivalent
+    {
+        return $this->subjectEquivalent;
+    }
+
+    public function setSubjectEquivalent(?SubjectEquivalent $subjectEquivalent): static
+    {
+        $this->subjectEquivalent = $subjectEquivalent;
         return $this;
     }
 

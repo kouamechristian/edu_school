@@ -3,7 +3,8 @@
 namespace App\Service;
 
 use App\Entity\Period;
-use App\Entity\User;
+use App\Entity\Student;
+use App\Repository\CourseRepository;
 use App\Repository\GradeRepository;
 use App\Repository\SubjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -13,14 +14,15 @@ class GradeCalculationService
     public function __construct(
         private GradeRepository $gradeRepository,
         private SubjectRepository $subjectRepository,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private ?CourseRepository $courseRepository = null
     ) {
     }
 
     /**
      * Calcule toutes les moyennes d'un élève pour une période
      */
-    public function calculateStudentAveragesForPeriod(User $student, Period $period): array
+    public function calculateStudentAveragesForPeriod(Student $student, Period $period): array
     {
         $results = [
             'subjects' => [],
@@ -40,7 +42,8 @@ class GradeCalculationService
             $average = $this->gradeRepository->calculateAverageByStudentSubjectAndPeriod(
                 $student->getId(),
                 $subject->getId(),
-                $period->getId()
+                $period->getId(),
+                true
             );
 
             if ($average !== null) {
@@ -69,18 +72,19 @@ class GradeCalculationService
     /**
      * Calcule le classement d'un élève dans sa classe pour une période
      */
-    public function calculateClassRanking(User $student, Period $period, int $classroomId): array
+    public function calculateClassRanking(Student $student, Period $period, int $classroomId): array
     {
-        // Récupérer tous les élèves de la classe
-        $students = $this->entityManager->getRepository(User::class)
-            ->findByClassroom($classroomId);
+        // Récupérer tous les élèves (actifs) de la classe
+        $students = $this->entityManager->getRepository(Student::class)
+            ->findActiveByClassroom($classroomId);
 
         $averages = [];
 
         foreach ($students as $classStudent) {
             $average = $this->gradeRepository->calculateGeneralAverageByStudentAndPeriod(
                 $classStudent->getId(),
-                $period->getId()
+                $period->getId(),
+                true
             );
 
             if ($average !== null) {
@@ -118,7 +122,7 @@ class GradeCalculationService
     /**
      * Récupère toutes les notes d'un élève pour une période
      */
-    public function getStudentGradesForPeriod(User $student, Period $period): array
+    public function getStudentGradesForPeriod(Student $student, Period $period): array
     {
         return $this->gradeRepository->findByStudentAndPeriod(
             $student->getId(),
@@ -129,7 +133,7 @@ class GradeCalculationService
     /**
      * Génère les données complètes pour un bulletin
      */
-    public function generateBulletinData(User $student, Period $period, int $classroomId): array
+    public function generateBulletinData(Student $student, Period $period, int $classroomId): array
     {
         $averages = $this->calculateStudentAveragesForPeriod($student, $period);
         $ranking = $this->calculateClassRanking($student, $period, $classroomId);
@@ -153,6 +157,147 @@ class GradeCalculationService
             'grades_by_subject' => $gradesBySubject,
             'generated_at' => new \DateTime(),
         ];
+    }
+
+    /**
+     * Données complètes pour le bulletin au modèle officiel : une ligne par matière
+     * (moyenne, coef, moy×coef, rang, professeur, appréciation), totaux, statistiques
+     * de classe et mention.
+     *
+     * @return array<string, mixed>
+     */
+    public function generateBulletinSheet(Student $student, Period $period, int $classroomId): array
+    {
+        $schoolId = $period->getSchool()?->getId();
+        $periodId = $period->getId();
+
+        // Matières du niveau de la classe, triées pour le bulletin.
+        $classroom = $this->entityManager->getRepository(\App\Entity\Classroom::class)->find($classroomId);
+        $levelId = $classroom?->getLevel()?->getId();
+        $subjects = $levelId
+            ? $this->subjectRepository->findBySchoolAndLevel($schoolId, $levelId)
+            : $this->subjectRepository->findBySchool($schoolId);
+        usort($subjects, static function ($a, $b) {
+            $oa = $a->getBulletinOrderNumber() ?? 9999;
+            $ob = $b->getBulletinOrderNumber() ?? 9999;
+            return $oa === $ob ? strcmp((string) $a->getName(), (string) $b->getName()) : $oa <=> $ob;
+        });
+
+        // Élèves de la classe.
+        $classStudents = $this->entityManager->getRepository(Student::class)->findActiveByClassroom($classroomId);
+        $effectif = \count($classStudents);
+
+        // Professeur par matière (à partir des cours de la classe).
+        $teacherBySubject = [];
+        if ($this->courseRepository) {
+            foreach ($this->courseRepository->findByClassroom($classroomId) as $course) {
+                if ($course->getSubject() && $course->getTeacher()) {
+                    $teacherBySubject[$course->getSubject()->getId()] = $course->getTeacher()->getFullName();
+                }
+            }
+        }
+
+        // Pré-calcul des moyennes par matière (pour le rang) et générales.
+        $subjectAverages = []; // [subjectId][studentId] => avg
+        $generalAverages = []; // [studentId] => avg
+        foreach ($classStudents as $cs) {
+            $generalAverages[$cs->getId()] = $this->gradeRepository->calculateGeneralAverageByStudentAndPeriod($cs->getId(), $periodId, true);
+            foreach ($subjects as $subject) {
+                $avg = $this->gradeRepository->calculateAverageByStudentSubjectAndPeriod($cs->getId(), $subject->getId(), $periodId, true);
+                if ($avg !== null) {
+                    $subjectAverages[$subject->getId()][$cs->getId()] = $avg;
+                }
+            }
+        }
+
+        // Lignes du bulletin pour l'élève cible.
+        $rows = [];
+        $totalCoef = 0.0;
+        $totalMoyCoef = 0.0;
+        foreach ($subjects as $subject) {
+            $sid = $subject->getId();
+            $avg = $subjectAverages[$sid][$student->getId()] ?? null;
+
+            if ($avg === null) {
+                $rows[] = ['name' => $subject->getName(), 'nc' => true, 'teacher' => $teacherBySubject[$sid] ?? null];
+                continue;
+            }
+
+            $coef = (float) $subject->getCoefficient();
+            $moyCoef = round($avg * $coef, 2);
+            $rankInfo = $this->rankAmong($subjectAverages[$sid] ?? [], $student->getId());
+
+            $rows[] = [
+                'name' => $subject->getName(),
+                'nc' => false,
+                'moy' => $avg,
+                'coef' => $coef,
+                'moy_coef' => $moyCoef,
+                'rank' => $rankInfo['rank'],
+                'ex' => $rankInfo['ex'],
+                'teacher' => $teacherBySubject[$sid] ?? null,
+                'appreciation' => $this->getAppreciation($avg),
+            ];
+
+            $totalCoef += $coef;
+            $totalMoyCoef += $moyCoef;
+        }
+
+        $generalAverage = $totalCoef > 0 ? round($totalMoyCoef / $totalCoef, 2) : null;
+
+        // Rang général + statistiques de classe.
+        $validGenerals = array_filter($generalAverages, static fn ($v) => $v !== null);
+        $generalRank = $generalAverage !== null ? $this->rankAmong($validGenerals, $student->getId()) : ['rank' => null, 'ex' => false];
+        $classMoy = \count($validGenerals) > 0 ? round(array_sum($validGenerals) / \count($validGenerals), 2) : null;
+
+        return [
+            'student' => $student,
+            'period' => $period,
+            'school_year' => $period->getSchoolYear(),
+            'effectif' => $effectif,
+            'rows' => $rows,
+            'total_coef' => $totalCoef,
+            'total_moy_coef' => round($totalMoyCoef, 2),
+            'general_average' => $generalAverage,
+            'general_rank' => $generalRank['rank'],
+            'general_rank_ex' => $generalRank['ex'],
+            'class_average' => $classMoy,
+            'class_min' => \count($validGenerals) > 0 ? min($validGenerals) : null,
+            'class_max' => \count($validGenerals) > 0 ? max($validGenerals) : null,
+            'graded_count' => \count($validGenerals),
+            'mention' => $generalAverage !== null ? $this->getMention($generalAverage) : null,
+            'honneur' => $generalAverage !== null && $generalAverage >= 12,
+            'encouragement' => $generalAverage !== null && $generalAverage >= 14,
+            'felicitations' => $generalAverage !== null && $generalAverage >= 16,
+            'generated_at' => new \DateTime(),
+        ];
+    }
+
+    /**
+     * Rang (classement par compétition) d'un élève parmi une liste de moyennes,
+     * avec indicateur ex-aequo.
+     *
+     * @param array<int, float> $values [studentId => moyenne]
+     * @return array{rank: int, ex: bool, total: int}
+     */
+    private function rankAmong(array $values, int $studentId): array
+    {
+        $mine = $values[$studentId] ?? null;
+        if ($mine === null) {
+            return ['rank' => 0, 'ex' => false, 'total' => \count($values)];
+        }
+
+        $greater = 0;
+        $equal = 0;
+        foreach ($values as $v) {
+            if ($v > $mine) {
+                $greater++;
+            } elseif ($v == $mine) {
+                $equal++;
+            }
+        }
+
+        return ['rank' => $greater + 1, 'ex' => $equal > 1, 'total' => \count($values)];
     }
 
     /**

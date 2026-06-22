@@ -17,7 +17,14 @@
         ]
     } %}
         {% block actions %}
-            <a href="{{ path('admin_evaluation_grades', {'id': evaluation.id}) }}" class="btn btn-success"><i class="fas fa-keyboard me-1"></i> Saisir les notes</a>
+            {% if evaluation.isEditable %}
+                <a href="{{ path('admin_evaluation_grades', {'id': evaluation.id}) }}" class="btn btn-success"><i class="fas fa-keyboard me-1"></i> Saisir les notes</a>
+            {% elseif evaluation.isValidated and not evaluation.lockedByBulletin %}
+                <form method="post" action="{{ path('admin_evaluation_grades_cancel', {'id': evaluation.id}) }}" class="d-inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('cancel_validation' ~ evaluation.id) }}">
+                    <button type="submit" class="btn btn-success"><i class="fas fa-pen me-1"></i> Annuler la validation pour modifier</button>
+                </form>
+            {% endif %}
             <a href="{{ path('admin_evaluation_edit', {'id': evaluation.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
             <a href="{{ path('admin_evaluation_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
         {% endblock %}
@@ -31,10 +38,9 @@
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Informations</h6>
                     <div class="d-flex gap-1">
-                        {% if evaluation.isPublished %}
-                            <span class="badge badge-soft success">Publiée</span>
-                        {% else %}
-                            <span class="badge badge-soft warning">Brouillon</span>
+                        <span class="badge badge-soft {{ evaluation.statusColor }}">{{ evaluation.statusLabel }}</span>
+                        {% if evaluation.isPublished and not evaluation.lockedByBulletin %}
+                            <span class="badge badge-soft info" title="Résultats publiés"><i class="fas fa-eye me-1"></i>Publiée</span>
                         {% endif %}
                         {% if evaluation.isActive %}
                             <span class="badge badge-soft secondary">Active</span>
@@ -85,14 +91,20 @@
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
-                                <thead><tr><th>#</th><th>Élève</th><th>Note</th><th>Commentaire</th></tr></thead>
+                                <thead><tr><th>#</th><th>Élève</th><th>Note</th><th>Appréciation</th></tr></thead>
                                 <tbody>
                                     {% for index, grade in grades %}
                                         <tr>
                                             <td class="text-muted">{{ index + 1 }}</td>
                                             <td class="fw-semibold">{{ grade.student.fullName }}</td>
                                             <td><strong>{{ grade.displayValue }}</strong></td>
-                                            <td><small class="text-muted">{{ grade.comment ?? '—' }}</small></td>
+                                            <td>
+                                                {% if grade.value is not null %}
+                                                    <span class="badge badge-soft secondary">{{ getAppreciation(grade.value / evaluation.maxGrade * 20) }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">—</span>
+                                                {% endif %}
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>

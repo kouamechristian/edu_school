@@ -131,6 +131,7 @@
                         </table>
                     </div>
                     <div class="text-muted small mt-3" id="visibleCount"></div>
+                    {% include '_pagination.html.twig' with { pagination: rows } %}
                 {% endif %}
             </div>
         </div>

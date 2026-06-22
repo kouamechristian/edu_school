@@ -24,20 +24,29 @@
     {% if not current_school %}
         <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Veuillez sélectionner un établissement pour accéder aux relances.</div>
     {% else %}
+        {% set overdue_total = 0 %}
+        {% for row in rows %}{% set overdue_total = overdue_total + row.overdue %}{% endfor %}
         <div class="row g-3 mb-4">
             <div class="col-md-4 col-6">
                 <div class="card stat-card h-100 border-start border-danger border-3"><div class="card-body">
-                    <div class="text-muted small">Élèves en retard</div>
+                    <div class="text-muted small">Élèves à relancer</div>
                     <div class="h4 mb-0 text-danger">{{ rows|length }}</div>
                 </div></div>
             </div>
             <div class="col-md-4 col-6">
+                <div class="card stat-card h-100 border-start border-danger border-3"><div class="card-body">
+                    <div class="text-muted small">Montant échu impayé</div>
+                    <div class="h5 mb-0 text-danger">{{ overdue_total|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                </div></div>
+            </div>
+            <div class="col-md-4 col-6">
                 <div class="card stat-card h-100 border-start border-warning border-3"><div class="card-body">
-                    <div class="text-muted small">Reste à recouvrer</div>
+                    <div class="text-muted small">Reste total à recouvrer</div>
                     <div class="h5 mb-0 text-warning">{{ totals.balance|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
                 </div></div>
             </div>
         </div>
+        <p class="text-muted small mb-3"><i class="fas fa-info-circle me-1"></i>Les relances sont basées sur les <strong>échéanciers des frais</strong> : seules les échéances dont la date est dépassée et non réglées sont prises en compte.</p>
 
         {# ── Filtre par classe ── #}
         <form method="get" class="row g-2 mb-3">
@@ -54,7 +63,7 @@
         <div class="card">
             <div class="card-body">
                 {% if rows is empty %}
-                    {{ empty_state('fa-circle-check', 'Aucun élève en retard', 'Tous les élèves sont à jour pour ce filtre.') }}
+                    {{ empty_state('fa-circle-check', 'Aucune échéance dépassée', 'Aucun élève n\'a d\'échéance de paiement dépassée pour ce filtre.') }}
                 {% else %}
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -63,9 +72,10 @@
                                     <th>Élève</th>
                                     <th>Classe</th>
                                     <th>Contact parent</th>
-                                    <th class="text-end">Dû</th>
-                                    <th class="text-end">Payé</th>
-                                    <th class="text-end">Reste</th>
+                                    <th class="text-center">Échéances dépassées</th>
+                                    <th class="text-center">Retard</th>
+                                    <th class="text-end">Montant échu</th>
+                                    <th class="text-end">Prochaine échéance</th>
                                     <th class="text-end">Relance</th>
                                 </tr>
                             </thead>
@@ -80,9 +90,20 @@
                                             {% if s.parentName %}<small class="text-muted">{{ s.parentName }}</small>{% endif %}
                                             {% if not s.parentPhone and not s.parentName %}<span class="text-muted">—</span>{% endif %}
                                         </td>
-                                        <td class="text-end">{{ row.due|number_format(0, ',', ' ') }}</td>
-                                        <td class="text-end">{{ row.paid|number_format(0, ',', ' ') }}</td>
-                                        <td class="text-end fw-bold text-danger">{{ row.balance|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-center"><span class="badge bg-danger">{{ row.overdue_count }}</span></td>
+                                        <td class="text-center">
+                                            {% if row.days_overdue > 0 %}
+                                                {% set delay_class = row.days_overdue >= 30 ? 'text-danger fw-bold' : 'text-warning' %}
+                                                <span class="{{ delay_class }}">{{ row.days_overdue }} j</span>
+                                                {% if row.oldest_due_date %}<br><small class="text-muted">depuis le {{ row.oldest_due_date|date('d/m/Y') }}</small>{% endif %}
+                                            {% else %}<span class="text-muted">—</span>{% endif %}
+                                        </td>
+                                        <td class="text-end fw-bold text-danger">{{ row.overdue|number_format(0, ',', ' ') }} <small class="text-muted">F</small></td>
+                                        <td class="text-end">
+                                            {% if row.next_due_date %}
+                                                {{ row.next_due_date|date('d/m/Y') }}<br><small class="text-muted">{{ row.next_due_amount|number_format(0, ',', ' ') }} F</small>
+                                            {% else %}<span class="text-muted">—</span>{% endif %}
+                                        </td>
                                         <td class="text-end">
                                             <a href="{{ path('admin_recouvrement_relance_letter', {'id': s.id}) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger" title="Lettre de relance (PDF)">
                                                 <i class="fas fa-file-pdf me-1"></i> Lettre

@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Gestion des inscriptions{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Gestion des inscriptions',
+        subtitle: current_school_year ? 'Année scolaire ' ~ current_school_year.name : 'Inscriptions des élèves',
+        icon: 'fa-id-card-clip',
+        color: 'success',
+        breadcrumb: [ { label: 'Élèves', path: path('admin_student_index') }, { label: 'Inscriptions' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_registration_new') }}" class="btn btn-success"><i class="fas fa-plus me-1"></i> Nouvelle inscription</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Inscriptions <span class="badge badge-soft ms-1">{{ registrations.getTotalItemCount }}</span></h6>
+        </div>
+        <div class="card-body">
+            {% if registrations is empty %}
+                {{ empty_state('fa-id-card-clip', 'Aucune inscription', 'Cliquez sur « Nouvelle inscription » pour inscrire un élève.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th> Mle interne</th>
+                                <th> Mle national</th>
+                                <th>Élève</th><th>Classe</th>
+                                <th class="text-end">Mt Gle</th>
+                                <th class="text-end">Mt Paye</th>
+                                <th class="text-end">Mt annule</th>
+                                <th class="text-end">Mt Reste</th>
+                                <th class="text-center">Statut</th>
+                                <th class="text-end" width="160">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in registrations %}
+                            <tr>
+                                <td><span class="fw-semibold text-primary">{{ r.student.matriculeInterne ?: '—' }}</span></td>
+                                <td><span class="text-muted">{{ r.student.matriculeNational ?: '—' }}</span></td>
+                                <td class="fw-semibold">{{ r.student.lastName }} {{ r.student.firstName }}</td>
+                                <td>{{ r.classroom ? r.classroom.name : '—' }}</td>
+                                <td class="text-end">{{ r.totalTuition|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ r.totalPaid|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ r.totalCancelled|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ r.remainingTuition|number_format(0, ',', ' ') }}</td>
+                                <td class="text-center"><span class="badge bg-{{ r.student.getStatusColor() }}">{{ r.student.getStatusLabel() }}</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_student_show', {'id': r.student.id}) }}" class="btn btn-outline-info" title="Voir l'élève"><i class="fas fa-eye"></i></a>
+                                        <a href="{{ path('admin_registration_edit', {'id': r.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        {% if is_granted('ROLE_ADMIN') %}   
+                                        <form method="post" action="{{ path('admin_registration_delete', {'id': r.id}) }}" onsubmit="return confirm('Supprimer définitivement cette inscription ?');" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ r.id) }}">
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% include '_pagination.html.twig' with { pagination: registrations } %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

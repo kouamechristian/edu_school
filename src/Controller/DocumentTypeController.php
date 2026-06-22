@@ -20,10 +20,10 @@ class DocumentTypeController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(DocumentTypeRepository $documentTypeRepository): Response
+    public function index(DocumentTypeRepository $documentTypeRepository, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         return $this->render('document_type/index.html.twig', [
-            'document_types' => $documentTypeRepository->findAll(),
+            'document_types' => $paginator->paginate($documentTypeRepository->findAll(), $request->query->getInt('page', 1), 50),
         ]);
     }
 

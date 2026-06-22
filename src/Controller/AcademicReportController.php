@@ -549,11 +549,11 @@ class AcademicReportController extends AbstractController
         $rows = [];
         $usedSubjects = [];
         foreach ($students as $student) {
-            $map = $this->gradeRepository->annualSubjectAveragesByStudent($student->getId(), $yearId);
+            $map = $this->gradeRepository->annualSubjectAveragesByStudent($student->getId(), $yearId, true);
             foreach (array_keys($map) as $sid) {
                 $usedSubjects[$sid] = true;
             }
-            $general = $this->gradeRepository->calculateAnnualGeneralAverageByStudent($student->getId(), $yearId);
+            $general = $this->gradeRepository->calculateAnnualGeneralAverageByStudent($student->getId(), $yearId, true);
             $rows[] = ['student' => $student, 'subjects' => $map, 'general' => $general];
         }
 
@@ -595,7 +595,7 @@ class AcademicReportController extends AbstractController
         // Moyennes générales pour le rang.
         $generals = [];
         foreach ($students as $student) {
-            $g = $this->gradeRepository->calculateAnnualGeneralAverageByStudent($student->getId(), $yearId);
+            $g = $this->gradeRepository->calculateAnnualGeneralAverageByStudent($student->getId(), $yearId, true);
             if ($g !== null) {
                 $generals[$student->getId()] = $g;
             }
@@ -609,7 +609,7 @@ class AcademicReportController extends AbstractController
 
         $booklets = [];
         foreach ($students as $student) {
-            $map = $this->gradeRepository->annualSubjectAveragesByStudent($student->getId(), $yearId);
+            $map = $this->gradeRepository->annualSubjectAveragesByStudent($student->getId(), $yearId, true);
             $lines = [];
             foreach ($subjects as $subject) {
                 if (isset($map[$subject->getId()])) {
@@ -676,7 +676,7 @@ class AcademicReportController extends AbstractController
             foreach ($this->studentRepository->findActiveByClassroom($classroom->getId()) as $student) {
                 $entries[] = [
                     'student' => $student,
-                    'average' => $this->gradeRepository->calculateAnnualGeneralAverageByStudent($student->getId(), $yearId),
+                    'average' => $this->gradeRepository->calculateAnnualGeneralAverageByStudent($student->getId(), $yearId, true),
                 ];
             }
 
@@ -742,7 +742,7 @@ class AcademicReportController extends AbstractController
             $sums = [];
             $counts = [];
             foreach ($this->studentRepository->findActiveByClassroom($classroom->getId()) as $student) {
-                foreach ($this->gradeRepository->annualSubjectAveragesByStudent($student->getId(), $yearId) as $sid => $avg) {
+                foreach ($this->gradeRepository->annualSubjectAveragesByStudent($student->getId(), $yearId, true) as $sid => $avg) {
                     $sums[$sid] = ($sums[$sid] ?? 0) + $avg;
                     $counts[$sid] = ($counts[$sid] ?? 0) + 1;
                     $usedSubjects[$sid] = true;
@@ -909,7 +909,7 @@ class AcademicReportController extends AbstractController
 
             $graded = [];
             foreach ($students as $student) {
-                $average = $this->gradeRepository->calculateAnnualGeneralAverageByStudent($student->getId(), $yearId);
+                $average = $this->gradeRepository->calculateAnnualGeneralAverageByStudent($student->getId(), $yearId, true);
                 if ($average !== null) {
                     $graded[] = ['student' => $student, 'average' => $average];
                 }

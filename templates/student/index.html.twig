@@ -13,7 +13,7 @@
         breadcrumb: [ { label: 'Élèves' } ]
     } %}
         {% block actions %}
-            <a href="{{ path('admin_student_enrollment') }}" class="btn btn-success"><i class="fas fa-user-graduate me-1"></i> Inscription</a>
+            <a href="{{ path('admin_registration_index') }}" class="btn btn-success"><i class="fas fa-user-graduate me-1"></i> Inscription</a>
             <a href="{{ path('admin_pre_registration_choose') }}" class="btn btn-primary"><i class="fas fa-user-plus me-1"></i> Préinscription</a>
         {% endblock %}
     {% endembed %}
@@ -82,7 +82,7 @@
             <div class="d-flex gap-2">
                 <a href="{{ path('admin_student_export', {'search': search, 'status': status, 'level': level}) }}" class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel me-1"></i> Exporter Excel</a>
                 <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal"><i class="fas fa-file-import me-1"></i> Importer Excel</button>
-                <a href="{{ path('admin_student_enrollment') }}" class="btn btn-success btn-sm"><i class="fas fa-graduation-cap me-1"></i> Inscriptions</a>
+                <a href="{{ path('admin_registration_index') }}" class="btn btn-success btn-sm"><i class="fas fa-graduation-cap me-1"></i> Inscriptions</a>
                 <a href="{{ path('admin_student_archive') }}" class="btn btn-light btn-sm"><i class="fas fa-archive me-1"></i> Archives</a>
             </div>
         </div>
@@ -114,13 +114,21 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <span class="badge bg-success-subtle text-success-emphasis rounded-pill" title="Inscriptions effectuées depuis sa venue">
-                                    {{ enrollment_counts[student.id] ?? 0 }}
+                                <span class="badge bg-success-subtle text-success-emphasis rounded-pill" title="Nombre d'inscriptions (années scolaires)">
+                                    {{ student.registrations|length }}
                                 </span>
                             </td>
                             <td><span class="badge bg-{{ student.getStatusColor() }}">{{ student.getStatusLabel() }}</span></td>
                             <td>
                                 <div class="btn-group btn-group-sm float-end" role="group">
+                                    {% set next_status = student.getStatus() == 'affecte' ? 'non_affecte' : 'affecte' %}
+                                    {% set next_label = next_status == 'affecte' ? 'Affecté' : 'Non affecté' %}
+                                    <form method="post" action="{{ path('admin_student_set_status', {'id': student.id}) }}"
+                                          onsubmit="return confirm('Passer {{ student.lastName }} {{ student.firstName }} en « {{ next_label }} » ? Les frais de scolarité seront adaptés en conséquence.')" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('set_status' ~ student.id) }}">
+                                        <input type="hidden" name="status" value="{{ next_status }}">
+                                        <button class="btn btn-outline-warning" title="Changer le statut (→ {{ next_label }})"><i class="fas fa-right-left"></i></button>
+                                    </form>
                                     <a href="{{ path('admin_student_edit', {'id': student.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
                                     <form method="post" action="{{ path('admin_student_do_archive', {'id': student.id}) }}"
                                           onsubmit="return confirm('Archiver cet élève ? Il quittera la liste active et sera déplacé dans les archives.')" class="d-inline">
@@ -132,7 +140,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 {% from 'components/macros.html.twig' import empty_state %}
                                 {{ empty_state('fa-user-slash', 'Aucun élève trouvé', 'Aucun élève ne correspond à vos critères de recherche.') }}
                             </td>
@@ -141,6 +149,7 @@
                     </tbody>
                 </table>
             </div>
+            {% include '_pagination.html.twig' with { pagination: students } %}
         </div>
     </div>
 
@@ -156,13 +165,14 @@
                     <div class="modal-body">
                         <p class="text-muted small">
                             Importez un fichier <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong>.
+                            L'import alimente le <strong>référentiel élève</strong> (l'affectation à une classe se fait ensuite via le module d'inscription).
                             Respectez l'ordre des colonnes du modèle : Matricule interne, Matricule national, Nom, Prénom,
                             Genre (M/F), Date de naissance, Lieu de naissance, Nationalité, N° extrait de naissance, N° CMU,
-                            Téléphone, Email, Adresse, Dernière école fréquentée, Doublant (Oui/Non), Niveau, Classe, Statut,
+                            Téléphone, Email, Adresse, Dernière école fréquentée, Statut (Affecté/Non affecté),
                             Nom parent, Téléphone parent, Email parent, Fonction parent, Domicile parent, Photo.
                             Le <strong>Nom</strong> et le <strong>Prénom</strong> sont obligatoires ; le matricule interne est
-                            généré automatiquement s'il est vide. Les élèves sont rattachés à l'établissement et à l'année en
-                            cours. (La colonne Photo n'est pas importée — téléversez la photo depuis la fiche de l'élève.)
+                            généré automatiquement s'il est vide. Les élèves sont rattachés à l'établissement courant.
+                            (La colonne Photo n'est pas importée — téléversez la photo depuis la fiche de l'élève.)
                         </p>
                         <div class="mb-3">
                             <a href="{{ path('admin_student_import_template') }}" class="btn btn-outline-secondary btn-sm">

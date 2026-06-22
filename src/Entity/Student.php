@@ -68,9 +68,6 @@ class Student
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $lastSchoolAttended = null;
 
-    #[ORM\Column(options: ['default' => false])]
-    private bool $isRepeating = false;
-
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $photo = null;
 
@@ -104,9 +101,14 @@ class Student
     #[ORM\Column]
     private bool $isActive = true;
 
-    #[ORM\Column(length: 20)]
+    /**
+     * Statut administratif de l'élève : « affecté » (placé par l'État) ou
+     * « non affecté ». Par défaut « non affecté » à la création ; conditionne les
+     * frais de scolarité applicables (cf. Fee::type) et se gère via le bouton dédié.
+     */
+    #[ORM\Column(length: 20, options: ['default' => 'non_affecte'])]
     #[Assert\Choice(choices: ['affecte', 'non_affecte'], message: 'Le statut doit être Affecté ou Non affecté')]
-    private ?string $status = 'affecte';
+    private string $status = 'non_affecte';
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
@@ -117,18 +119,6 @@ class Student
     #[ORM\ManyToOne(targetEntity: School::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?School $school = null;
-
-    #[ORM\ManyToOne(targetEntity: Level::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Level $level = null;
-
-    #[ORM\ManyToOne(targetEntity: Classroom::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Classroom $classroom = null;
-
-    #[ORM\ManyToOne(targetEntity: SchoolYear::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?SchoolYear $schoolYear = null;
 
     /**
      * Compte parent rattaché (auto-association via le portail parent).
@@ -150,12 +140,22 @@ class Student
     #[ORM\OneToMany(mappedBy: 'student', targetEntity: StudentFee::class, cascade: ['persist', 'remove'])]
     private Collection $studentFees;
 
+    /**
+     * Préinscriptions de réinscription où cet élève est réutilisé (« ancien élève »).
+     * Avec la préinscription d'origine (preRegistration), elles permettent de
+     * reconstituer l'historique des inscriptions (l'inscription n'est plus liée
+     * directement à l'élève : elle est portée par sa préinscription).
+     */
+    #[ORM\OneToMany(mappedBy: 'existingStudent', targetEntity: PreRegistration::class)]
+    private Collection $reinscriptions;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
         $this->grades = new ArrayCollection();
         $this->studentFees = new ArrayCollection();
+        $this->reinscriptions = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -333,13 +333,7 @@ class Student
 
     public function isRepeating(): bool
     {
-        return $this->isRepeating;
-    }
-
-    public function setIsRepeating(bool $isRepeating): static
-    {
-        $this->isRepeating = $isRepeating;
-        return $this;
+        return $this->getLatestRegistration()?->isRepeating() ?? false;
     }
 
     public function getPhoto(): ?string
@@ -463,7 +457,7 @@ class Student
         return $this;
     }
 
-    public function getStatus(): ?string
+    public function getStatus(): string
     {
         return $this->status;
     }
@@ -474,12 +468,17 @@ class Student
         return $this;
     }
 
+    public function isAffecte(): bool
+    {
+        return $this->status === 'affecte';
+    }
+
     public function getStatusLabel(): string
     {
         return match($this->status) {
             'affecte' => 'Affecté',
             'non_affecte' => 'Non affecté',
-            default => $this->status ?? 'Inconnu'
+            default => 'Inconnu'
         };
     }
 
@@ -525,37 +524,23 @@ class Student
         return $this;
     }
 
+    /**
+     * Niveau / classe / année courants : déduits de l'inscription la plus récente.
+     * Le rattachement scolaire est porté par Registration (plus de colonnes sur student).
+     */
     public function getLevel(): ?Level
     {
-        return $this->level;
-    }
-
-    public function setLevel(?Level $level): static
-    {
-        $this->level = $level;
-        return $this;
+        return $this->getLatestRegistration()?->getLevel();
     }
 
     public function getClassroom(): ?Classroom
     {
-        return $this->classroom;
-    }
-
-    public function setClassroom(?Classroom $classroom): static
-    {
-        $this->classroom = $classroom;
-        return $this;
+        return $this->getLatestRegistration()?->getClassroom();
     }
 
     public function getSchoolYear(): ?SchoolYear
     {
-        return $this->schoolYear;
-    }
-
-    public function setSchoolYear(?SchoolYear $schoolYear): static
-    {
-        $this->schoolYear = $schoolYear;
-        return $this;
+        return $this->getLatestRegistration()?->getSchoolYear();
     }
 
     public function getParentUser(): ?User
@@ -637,6 +622,99 @@ class Student
         }
 
         return $this;
+    }
+
+    /**
+     * Préinscriptions de réinscription (côté inverse de PreRegistration.existingStudent).
+     *
+     * @return Collection<int, PreRegistration>
+     */
+    public function getReinscriptions(): Collection
+    {
+        return $this->reinscriptions;
+    }
+
+    /**
+     * Historique des inscriptions de l'élève, reconstitué à partir de ses préinscriptions :
+     *  - la préinscription d'origine (nouvel élève) → son inscription ;
+     *  - les préinscriptions de réinscription (ancien élève) → leurs inscriptions.
+     * L'inscription n'étant plus liée directement à l'élève, elle est atteinte via la
+     * préinscription qui l'a produite.
+     *
+     * @return Registration[]
+     */
+    public function getRegistrations(): array
+    {
+        $registrations = [];
+
+        if ($this->preRegistration?->getRegistration() !== null) {
+            $registrations[] = $this->preRegistration->getRegistration();
+        }
+
+        foreach ($this->reinscriptions as $preRegistration) {
+            $registration = $preRegistration->getRegistration();
+            if ($registration !== null && !in_array($registration, $registrations, true)) {
+                $registrations[] = $registration;
+            }
+        }
+
+        return $registrations;
+    }
+
+    /**
+     * Inscription de l'élève pour une année scolaire donnée, le cas échéant.
+     */
+    public function getRegistrationForYear(?SchoolYear $year): ?Registration
+    {
+        if (!$year) {
+            return null;
+        }
+
+        foreach ($this->getRegistrations() as $registration) {
+            if ($registration->getSchoolYear()?->getId() === $year->getId()) {
+                return $registration;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Registration de scolarité à considérer : celle de l'année donnée (par id) si
+     * elle existe, sinon l'inscription la plus récente. Sert aux lectures financières
+     * (espace parent, etc.) pour cibler la bonne année.
+     */
+    public function getScolariteRegistration(?int $yearId = null): ?Registration
+    {
+        if ($yearId !== null) {
+            foreach ($this->getRegistrations() as $registration) {
+                if ($registration->getSchoolYear()?->getId() === $yearId) {
+                    return $registration;
+                }
+            }
+        }
+
+        return $this->getLatestRegistration();
+    }
+
+    /**
+     * Registration la plus récente (année scolaire la plus récente).
+     */
+    public function getLatestRegistration(): ?Registration
+    {
+        $latest = null;
+        foreach ($this->getRegistrations() as $registration) {
+            $start = $registration->getSchoolYear()?->getStartDate();
+            if ($start === null) {
+                continue;
+            }
+            $latestStart = $latest?->getSchoolYear()?->getStartDate();
+            if ($latestStart === null || $start > $latestStart) {
+                $latest = $registration;
+            }
+        }
+
+        return $latest;
     }
 
     public function getTotalTuition(): float

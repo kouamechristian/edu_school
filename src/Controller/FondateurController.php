@@ -7,7 +7,6 @@ use App\Entity\CashRegister;
 use App\Entity\User;
 use App\Repository\CashDepositRepository;
 use App\Repository\CashRegisterRepository;
-use App\Repository\FinancialTransactionRepository;
 use App\Repository\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,7 +28,7 @@ class FondateurController extends AbstractController
         CashRegisterRepository $cashRegisterRepository,
         CashDepositRepository $cashDepositRepository,
         PaymentRepository $paymentRepository,
-        FinancialTransactionRepository $financialTransactionRepository,
+        \App\Repository\DepenseRepository $depenseRepository,
         \App\Repository\ClassroomRepository $classroomRepository,
         \App\Repository\StudentRepository $studentRepository,
         \App\Service\SchoolContextService $contextService
@@ -70,7 +69,7 @@ class FondateurController extends AbstractController
 
         // Versements approuvés et dépenses confirmées par établissement.
         $depositsBySchool = $cashDepositRepository->getApprovedTotalsBySchoolForGroup($group);
-        $expensesBySchool = $financialTransactionRepository->getExpenseBySchoolForGroup($group);
+        $expensesBySchool = $depenseRepository->getConfirmedTotalsBySchoolForGroup($group);
 
         // Une ligne par établissement du groupe (y compris ceux sans activité).
         $schoolStats = [];
@@ -98,7 +97,8 @@ class FondateurController extends AbstractController
         // Classement par chiffre d'affaires décroissant.
         usort($schoolStats, static fn (array $a, array $b): int => $b['revenue'] <=> $a['revenue']);
 
-        $txTotals = $financialTransactionRepository->getConfirmedTotalsForGroup($group);
+        // Plus de transactions manuelles : « entrées » = 0, « dépenses » = total des dépenses confirmées.
+        $txTotals = ['income' => 0.0, 'expense' => $depenseRepository->getConfirmedTotalForGroup($group)];
 
         return $this->render('fondateur/index.html.twig', array_merge($schoolStatsScoped, [
             'group' => $group,

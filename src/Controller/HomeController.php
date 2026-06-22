@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\ClassroomRepository;
 use App\Repository\LevelRepository;
+use App\Repository\RegistrationRepository;
 use App\Repository\SchoolRepository;
 use App\Repository\SchoolYearRepository;
 use App\Repository\StudentRepository;
@@ -23,7 +24,8 @@ class HomeController extends AbstractController
         SchoolRepository $schoolRepository,
         SchoolYearRepository $schoolYearRepository,
         StudentRepository $studentRepository,
-        ClassroomRepository $classroomRepository
+        ClassroomRepository $classroomRepository,
+        RegistrationRepository $registrationRepository
     ): Response {
         // Rediriger vers login si non connecté
         if (!$this->getUser()) {
@@ -50,10 +52,9 @@ class HomeController extends AbstractController
             'users_by_type' => $schoolId ? $userRepository->countByTypeInSchool($schoolId) : $userRepository->countByType(),
         ];
 
-        // Nombre d'élèves réellement inscrits (entités Student actives).
-        $studentsCount = $schoolId
-            ? $studentRepository->count(['school' => $currentSchool, 'isActive' => true])
-            : $studentRepository->count(['isActive' => true]);
+        // Nombre d'élèves inscrits = inscriptions (Registration) de l'année courante.
+        // (Les élèves importés au référentiel mais non inscrits ne sont pas comptés.)
+        $studentsCount = $registrationRepository->countBySchoolAndYear($schoolId, $currentSchoolYear?->getId());
 
         // Classes + répartition des élèves de l'établissement courant (année en cours).
         // Ces graphiques n'ont de sens qu'avec un établissement sélectionné.

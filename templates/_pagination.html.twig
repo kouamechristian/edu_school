@@ -1,0 +1,13 @@
+{# Contrôles de pagination réutilisables (KnpPaginator + Bootstrap 5).
+   Usage : {% include '_pagination.html.twig' with { pagination: maVariable } %}
+   La variable passée est l'objet de pagination (itérable comme un tableau). #}
+{% if pagination is defined and pagination.getTotalItemCount is defined %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2 no-print">
+        <small class="text-muted">
+            {{ pagination.getTotalItemCount }} résultat(s){% if pagination.pageCount > 1 %} — page {{ pagination.getCurrentPageNumber }}/{{ pagination.pageCount }}{% endif %}
+        </small>
+        {% if pagination.pageCount > 1 %}
+            {{ knp_pagination_render(pagination) }}
+        {% endif %}
+    </div>
+{% endif %}

@@ -36,8 +36,11 @@ class PaymentType extends AbstractType
                 'class' => Fee::class,
                 'label' => 'Frais',
                 'choice_label' => 'name',
+                // « no-search » : laisse ce select NATIF (l'enhancer TomSelect global de
+                // base.html.twig l'ignore), pour que la cascade JS puisse remplacer ses
+                // options selon l'élève choisi et que l'affichage se mette à jour.
                 'attr' => [
-                    'class' => 'form-select'
+                    'class' => 'form-select no-search'
                 ]
             ])
             ->add('amount', MoneyType::class, [
@@ -67,19 +70,7 @@ class PaymentType extends AbstractType
                     'class' => 'form-select'
                 ]
             ])
-            ->add('status', ChoiceType::class, [
-                'label' => 'Statut',
-                'choices' => [
-                    'En attente' => 'en_attente',
-                    'Payé' => 'payé',
-                    'Partiellement payé' => 'partiellement_payé',
-                    'Annulé' => 'annulé',
-                    'Remboursé' => 'remboursé',
-                ],
-                'attr' => [
-                    'class' => 'form-select'
-                ]
-            ])
+
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes',
                 'required' => false,

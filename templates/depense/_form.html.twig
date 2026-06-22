@@ -1,0 +1,25 @@
+{{ form_start(form) }}
+    {{ form_errors(form) }}
+    {% if current_balance is defined %}
+        <div class="alert alert-info py-2"><i class="fas fa-wallet me-1"></i> Solde disponible en caisse : <strong>{{ current_balance|number_format(0, ',', ' ') }} F CFA</strong></div>
+    {% endif %}
+    <div class="row">
+        <div class="col-md-8 mb-3">{{ form_row(form.libelle) }}</div>
+        <div class="col-md-4 mb-3">{{ form_row(form.category) }}</div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 mb-3">{{ form_row(form.amount) }}</div>
+        <div class="col-md-4 mb-3">{{ form_row(form.paymentMethod) }}</div>
+        <div class="col-md-4 mb-3">{{ form_row(form.depenseDate) }}</div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">{{ form_row(form.beneficiary) }}</div>
+        <div class="col-md-6 mb-3">{{ form_row(form.reference) }}</div>
+    </div>
+    <div class="mb-3">{{ form_row(form.description) }}</div>
+    <div class="mb-3">{{ form_row(form.notes) }}</div>
+    <div class="d-flex justify-content-between mt-3 pt-3 border-top">
+        <a href="{{ path('admin_depense_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        <button type="submit" class="btn btn-danger"><i class="fas fa-save me-1"></i> Enregistrer</button>
+    </div>
+{{ form_end(form) }}

@@ -41,6 +41,14 @@
                             <div class="info-row"><div class="info-label">Couleur</div><div class="info-value">{% if subject.color %}<span class="badge" style="background-color: {{ subject.color }}; color: #fff;">{{ subject.color }}</span>{% else %}<span class="text-muted">Non définie</span>{% endif %}</div></div>
                         </div></div>
                     </div>
+                    <div class="info-list mt-2"><div class="info-row"><div class="info-label">Équivalence</div><div class="info-value">
+                        {% if subject.subjectEquivalent %}
+                            {% set eq = subject.subjectEquivalent %}
+                            <span class="badge badge-soft info me-1">{{ eq.code }} — {{ eq.libelle }}{% if eq.numeroOrdre is not null %} <small class="text-muted">(n°{{ eq.numeroOrdre }})</small>{% endif %}</span>
+                        {% else %}
+                            <span class="text-muted">Aucune équivalence</span>
+                        {% endif %}
+                    </div></div></div>
                     {% if subject.description %}
                         <div class="info-list mt-2"><div class="info-row"><div class="info-label">Description</div><div class="info-value">{{ subject.description|nl2br }}</div></div></div>
                     {% endif %}

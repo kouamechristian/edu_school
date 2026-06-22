@@ -20,10 +20,10 @@ class SubjectTypeController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(SubjectTypeRepository $repository): Response
+    public function index(SubjectTypeRepository $repository, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         return $this->render('subject_type/index.html.twig', [
-            'subject_types' => $repository->findAllOrdered(),
+            'subject_types' => $paginator->paginate($repository->findAllOrdered(), $request->query->getInt('page', 1), 50),
         ]);
     }
 

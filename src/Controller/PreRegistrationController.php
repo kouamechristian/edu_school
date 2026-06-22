@@ -33,7 +33,8 @@ class PreRegistrationController extends AbstractController
     public function index(
         Request $request,
         PreRegistrationRepository $preRegistrationRepository,
-        SchoolContextService $contextService
+        SchoolContextService $contextService,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         // Récupérer l'établissement courant
         $currentSchool = $contextService->getCurrentSchool();
@@ -71,6 +72,8 @@ class PreRegistrationController extends AbstractController
 
         // Statistiques filtrées par établissement et année
         $stats = $preRegistrationRepository->countByStatusInSchool($schoolId, $schoolYearId);
+
+        $preRegistrations = $paginator->paginate($preRegistrations, $request->query->getInt('page', 1), 50);
 
         return $this->render('pre_registration/index.html.twig', [
             'pre_registrations' => $preRegistrations,
@@ -192,10 +195,22 @@ class PreRegistrationController extends AbstractController
                 $preRegistration->setPhoto($photo);
             }
 
+            // Réinscription : lien vers l'élève existant (réutilisation, pas de duplication).
+            $existingStudentId = (int) $request->request->get('existing_student_id');
+            if ($existingStudentId > 0) {
+                $existingStudent = $entityManager->getRepository(Student::class)->find($existingStudentId);
+                if ($existingStudent && $existingStudent->getSchool()?->getId() === $currentSchool->getId()) {
+                    $preRegistration->setExistingStudent($existingStudent);
+                }
+            }
+
             $entityManager->persist($preRegistration);
             $entityManager->flush();
 
-            $this->addFlash('success', 'La préinscription a été créée avec succès.');
+            $message = $preRegistration->isReturning()
+                ? 'La réinscription de l\'ancien élève a été enregistrée avec succès.'
+                : 'La préinscription a été créée avec succès.';
+            $this->addFlash('success', $message);
 
             return $this->redirectToRoute('admin_pre_registration_show', ['id' => $preRegistration->getId()]);
         }
@@ -360,47 +375,21 @@ class PreRegistrationController extends AbstractController
         return $this->redirectToRoute('admin_pre_registration_show', ['id' => $preRegistration->getId()]);
     }
 
+    /**
+     * L'inscription se fait dans le module dédié (affectation à une classe).
+     * On redirige donc vers ce module plutôt que de créer un élève sans classe.
+     */
     #[Route('/{id}/enroll', name: 'enroll', methods: ['POST'])]
-    public function enroll(
-        PreRegistration $preRegistration,
-        EntityManagerInterface $entityManager
-    ): Response {
+    public function enroll(PreRegistration $preRegistration): Response
+    {
         if (!$preRegistration->canBeEnrolled()) {
-            $this->addFlash('error', 'Cette préinscription ne peut pas être inscrite dans son état actuel.');
+            $this->addFlash('error', 'Cette préinscription ne peut pas être inscrite dans son état actuel (elle doit être validée).');
             return $this->redirectToRoute('admin_pre_registration_show', ['id' => $preRegistration->getId()]);
         }
 
-        // Créer l'étudiant à partir de la préinscription
-        $student = new \App\Entity\Student();
-        $student->setFirstName($preRegistration->getFirstName());
-        $student->setLastName($preRegistration->getLastName());
-        $student->setDateOfBirth($preRegistration->getDateOfBirth());
-        $student->setGender($preRegistration->getGender());
-        $student->setPhone($preRegistration->getPhone());
-        $student->setAddress($preRegistration->getAddress());
-        $student->setParentName($preRegistration->getParentName());
-        $student->setParentPhone($preRegistration->getParentPhone());
-        $student->setParentEmail($preRegistration->getParentEmail());
-        $student->setEmergencyContact($preRegistration->getEmergencyContact());
-        $student->setEmergencyPhone($preRegistration->getEmergencyPhone());
-        $student->setMedicalInfo($preRegistration->getMedicalInfo());
-        $student->setNotes($preRegistration->getNotes());
-        $student->setSchool($preRegistration->getSchool());
-        $student->setLevel($preRegistration->getRequestedLevel());
-        $student->setSchoolYear($preRegistration->getSchoolYear());
+        $this->addFlash('info', 'Créez l\'inscription de l\'élève en sélectionnant sa classe.');
 
-        $entityManager->persist($student);
-
-        // Mettre à jour la préinscription
-        $preRegistration->setStatus('enrolled');
-        $preRegistration->setEnrolledAt(new \DateTime());
-        $preRegistration->setStudent($student);
-
-        $entityManager->flush();
-
-        $this->addFlash('success', 'L\'élève a été inscrit avec succès.');
-
-        return $this->redirectToRoute('admin_student_show', ['id' => $student->getId()]);
+        return $this->redirectToRoute('admin_registration_new');
     }
 
     #[Route('/{id}/change-status/{status}', name: 'change_status', methods: ['POST'])]

@@ -34,13 +34,14 @@
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr><th>Code</th><th>Nom</th><th>Type</th><th>Coef.</th><th>Heures/sem.</th><th>Couleur</th><th>Statut</th><th class="text-end" width="160">Actions</th></tr>
+                            <tr><th>Code</th><th>Nom</th><th>Équivalence</th><th>Type</th><th>Coef.</th><th>Heures/sem.</th><th>Couleur</th><th>Statut</th><th class="text-end" width="160">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for subject in subjects %}
                             <tr>
                                 <td><strong>{{ subject.code }}</strong></td>
                                 <td>{{ subject.name }}</td>
+                                <td>{% if subject.subjectEquivalent %}<span class="badge badge-soft info me-1" title="{{ subject.subjectEquivalent.libelle }}">{{ subject.subjectEquivalent.code }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                                 <td>{% if subject.type %}<span class="badge bg-info">{{ subject.typeLabel }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                                 <td>{{ subject.coefficient ?? '—' }}</td>
                                 <td>{{ subject.hoursPerWeek ?? '—' }}h</td>

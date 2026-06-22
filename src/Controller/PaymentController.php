@@ -75,7 +75,7 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(Request $request, PaymentRepository $paymentRepository, SchoolContextService $contextService, CashRegisterRepository $cashRegisterRepository): Response
+    public function index(Request $request, PaymentRepository $paymentRepository, SchoolContextService $contextService, CashRegisterRepository $cashRegisterRepository, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         // Récupérer l'établissement courant
         $currentSchool = $contextService->getCurrentSchool();
@@ -132,8 +132,14 @@ class PaymentController extends AbstractController
             )
         ];
 
+        // Liste complète conservée pour les cartes de statistiques (qui parcourent la
+        // collection) ; la table est paginée à 50/page.
+        $allPayments = $payments;
+        $payments = $paginator->paginate($payments, $request->query->getInt('page', 1), 50);
+
         return $this->render('payment/index.html.twig', [
             'payments' => $payments,
+            'all_payments' => $allPayments,
             'stats' => $stats,
             'current_status' => $status,
             'current_method' => $method,
@@ -245,9 +251,32 @@ class PaymentController extends AbstractController
             $this->addFlash('error', 'Paiement non enregistré: ' . implode(' | ', array_unique($messages)));
         }
 
+        // Frais de chaque élève embarqués dans la page : la cascade « Frais selon élève »
+        // fonctionne ainsi sans appel AJAX ni dépendance externe (déterministe).
+        $schoolYearId = $contextService->getCurrentSchoolYear()?->getId();
+        $feesByStudent = [];
+        foreach ($studentChoices as $choiceStudent) {
+            $inscription = $choiceStudent->getScolariteRegistration($schoolYearId);
+            $studentFees = $inscription ? $inscription->getStudentFees() : $choiceStudent->getStudentFees();
+            $list = [];
+            foreach ($studentFees as $studentFee) {
+                $fee = $studentFee->getFee();
+                if (!$fee || !$fee->isActive() || $studentFee->getRemainingAmount() <= 0) {
+                    continue;
+                }
+                $list[] = [
+                    'id' => $fee->getId(),
+                    'name' => $fee->getName(),
+                    'remaining' => $studentFee->getRemainingAmount(),
+                ];
+            }
+            $feesByStudent[$choiceStudent->getId()] = $list;
+        }
+
         return $this->render('payment/new.html.twig', [
             'payment' => $payment,
             'form' => $form,
+            'fees_by_student' => $feesByStudent,
         ]);
     }
 
@@ -259,16 +288,18 @@ class PaymentController extends AbstractController
             return new JsonResponse(['error' => 'Élève introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
-        $classroom = $student->getClassroom();
+        // Situation de l'année courante (frais rattachés à l'inscription).
+        $inscription = $student->getScolariteRegistration($contextService->getCurrentSchoolYear()?->getId());
+        $classroom = $inscription?->getClassroom() ?? $student->getClassroom();
 
         return new JsonResponse([
             'id' => $student->getId(),
             'nom' => $student->getFirstName(),
             'prenom' => $student->getLastName(),
             'classe' => $classroom?->getFullName() ?: ($classroom?->getName() ?: null),
-            'montantScolarite' => $student->getTotalTuition(),
-            'montantPaye' => $student->getTotalPaid(),
-            'montantRestant' => $student->getRemainingTuition(),
+            'montantScolarite' => $inscription ? $inscription->getTotalTuition() : $student->getTotalTuition(),
+            'montantPaye' => $inscription ? $inscription->getTotalPaid() : $student->getTotalPaid(),
+            'montantRestant' => $inscription ? $inscription->getRemainingTuition() : $student->getRemainingTuition(),
         ]);
     }
 
@@ -284,8 +315,12 @@ class PaymentController extends AbstractController
             return new JsonResponse(['error' => 'Élève introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
+        // Frais de l'année courante (rattachés à l'inscription) ; repli sur l'élève.
+        $inscription = $student->getScolariteRegistration($contextService->getCurrentSchoolYear()?->getId());
+        $studentFees = $inscription ? $inscription->getStudentFees() : $student->getStudentFees();
+
         $fees = [];
-        foreach ($student->getStudentFees() as $studentFee) {
+        foreach ($studentFees as $studentFee) {
             $fee = $studentFee->getFee();
             // Exclure les frais inactifs et ceux déjà entièrement soldés.
             if (!$fee || !$fee->isActive() || $studentFee->getRemainingAmount() <= 0) {

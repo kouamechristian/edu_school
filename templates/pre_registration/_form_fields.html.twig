@@ -4,6 +4,22 @@
    - action       : URL de soumission (optionnel ; défaut = route courante)
    - submit_label : libellé du bouton de soumission (optionnel) #}
 {{ form_start(form, action is defined and action ? { action: action } : {}) }}
+    {# Réinscription : conserve le lien vers l'élève existant (évite la duplication). #}
+    {% if existing_student_id is defined and existing_student_id %}
+        <input type="hidden" name="existing_student_id" value="{{ existing_student_id }}">
+    {% endif %}
+    <hr class="my-4">
+    <h6 class="text-muted mb-3"><i class="fas fa-school me-2"></i>Informations scolaires</h6>
+    <div class="row">
+        <div class="col-md-6">{{ form_row(form.requestedLevel) }}</div>
+        <div class="col-md-6">{{ form_row(form.schoolYear) }}</div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">{{ form_row(form.isRepeating) }}</div>
+    </div>
+    {{ form_row(form.lastSchoolAttended) }}
+    <hr class="my-4">
+    <h6 class="text-muted mb-3"><i class="fas fa-user me-2"></i>Informations de l'élève</h6>
     <div class="row">
         <div class="col-md-6">{{ form_row(form.lastName) }}</div>
         <div class="col-md-6">{{ form_row(form.firstName) }}</div>
@@ -51,18 +67,6 @@
         <div class="col-md-6">{{ form_row(form.emergencyContact) }}</div>
         <div class="col-md-6">{{ form_row(form.emergencyPhone) }}</div>
     </div>
-
-    <hr class="my-4">
-    <h6 class="text-muted mb-3"><i class="fas fa-school me-2"></i>Informations scolaires</h6>
-    <div class="row">
-        <div class="col-md-6">{{ form_row(form.requestedLevel) }}</div>
-        <div class="col-md-6">{{ form_row(form.schoolYear) }}</div>
-    </div>
-    <div class="row">
-        <div class="col-md-6">{{ form_row(form.isRepeating) }}</div>
-    </div>
-    {{ form_row(form.lastSchoolAttended) }}
-
     <hr class="my-4">
     <h6 class="text-muted mb-3"><i class="fas fa-notes-medical me-2"></i>Informations supplémentaires</h6>
     {{ form_row(form.medicalInfo) }}

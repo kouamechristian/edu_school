@@ -29,7 +29,7 @@ class FeeController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(Request $request, FeeRepository $feeRepository, SchoolContextService $contextService): Response
+    public function index(Request $request, FeeRepository $feeRepository, SchoolContextService $contextService, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         // Récupérer l'établissement courant
         $currentSchool = $contextService->getCurrentSchool();
@@ -85,6 +85,8 @@ class FeeController extends AbstractController
             'by_frequency' => $feeRepository->countByFrequency(),
             'total_amount' => $feeRepository->getTotalAmountBySchool($currentSchool)
         ];
+
+        $fees = $paginator->paginate($fees, $request->query->getInt('page', 1), 50);
 
         return $this->render('fee/index.html.twig', [
             'fees' => $fees,

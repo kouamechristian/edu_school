@@ -254,10 +254,14 @@ class ParentPortalService
      */
     public function getFinancialReport(Student $child): array
     {
+        // Situation de l'année de scolarité courante (inscription la plus récente),
+        // les frais étant désormais rattachés à l'inscription.
+        $inscription = $child->getScolariteRegistration();
+
         return [
-            'total_tuition' => $child->getTotalTuition(),
-            'total_paid' => $child->getTotalPaid(),
-            'remaining' => $child->getRemainingTuition(),
+            'total_tuition' => $inscription ? $inscription->getTotalTuition() : $child->getTotalTuition(),
+            'total_paid' => $inscription ? $inscription->getTotalPaid() : $child->getTotalPaid(),
+            'remaining' => $inscription ? $inscription->getRemainingTuition() : $child->getRemainingTuition(),
         ];
     }
 
@@ -278,6 +282,7 @@ class ParentPortalService
 
         foreach ($this->getChildren($parent, $schoolYearId) as $child) {
             $period = $this->getCurrentPeriod($child);
+            $inscription = $child->getScolariteRegistration($schoolYearId);
 
             $cards[] = [
                 'child' => $child,
@@ -286,7 +291,7 @@ class ParentPortalService
                     ? $this->gradeRepository->calculateGeneralAverageByStudentAndPeriod($child->getId(), $period->getId())
                     : null,
                 'absences' => $this->getAttendanceReport($child, $period)['total'],
-                'remaining' => $child->getRemainingTuition(),
+                'remaining' => $inscription ? $inscription->getRemainingTuition() : $child->getRemainingTuition(),
             ];
         }
 

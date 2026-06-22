@@ -30,6 +30,10 @@
                 <i class="fas fa-info-circle me-2 fa-lg"></i>
                 <div>
                     <strong>Statut :</strong> {{ pre_registration.statusLabel }}
+                    <span class="badge {{ pre_registration.returning ? 'bg-warning text-dark' : 'bg-secondary' }} ms-2">
+                        <i class="fas {{ pre_registration.returning ? 'fa-user-clock' : 'fa-user-plus' }} me-1"></i>{{ pre_registration.typeLabel }}
+                    </span>
+                    {% if pre_registration.existingStudent %}<br><small>Élève existant : {{ pre_registration.existingStudent.fullName }}{% if pre_registration.existingStudent.matriculeInterne %} ({{ pre_registration.existingStudent.matriculeInterne }}){% endif %}</small>{% endif %}
                     {% if pre_registration.validatedAt %}<br><small>Validée le {{ pre_registration.validatedAt|date('d/m/Y à H:i') }}</small>{% endif %}
                     {% if pre_registration.enrolledAt %}<br><small>Inscrite le {{ pre_registration.enrolledAt|date('d/m/Y à H:i') }}</small>{% endif %}
                 </div>

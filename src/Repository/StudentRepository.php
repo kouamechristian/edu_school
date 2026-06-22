@@ -2,8 +2,11 @@
 
 namespace App\Repository;
 
+use App\Entity\PreRegistration;
+use App\Entity\Registration;
 use App\Entity\Student;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -40,6 +43,29 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Joint les inscriptions de l'élève (alias 's') via sa préinscription d'origine.
+     *
+     * L'inscription n'est plus liée directement à l'élève : elle est portée par la
+     * préinscription (nouvel élève → `student`, ancien élève → `existingStudent`).
+     * Pose les alias `{alias}_pre` (PreRegistration) et `{alias}` (Registration) et
+     * accepte une condition DQL supplémentaire optionnelle sur l'inscription.
+     */
+    private function joinRegistrations(QueryBuilder $qb, string $alias = 'i', ?string $with = null): QueryBuilder
+    {
+        $condition = $alias . '.preRegistration = ' . $alias . '_pre';
+        if ($with !== null) {
+            $condition .= ' AND ' . $with;
+        }
+
+        // « s.preRegistration » (nouvel élève, côté propriétaire) ou « existingStudent »
+        // (ancien élève) : on ne peut pas filtrer sur PreRegistration.student qui est le
+        // côté inverse d'un OneToOne (interdit en DQL).
+        return $qb
+            ->innerJoin(PreRegistration::class, $alias . '_pre', 'WITH', 's.preRegistration = ' . $alias . '_pre OR ' . $alias . '_pre.existingStudent = s')
+            ->innerJoin(Registration::class, $alias, 'WITH', $condition);
+    }
+
+    /**
      * Trouve les élèves par établissement
      */
     public function findBySchool(int $schoolId): array
@@ -56,12 +82,15 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les élèves par classe
+     * Trouve les élèves par classe (via leur inscription).
+     *
+     * Une classe appartient à une seule année scolaire : filtrer sur l'inscription
+     * rattachée à cette classe donne donc directement les élèves de l'année concernée.
      */
     public function findByClassroom(int $classroomId): array
     {
-        return $this->createQueryBuilder('s')
-            ->andWhere('s.classroom = :classroomId')
+        return $this->joinRegistrations($this->createQueryBuilder('s'), 'i')
+            ->andWhere('i.classroom = :classroomId')
             ->andWhere('s.isActive = :active')
             ->setParameter('classroomId', $classroomId)
             ->setParameter('active', true)
@@ -72,15 +101,17 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les élèves par niveau
+     * Trouve les élèves par niveau (via la classe de leur inscription)
      */
     public function findByLevel(int $levelId): array
     {
-        return $this->createQueryBuilder('s')
-            ->andWhere('s.level = :levelId')
+        return $this->joinRegistrations($this->createQueryBuilder('s'), 'r')
+            ->innerJoin('r.classroom', 'rc')
+            ->andWhere('rc.level = :levelId')
             ->andWhere('s.isActive = :active')
             ->setParameter('levelId', $levelId)
             ->setParameter('active', true)
+            ->distinct()
             ->orderBy('s.lastName', 'ASC')
             ->addOrderBy('s.firstName', 'ASC')
             ->getQuery()
@@ -88,15 +119,16 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les élèves par année scolaire
+     * Trouve les élèves par année scolaire (via leur inscription)
      */
     public function findBySchoolYear(int $schoolYearId): array
     {
-        return $this->createQueryBuilder('s')
-            ->andWhere('s.schoolYear = :schoolYearId')
+        return $this->joinRegistrations($this->createQueryBuilder('s'), 'r')
+            ->andWhere('r.schoolYear = :schoolYearId')
             ->andWhere('s.isActive = :active')
             ->setParameter('schoolYearId', $schoolYearId)
             ->setParameter('active', true)
+            ->distinct()
             ->orderBy('s.lastName', 'ASC')
             ->addOrderBy('s.firstName', 'ASC')
             ->getQuery()
@@ -156,26 +188,26 @@ class StudentRepository extends ServiceEntityRepository
      */
     public function countByStatusForSchool(int $schoolId, ?int $yearId = null): array
     {
-        $qb = $this->createQueryBuilder('s')
-            ->select('s.status AS status', 'COUNT(s.id) AS total')
-            ->andWhere('s.school = :schoolId')
-            ->andWhere('s.isActive = :active')
-            ->setParameter('schoolId', $schoolId)
-            ->setParameter('active', true)
-            ->groupBy('s.status');
+        // Statut administratif porté par l'élève ; année éventuelle via l'inscription.
+        $build = function (string $status) use ($schoolId, $yearId) {
+            $qb = $this->createQueryBuilder('s')
+                ->select('COUNT(DISTINCT s.id)')
+                ->andWhere('s.school = :schoolId')
+                ->andWhere('s.isActive = :active')
+                ->andWhere('s.status = :status')
+                ->setParameter('schoolId', $schoolId)
+                ->setParameter('active', true)
+                ->setParameter('status', $status);
 
-        if ($yearId !== null) {
-            $qb->andWhere('s.schoolYear = :yearId')->setParameter('yearId', $yearId);
-        }
-
-        $result = ['affecte' => 0, 'non_affecte' => 0];
-        foreach ($qb->getQuery()->getResult() as $row) {
-            if (array_key_exists($row['status'], $result)) {
-                $result[$row['status']] = (int) $row['total'];
+            if ($yearId !== null) {
+                $this->joinRegistrations($qb, 'i')
+                    ->andWhere('i.schoolYear = :yearId')->setParameter('yearId', $yearId);
             }
-        }
 
-        return $result;
+            return (int) $qb->getQuery()->getSingleScalarResult();
+        };
+
+        return ['affecte' => $build('affecte'), 'non_affecte' => $build('non_affecte')];
     }
 
     /**
@@ -187,7 +219,7 @@ class StudentRepository extends ServiceEntityRepository
     public function countByGenderForSchool(int $schoolId, ?int $yearId = null): array
     {
         $qb = $this->createQueryBuilder('s')
-            ->select('s.gender AS gender', 'COUNT(s.id) AS total')
+            ->select('s.gender AS gender', 'COUNT(DISTINCT s.id) AS total')
             ->andWhere('s.school = :schoolId')
             ->andWhere('s.isActive = :active')
             ->setParameter('schoolId', $schoolId)
@@ -195,7 +227,9 @@ class StudentRepository extends ServiceEntityRepository
             ->groupBy('s.gender');
 
         if ($yearId !== null) {
-            $qb->andWhere('s.schoolYear = :yearId')->setParameter('yearId', $yearId);
+            $this->joinRegistrations($qb, 'r')
+                ->andWhere('r.schoolYear = :yearId')
+                ->setParameter('yearId', $yearId);
         }
 
         $result = ['M' => 0, 'F' => 0];
@@ -209,30 +243,33 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les élèves actifs par établissement et niveau
+     * Trouve les élèves actifs « affectés » d'un niveau (via la classe de leur
+     * inscription). Sert à l'affectation en masse d'un frais de scolarité de niveau.
      */
     public function findActiveBySchoolAndLevel(int $schoolId, int $levelId): array
     {
-        return $this->createQueryBuilder('s')
+        return $this->joinRegistrations($this->createQueryBuilder('s'), 'r')
+            ->innerJoin('r.classroom', 'rc')
             ->where('s.school = :schoolId')
-            ->andWhere('s.level = :levelId')
+            ->andWhere('rc.level = :levelId')
             ->andWhere('s.isActive = true')
             ->andWhere('s.status = :status')
             ->setParameter('schoolId', $schoolId)
             ->setParameter('levelId', $levelId)
             ->setParameter('status', 'affecte')
+            ->distinct()
             ->getQuery()
             ->getResult();
     }
 
     /**
-     * Compte les élèves par classe
+     * Compte les élèves par classe (via leur inscription)
      */
     public function countByClassroom(int $classroomId): int
     {
-        return $this->createQueryBuilder('s')
-            ->select('COUNT(s.id)')
-            ->andWhere('s.classroom = :classroomId')
+        return (int) $this->joinRegistrations($this->createQueryBuilder('s'), 'i')
+            ->select('COUNT(DISTINCT s.id)')
+            ->andWhere('i.classroom = :classroomId')
             ->andWhere('s.isActive = :active')
             ->setParameter('classroomId', $classroomId)
             ->setParameter('active', true)
@@ -297,14 +334,14 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Élèves actifs d'une classe, triés par nom.
+     * Élèves actifs d'une classe (via leur inscription), triés par nom.
      *
      * @return Student[]
      */
     public function findActiveByClassroom(int $classroomId): array
     {
-        return $this->createQueryBuilder('s')
-            ->andWhere('s.classroom = :classroom')
+        return $this->joinRegistrations($this->createQueryBuilder('s'), 'i')
+            ->andWhere('i.classroom = :classroom')
             ->andWhere('s.isActive = :active')
             ->setParameter('classroom', $classroomId)
             ->setParameter('active', true)
@@ -431,8 +468,6 @@ class StudentRepository extends ServiceEntityRepository
             ->addSelect('sf')
             ->leftJoin('sf.fee', 'f')
             ->addSelect('f')
-            ->leftJoin('s.classroom', 'c')
-            ->addSelect('c')
             ->where('s.school = :schoolId')
             ->andWhere('s.isActive = :active')
             ->setParameter('schoolId', $schoolId)
@@ -441,11 +476,17 @@ class StudentRepository extends ServiceEntityRepository
             ->addOrderBy('s.firstName', 'ASC');
 
         if ($yearId) {
-            $qb->andWhere('s.schoolYear = :yearId')->setParameter('yearId', $yearId);
-        }
+            // Sélection des élèves via leur inscription de l'année (jointure de
+            // filtrage uniquement, sans hydrater la collection d'inscriptions).
+            $this->joinRegistrations($qb, 'i', 'i.schoolYear = :yearId')
+                ->setParameter('yearId', $yearId);
 
-        if ($classroomId) {
-            $qb->andWhere('s.classroom = :classroomId')->setParameter('classroomId', $classroomId);
+            if ($classroomId) {
+                $qb->andWhere('i.classroom = :classroomId')->setParameter('classroomId', $classroomId);
+            }
+        } elseif ($classroomId) {
+            $this->joinRegistrations($qb, 'i', 'i.classroom = :classroomId')
+                ->setParameter('classroomId', $classroomId);
         }
 
         return $qb->getQuery()->getResult();

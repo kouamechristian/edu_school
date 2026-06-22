@@ -29,7 +29,8 @@ class RecouvrementController extends AbstractController
         StudentRepository $studentRepository,
         ClassroomRepository $classroomRepository,
         RecouvrementService $recouvrementService,
-        SchoolContextService $contextService
+        SchoolContextService $contextService,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         $currentYear = $contextService->getCurrentSchoolYear();
@@ -58,7 +59,7 @@ class RecouvrementController extends AbstractController
         return $this->render('recouvrement/index.html.twig', [
             'current_school' => $currentSchool,
             'current_school_year' => $currentYear,
-            'rows' => $data['rows'],
+            'rows' => $paginator->paginate($data['rows'], $request->query->getInt('page', 1), 50),
             'totals' => $data['totals'],
             'classrooms' => $classrooms,
             'filters' => ['classroom' => $classroomId, 'category' => $category],
@@ -89,7 +90,7 @@ class RecouvrementController extends AbstractController
         }
 
         $students = $studentRepository->findForRecouvrement($currentSchool->getId(), $currentYear?->getId());
-        $data = $recouvrementService->build($students);
+        $data = $recouvrementService->build($students, null, $currentYear?->getId());
 
         // Répartition par classe.
         $byClassroom = [];
@@ -152,11 +153,15 @@ class RecouvrementController extends AbstractController
         $classroomId = $request->query->getInt('classroom') ?: null;
         $classrooms = $classroomRepository->findBySchoolAndYear($currentSchool->getId(), $currentYear?->getId());
         $students = $studentRepository->findForRecouvrement($currentSchool->getId(), $currentYear?->getId(), $classroomId);
-        $data = $recouvrementService->build($students);
+        $data = $recouvrementService->build($students, null, $currentYear?->getId());
 
-        // Seulement les élèves en retard, triés par solde décroissant.
-        $rows = array_values(array_filter($data['rows'], static fn (array $r) => $r['status'] === 'en_retard'));
-        usort($rows, static fn (array $a, array $b) => $b['balance'] <=> $a['balance']);
+        // Seulement les élèves avec un montant échu impayé (selon l'échéancier),
+        // triés par ancienneté du retard puis par montant échu décroissant.
+        $rows = array_values(array_filter($data['rows'], static fn (array $r) => $r['overdue'] > 0));
+        usort($rows, static function (array $a, array $b): int {
+            return $b['days_overdue'] <=> $a['days_overdue']
+                ?: $b['overdue'] <=> $a['overdue'];
+        });
 
         return $this->render('recouvrement/relance.html.twig', [
             'current_school' => $currentSchool,
@@ -174,10 +179,13 @@ class RecouvrementController extends AbstractController
     #[Route('/relance/{id}/lettre', name: 'relance_letter', methods: ['GET'])]
     public function relanceLetter(
         Student $student,
+        RecouvrementService $recouvrementService,
         SchoolContextService $contextService
     ): Response {
         $school = $student->getSchool();
         $currentYear = $contextService->getCurrentSchoolYear();
+
+        $situation = $recouvrementService->buildForStudent($student, null, $currentYear?->getId());
 
         $logoData = null;
         if ($school && $school->getLogo()) {
@@ -193,9 +201,16 @@ class RecouvrementController extends AbstractController
             'school' => $school,
             'current_school_year' => $currentYear,
             'logo_data' => $logoData,
-            'due' => $student->getTotalTuition(),
-            'paid' => $student->getTotalPaid(),
-            'balance' => $student->getRemainingTuition(),
+            'due' => $situation['due'],
+            'paid' => $situation['paid'],
+            'balance' => $situation['balance'],
+            'overdue' => $situation['overdue'],
+            'overdue_count' => $situation['overdue_count'],
+            'oldest_due_date' => $situation['oldest_due_date'],
+            'days_overdue' => $situation['days_overdue'],
+            'next_due_date' => $situation['next_due_date'],
+            'next_due_amount' => $situation['next_due_amount'],
+            'overdue_details' => $situation['overdue_details'],
             'generated_at' => new \DateTime(),
         ]);
 
@@ -314,7 +329,7 @@ class RecouvrementController extends AbstractController
 
         $classrooms = $classroomRepository->findBySchoolAndYear($schoolId, $yearId);
         $students = $studentRepository->findForRecouvrement($schoolId, $yearId, $classroomId);
-        $data = $recouvrementService->build($students, $category);
+        $data = $recouvrementService->build($students, $category, $yearId);
 
         return [$category, $classroomId, $classrooms, $data];
     }

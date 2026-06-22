@@ -205,9 +205,9 @@
                 </tr>
                 <tr>
                     <td>Classe :</td>
-                    <td>{{ period.school.name }}</td> {# À adapter selon votre logique #}
-                    <td>Numéro :</td>
-                    <td>{{ student.id }}</td>
+                    <td>{{ student.classroom ? student.classroom.name : '-' }}</td>
+                    <td>Matricule :</td>
+                    <td>{{ student.matriculeInterne ?: student.id }}</td>
                 </tr>
             </table>
         </div>

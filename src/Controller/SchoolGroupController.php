@@ -20,9 +20,9 @@ class SchoolGroupController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(SchoolGroupRepository $schoolGroupRepository): Response
+    public function index(SchoolGroupRepository $schoolGroupRepository, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
-        $groups = $schoolGroupRepository->findAll();
+        $groups = $paginator->paginate($schoolGroupRepository->findAll(), $request->query->getInt('page', 1), 50);
 
         return $this->render('school_group/index.html.twig', [
             'school_groups' => $groups,

@@ -1,0 +1,58 @@
+{# Sélecteur de matières en cascade : filtre les matières sur le niveau de la classe choisie. #}
+<script>
+(function () {
+    var classroomSelect = document.getElementById('evaluation_classroom');
+    var subjectSelect = document.getElementById('evaluation_subject');
+    if (!classroomSelect || !subjectSelect) {
+        return;
+    }
+
+    var placeholderOption = subjectSelect.querySelector('option[value=""]');
+    var placeholderText = placeholderOption ? placeholderOption.textContent : 'Sélectionnez une matière';
+    var urlTpl = '{{ path('admin_evaluation_subjects_by_classroom', {'id': '__ID__'}) }}';
+
+    function repopulate(classroomId, keepSelected) {
+        if (!classroomId) {
+            return;
+        }
+        fetch(urlTpl.replace('__ID__', classroomId))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var current = keepSelected ? subjectSelect.value : '';
+                subjectSelect.innerHTML = '';
+
+                var ph = document.createElement('option');
+                ph.value = '';
+                ph.textContent = placeholderText;
+                subjectSelect.appendChild(ph);
+
+                (data.subjects || []).forEach(function (s) {
+                    var opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name + (data.level ? ' (' + data.level + ')' : '');
+                    if (String(s.id) === String(current)) {
+                        opt.selected = true;
+                    }
+                    subjectSelect.appendChild(opt);
+                });
+
+                if (!data.subjects || data.subjects.length === 0) {
+                    var none = document.createElement('option');
+                    none.value = '';
+                    none.textContent = 'Aucune matière pour ce niveau';
+                    subjectSelect.appendChild(none);
+                }
+            })
+            .catch(function () { /* silencieux */ });
+    }
+
+    classroomSelect.addEventListener('change', function () {
+        repopulate(this.value, false);
+    });
+
+    // Au chargement (ex. édition) : si une classe est déjà sélectionnée, filtrer en conservant la matière.
+    if (classroomSelect.value) {
+        repopulate(classroomSelect.value, true);
+    }
+})();
+</script>

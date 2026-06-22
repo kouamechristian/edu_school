@@ -66,7 +66,7 @@ class GradeRepository extends ServiceEntityRepository
     /**
      * Calcule la moyenne d'un élève pour une matière et une période
      */
-    public function calculateAverageByStudentSubjectAndPeriod(int $studentId, int $subjectId, int $periodId): ?float
+    public function calculateAverageByStudentSubjectAndPeriod(int $studentId, int $subjectId, int $periodId, bool $validatedOnly = false): ?float
     {
         $qb = $this->createQueryBuilder('g')
             ->select('SUM(g.value * e.coefficient) as totalPoints')
@@ -76,14 +76,14 @@ class GradeRepository extends ServiceEntityRepository
             ->andWhere('e.subject = :subject')
             ->andWhere('e.period = :period')
             ->andWhere('e.isActive = :active')
-            ->andWhere('e.isPublished = :published')
+            ->andWhere($validatedOnly ? 'e.isValidated = :gate' : 'e.isPublished = :gate')
             ->andWhere('g.value IS NOT NULL')
             ->andWhere('g.status IS NULL')
             ->setParameter('student', $studentId)
             ->setParameter('subject', $subjectId)
             ->setParameter('period', $periodId)
             ->setParameter('active', true)
-            ->setParameter('published', true);
+            ->setParameter('gate', true);
 
         $result = $qb->getQuery()->getOneOrNullResult();
 
@@ -97,7 +97,7 @@ class GradeRepository extends ServiceEntityRepository
     /**
      * Calcule la moyenne générale d'un élève pour une période
      */
-    public function calculateGeneralAverageByStudentAndPeriod(int $studentId, int $periodId): ?float
+    public function calculateGeneralAverageByStudentAndPeriod(int $studentId, int $periodId, bool $validatedOnly = false): ?float
     {
         $qb = $this->createQueryBuilder('g')
             ->select('SUM(g.value * e.coefficient * s.coefficient) as totalPoints')
@@ -107,13 +107,13 @@ class GradeRepository extends ServiceEntityRepository
             ->andWhere('g.student = :student')
             ->andWhere('e.period = :period')
             ->andWhere('e.isActive = :active')
-            ->andWhere('e.isPublished = :published')
+            ->andWhere($validatedOnly ? 'e.isValidated = :gate' : 'e.isPublished = :gate')
             ->andWhere('g.value IS NOT NULL')
             ->andWhere('g.status IS NULL')
             ->setParameter('student', $studentId)
             ->setParameter('period', $periodId)
             ->setParameter('active', true)
-            ->setParameter('published', true);
+            ->setParameter('gate', true);
 
         $result = $qb->getQuery()->getOneOrNullResult();
 
@@ -128,7 +128,7 @@ class GradeRepository extends ServiceEntityRepository
      * Moyenne générale annuelle d'un élève (toutes les périodes de l'année scolaire),
      * pondérée par le coefficient de l'évaluation et celui de la matière.
      */
-    public function calculateAnnualGeneralAverageByStudent(int $studentId, ?int $schoolYearId): ?float
+    public function calculateAnnualGeneralAverageByStudent(int $studentId, ?int $schoolYearId, bool $validatedOnly = false): ?float
     {
         $qb = $this->createQueryBuilder('g')
             ->select('SUM(g.value * e.coefficient * s.coefficient) as totalPoints')
@@ -138,12 +138,12 @@ class GradeRepository extends ServiceEntityRepository
             ->leftJoin('e.period', 'p')
             ->andWhere('g.student = :student')
             ->andWhere('e.isActive = :active')
-            ->andWhere('e.isPublished = :published')
+            ->andWhere($validatedOnly ? 'e.isValidated = :gate' : 'e.isPublished = :gate')
             ->andWhere('g.value IS NOT NULL')
             ->andWhere('g.status IS NULL')
             ->setParameter('student', $studentId)
             ->setParameter('active', true)
-            ->setParameter('published', true);
+            ->setParameter('gate', true);
 
         if ($schoolYearId) {
             $qb->andWhere('p.schoolYear = :year')->setParameter('year', $schoolYearId);
@@ -162,7 +162,7 @@ class GradeRepository extends ServiceEntityRepository
      * Moyenne annuelle d'un élève dans une matière (toutes les périodes de l'année),
      * pondérée par le coefficient de l'évaluation.
      */
-    public function calculateAnnualAverageByStudentSubject(int $studentId, int $subjectId, ?int $schoolYearId): ?float
+    public function calculateAnnualAverageByStudentSubject(int $studentId, int $subjectId, ?int $schoolYearId, bool $validatedOnly = false): ?float
     {
         $qb = $this->createQueryBuilder('g')
             ->select('SUM(g.value * e.coefficient) as totalPoints')
@@ -172,13 +172,13 @@ class GradeRepository extends ServiceEntityRepository
             ->andWhere('g.student = :student')
             ->andWhere('e.subject = :subject')
             ->andWhere('e.isActive = :active')
-            ->andWhere('e.isPublished = :published')
+            ->andWhere($validatedOnly ? 'e.isValidated = :gate' : 'e.isPublished = :gate')
             ->andWhere('g.value IS NOT NULL')
             ->andWhere('g.status IS NULL')
             ->setParameter('student', $studentId)
             ->setParameter('subject', $subjectId)
             ->setParameter('active', true)
-            ->setParameter('published', true);
+            ->setParameter('gate', true);
 
         if ($schoolYearId) {
             $qb->andWhere('p.schoolYear = :year')->setParameter('year', $schoolYearId);
@@ -198,7 +198,7 @@ class GradeRepository extends ServiceEntityRepository
      *
      * @return array<int, float> [subjectId => moyenne]
      */
-    public function annualSubjectAveragesByStudent(int $studentId, ?int $schoolYearId): array
+    public function annualSubjectAveragesByStudent(int $studentId, ?int $schoolYearId, bool $validatedOnly = false): array
     {
         $qb = $this->createQueryBuilder('g')
             ->select('IDENTITY(e.subject) as sid')
@@ -208,12 +208,12 @@ class GradeRepository extends ServiceEntityRepository
             ->leftJoin('e.period', 'p')
             ->andWhere('g.student = :student')
             ->andWhere('e.isActive = :active')
-            ->andWhere('e.isPublished = :published')
+            ->andWhere($validatedOnly ? 'e.isValidated = :gate' : 'e.isPublished = :gate')
             ->andWhere('g.value IS NOT NULL')
             ->andWhere('g.status IS NULL')
             ->setParameter('student', $studentId)
             ->setParameter('active', true)
-            ->setParameter('published', true)
+            ->setParameter('gate', true)
             ->groupBy('e.subject');
 
         if ($schoolYearId) {

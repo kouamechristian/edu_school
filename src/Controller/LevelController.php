@@ -22,7 +22,7 @@ class LevelController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(LevelRepository $levelRepository, SchoolContextService $contextService): Response
+    public function index(LevelRepository $levelRepository, SchoolContextService $contextService, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         // Récupérer l'établissement courant
         $currentSchool = $contextService->getCurrentSchool();
@@ -37,7 +37,7 @@ class LevelController extends AbstractController
         }
 
         // Récupérer UNIQUEMENT les niveaux de l'établissement sélectionné
-        $levels = $levelRepository->findBySchool($currentSchool->getId());
+        $levels = $paginator->paginate($levelRepository->findBySchool($currentSchool->getId()), $request->query->getInt('page', 1), 50);
 
         return $this->render('level/index.html.twig', [
             'levels' => $levels,

@@ -107,6 +107,15 @@ class PreRegistration
     #[Assert\Choice(choices: ['pending', 'documents_required', 'documents_received', 'validated', 'rejected', 'enrolled'])]
     private ?string $status = 'pending';
 
+    /**
+     * Type de préinscription :
+     *  - 'new'       : nouvel élève (n'existe pas encore dans le système) ;
+     *  - 'returning' : ancien élève qui se réinscrit (réutilise un Student existant).
+     */
+    #[ORM\Column(length: 20, options: ['default' => 'new'])]
+    #[Assert\Choice(choices: ['new', 'returning'])]
+    private string $type = 'new';
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $rejectionReason = null;
 
@@ -143,6 +152,22 @@ class PreRegistration
 
     #[ORM\OneToOne(mappedBy: 'preRegistration', targetEntity: Student::class)]
     private ?Student $student = null;
+
+    /**
+     * Inscription issue de cette préinscription (lien 1‑à‑1, côté inverse).
+     * Renseignée lors de l'inscription via EnrollmentService.
+     */
+    #[ORM\OneToOne(mappedBy: 'preRegistration', targetEntity: Registration::class)]
+    private ?Registration $registration = null;
+
+    /**
+     * Pour une réinscription (« ancien élève ») : l'élève existant réutilisé.
+     * Plusieurs préinscriptions annuelles peuvent pointer vers le même élève
+     * (historique des réinscriptions), sans le dupliquer.
+     */
+    #[ORM\ManyToOne(targetEntity: Student::class, inversedBy: 'reinscriptions')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Student $existingStudent = null;
 
     public function __construct()
     {
@@ -624,6 +649,25 @@ class PreRegistration
         return $this;
     }
 
+    public function getRegistration(): ?Registration
+    {
+        return $this->registration;
+    }
+
+    public function setRegistration(?Registration $registration): static
+    {
+        $this->registration = $registration;
+        return $this;
+    }
+
+    /**
+     * Vrai si cette préinscription a déjà donné lieu à une inscription.
+     */
+    public function hasRegistration(): bool
+    {
+        return $this->registration !== null;
+    }
+
     public function isPending(): bool
     {
         return $this->status === 'pending';
@@ -662,6 +706,45 @@ class PreRegistration
     public function canBeEnrolled(): bool
     {
         return $this->status === 'validated';
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function setType(string $type): static
+    {
+        $this->type = $type;
+        return $this;
+    }
+
+    public function getTypeLabel(): string
+    {
+        return match ($this->type) {
+            'returning' => 'Ancien élève',
+            default => 'Nouvel élève',
+        };
+    }
+
+    public function isReturning(): bool
+    {
+        return $this->type === 'returning';
+    }
+
+    public function getExistingStudent(): ?Student
+    {
+        return $this->existingStudent;
+    }
+
+    public function setExistingStudent(?Student $existingStudent): static
+    {
+        $this->existingStudent = $existingStudent;
+        // Un lien vers un élève existant implique une réinscription.
+        if ($existingStudent !== null) {
+            $this->type = 'returning';
+        }
+        return $this;
     }
 
     public function __toString(): string

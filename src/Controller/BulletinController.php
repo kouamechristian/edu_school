@@ -2,12 +2,16 @@
 
 namespace App\Controller;
 
+use App\Entity\GeneratedBulletin;
 use App\Entity\Period;
 use App\Entity\User;
 use App\Repository\ClassroomRepository;
+use App\Repository\EvaluationRepository;
+use App\Repository\GeneratedBulletinRepository;
 use App\Repository\PeriodRepository;
-use App\Repository\UserRepository;
+use App\Repository\StudentRepository;
 use App\Service\GradeCalculationService;
+use Doctrine\ORM\EntityManagerInterface;
 use App\Service\SchoolContextService;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -30,18 +34,20 @@ class BulletinController extends AbstractController
     public function index(
         ClassroomRepository $classroomRepository,
         PeriodRepository $periodRepository,
-        UserRepository $userRepository,
+        StudentRepository $studentRepository,
+        GeneratedBulletinRepository $generatedBulletinRepository,
         SchoolContextService $contextService,
         Request $request
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         $currentYear = $contextService->getCurrentSchoolYear();
-        
+
         if (!$currentSchool || !$currentYear) {
             $this->addFlash('warning', 'Veuillez sélectionner un établissement et une année scolaire.');
             return $this->render('bulletin/index.html.twig', [
                 'classrooms' => [],
                 'periods' => [],
+                'generated_bulletins' => [],
             ]);
         }
 
@@ -56,7 +62,7 @@ class BulletinController extends AbstractController
 
         $students = [];
         if ($selectedClassroom) {
-            $students = $this->getStudentsWithAverages($selectedClassroom, $selectedPeriod, $userRepository, $periodRepository);
+            $students = $this->getStudentsWithAverages($selectedClassroom, $selectedPeriod, $studentRepository, $periodRepository);
         }
 
         return $this->render('bulletin/index.html.twig', [
@@ -67,6 +73,10 @@ class BulletinController extends AbstractController
             'students' => $students,
             'current_school' => $currentSchool,
             'current_year' => $currentYear,
+            'generated_bulletins' => $generatedBulletinRepository->findBySchoolAndYear(
+                $currentSchool->getId(),
+                $currentYear->getId()
+            ),
         ]);
     }
 
@@ -74,49 +84,57 @@ class BulletinController extends AbstractController
     public function generate(
         int $studentId,
         int $periodId,
-        UserRepository $userRepository,
+        StudentRepository $studentRepository,
         PeriodRepository $periodRepository
     ): Response {
-        $student = $userRepository->find($studentId);
+        $student = $studentRepository->find($studentId);
         $period = $periodRepository->find($periodId);
 
         if (!$student || !$period) {
             throw $this->createNotFoundException('Élève ou période non trouvé');
         }
 
-        // Récupérer la classe de l'élève (on suppose qu'il est dans une classe)
-        // Pour simplifier, on utilise une classe fictive, à adapter selon votre logique
-        $classroomId = 1; // À remplacer par la vraie logique
-
-        $data = $this->gradeCalculationService->generateBulletinData($student, $period, $classroomId);
-
-        return $this->render('bulletin/view.html.twig', $data);
+        return $this->bulletinPdfResponse($student, $period);
     }
 
     #[Route('/pdf/{studentId}/{periodId}', name: 'admin_bulletin_pdf', methods: ['GET'])]
     public function generatePdf(
         int $studentId,
         int $periodId,
-        UserRepository $userRepository,
+        StudentRepository $studentRepository,
         PeriodRepository $periodRepository
     ): Response {
-        $student = $userRepository->find($studentId);
+        $student = $studentRepository->find($studentId);
         $period = $periodRepository->find($periodId);
 
         if (!$student || !$period) {
             throw $this->createNotFoundException('Élève ou période non trouvé');
         }
 
-        $classroomId = 1; // À adapter
+        return $this->bulletinPdfResponse($student, $period);
+    }
 
-        $data = $this->gradeCalculationService->generateBulletinData($student, $period, $classroomId);
+    /**
+     * Construit le bulletin PDF (modèle officiel) d'un élève pour une période.
+     */
+    private function bulletinPdfResponse(\App\Entity\Student $student, Period $period): Response
+    {
+        // Classe de l'élève pour l'année de la période (via son inscription),
+        // avec repli sur la classe legacy.
+        $year = $period->getSchoolYear();
+        $registration = $year ? $student->getRegistrationForYear($year) : $student->getLatestRegistration();
+        $classroomId = ($registration?->getClassroom() ?? $student->getClassroom())?->getId() ?? 0;
+        $sheet = $this->gradeCalculationService->generateBulletinSheet($student, $period, $classroomId);
+        $school = $student->getSchool();
 
-        // Générer le HTML
-        $html = $this->renderView('bulletin/pdf.html.twig', $data);
+        $html = $this->renderView('bulletin/sheet_pdf.html.twig', array_merge($sheet, [
+            'photo_data' => $this->imageDataUri($student->getPhoto()),
+            'city' => $school && $school->getAddress() ? $school->getAddress() : '',
+            'director_role' => 'Directeur des études',
+        ]));
 
-        // Configurer Dompdf
         $options = new Options();
-        $options->set('defaultFont', 'Arial');
+        $options->set('defaultFont', 'Helvetica');
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', true);
 
@@ -125,30 +143,37 @@ class BulletinController extends AbstractController
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        // Nom du fichier
-        $filename = sprintf(
-            'bulletin_%s_%s_%s.pdf',
-            $student->getLastName(),
-            $student->getFirstName(),
-            $period->getCode()
-        );
+        $filename = sprintf('BULLETIN_%s_%s.pdf', strtoupper((string) $student->getLastName()), $period->getCode());
 
-        // Retourner le PDF
-        return new Response(
-            $dompdf->output(),
-            Response::HTTP_OK,
-            [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
-            ]
-        );
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
+        ]);
+    }
+
+    private function imageDataUri(?string $relativePath): ?string
+    {
+        if (!$relativePath) {
+            return null;
+        }
+        $path = $this->getParameter('kernel.project_dir') . '/public/' . ltrim($relativePath, '/');
+        if (!is_file($path)) {
+            return null;
+        }
+        $mime = mime_content_type($path) ?: 'image/png';
+
+        return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($path));
     }
 
     #[Route('/batch-generate', name: 'admin_bulletin_batch_generate', methods: ['POST'])]
     public function batchGenerate(
         Request $request,
-        UserRepository $userRepository,
-        PeriodRepository $periodRepository
+        StudentRepository $studentRepository,
+        EvaluationRepository $evaluationRepository,
+        ClassroomRepository $classroomRepository,
+        PeriodRepository $periodRepository,
+        GeneratedBulletinRepository $generatedBulletinRepository,
+        EntityManagerInterface $entityManager
     ): Response {
         $classroomId = $request->request->getint('classroom');
         $periodId = $request->request->getint('period');
@@ -158,26 +183,54 @@ class BulletinController extends AbstractController
             return $this->redirectToRoute('admin_bulletin_index');
         }
 
+        $classroom = $classroomRepository->find($classroomId);
         $period = $periodRepository->find($periodId);
-        $students = $userRepository->findByClassroom($classroomId);
-
-        $count = 0;
-        foreach ($students as $student) {
-            // Ici, on pourrait enregistrer les bulletins en base ou les envoyer par email
-            $count++;
+        if (!$classroom || !$period) {
+            $this->addFlash('error', 'Classe ou période introuvable.');
+            return $this->redirectToRoute('admin_bulletin_index');
         }
 
-        $this->addFlash('success', "Bulletins générés avec succès pour {$count} élève(s).");
-        
+        $students = $studentRepository->findActiveByClassroom($classroomId);
+
+        // Générer le bulletin verrouille les notes : les évaluations de cette
+        // classe/période ne sont plus modifiables.
+        $evaluations = $evaluationRepository->findByClassroomAndPeriod($classroomId, $periodId);
+        foreach ($evaluations as $evaluation) {
+            $evaluation->setIsValidated(true);
+            $evaluation->setLockedByBulletin(true);
+        }
+
+        // Enregistrer / mettre à jour la trace de génération.
+        $record = $generatedBulletinRepository->findOneByClassroomAndPeriod($classroomId, $periodId) ?? new GeneratedBulletin();
+        $record->setClassroom($classroom);
+        $record->setPeriod($period);
+        $record->setSchoolYear($period->getSchoolYear() ?? $classroom->getSchoolYear());
+        $record->setStudentCount(count($students));
+        $record->setGeneratedAt(new \DateTime());
+        if ($this->getUser() instanceof User) {
+            $record->setGeneratedBy($this->getUser());
+        }
+        if (!$record->getId()) {
+            $entityManager->persist($record);
+        }
+
+        $entityManager->flush();
+
+        $this->addFlash('success', sprintf(
+            'Bulletins générés pour %d élève(s). Les %d évaluation(s) de cette classe/période sont désormais verrouillées.',
+            count($students),
+            count($evaluations)
+        ));
+
         return $this->redirectToRoute('admin_bulletin_index', [
             'classroom' => $classroomId,
             'period' => $periodId,
         ]);
     }
 
-    private function getStudentsWithAverages(int $classroomId, ?int $periodId, UserRepository $userRepository, PeriodRepository $periodRepository): array
+    private function getStudentsWithAverages(int $classroomId, ?int $periodId, StudentRepository $studentRepository, PeriodRepository $periodRepository): array
     {
-        $students = $userRepository->findByClassroom($classroomId);
+        $students = $studentRepository->findActiveByClassroom($classroomId);
 
         if (!$periodId) {
             return $students;

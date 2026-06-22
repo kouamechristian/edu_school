@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\Absence;
+use App\Entity\PreRegistration;
+use App\Entity\Registration;
 use App\Entity\Student;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -71,13 +73,18 @@ class AbsenceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les absences par classe
+     * Trouve les absences par classe (via l'inscription de l'élève).
+     *
+     * Une classe appartient à une seule année : filtrer sur la registration
+     * rattachée à cette classe cible donc les bons élèves/année.
      */
     public function findByClassroom(int $classroomId): array
     {
         return $this->createQueryBuilder('a')
             ->join('a.student', 's')
-            ->andWhere('s.classroom = :classroomId')
+            ->join(PreRegistration::class, 'r_pre', 'WITH', 's.preRegistration = r_pre OR r_pre.existingStudent = s')
+            ->join(Registration::class, 'r', 'WITH', 'r.preRegistration = r_pre')
+            ->andWhere('r.classroom = :classroomId')
             ->andWhere('a.isActive = :active')
             ->setParameter('classroomId', $classroomId)
             ->setParameter('active', true)
@@ -108,8 +115,10 @@ class AbsenceRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('a')
             ->join('a.student', 's')
+            ->join(PreRegistration::class, 'r_pre', 'WITH', 's.preRegistration = r_pre OR r_pre.existingStudent = s')
+            ->join(Registration::class, 'r', 'WITH', 'r.preRegistration = r_pre')
             ->andWhere('a.period = :periodId')
-            ->andWhere('s.classroom = :classroomId')
+            ->andWhere('r.classroom = :classroomId')
             ->andWhere('a.isActive = :active')
             ->setParameter('periodId', $periodId)
             ->setParameter('classroomId', $classroomId)

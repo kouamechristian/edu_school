@@ -4,7 +4,6 @@ namespace App\Controller;
 
 use App\Entity\CashDeposit;
 use App\Entity\CashRegister;
-use App\Entity\FinancialTransaction;
 use App\Repository\CashDepositRepository;
 use App\Repository\CashRegisterRepository;
 use App\Repository\PaymentRepository;
@@ -25,7 +24,8 @@ class CashRegisterController extends AbstractController
         SchoolContextService $contextService,
         CashRegisterRepository $cashRegisterRepository,
         PaymentRepository $paymentRepository,
-        CashDepositRepository $cashDepositRepository
+        CashDepositRepository $cashDepositRepository,
+        \App\Repository\DepenseRepository $depenseRepository
     ): Response {
         $school = $contextService->getCurrentSchool();
         $cashier = $this->getUser();
@@ -38,16 +38,19 @@ class CashRegisterController extends AbstractController
         $cashRegister = $cashRegisterRepository->findOpenForCashier($school, $cashier);
         $paymentsTotal = 0.0;
         $depositsTotal = 0.0;
+        $depensesTotal = 0.0;
         $deposits = [];
         if ($cashRegister) {
             $paymentsTotal = $paymentRepository->getTotalAmountByCashRegister($cashRegister->getId());
-            $depositsTotal = $cashDepositRepository->getTotalByCashRegister($cashRegister->getId());
+            // Solde officiel : seuls les versements APPROUVÉS par le fondateur le réduisent.
+            $depositsTotal = $cashDepositRepository->getApprovedTotalByCashRegister($cashRegister->getId());
+            $depensesTotal = $depenseRepository->getTotalByCashRegister($cashRegister->getId());
             $deposits = $cashDepositRepository->findByCashRegister($cashRegister->getId());
         }
 
-        // Solde actuel = ouverture + encaissements - versements
+        // Solde actuel = ouverture + encaissements - versements approuvés - dépenses
         $currentBalance = $cashRegister
-            ? (float) $cashRegister->getOpeningBalance() + $paymentsTotal - $depositsTotal
+            ? (float) $cashRegister->getOpeningBalance() + $paymentsTotal - $depositsTotal - $depensesTotal
             : 0.0;
 
         // Caisse en ligne de l'établissement (paiements mobile/passerelle).
@@ -64,6 +67,7 @@ class CashRegisterController extends AbstractController
             'cash_register' => $cashRegister,
             'payments_total' => $paymentsTotal,
             'deposits_total' => $depositsTotal,
+            'depenses_total' => $depensesTotal,
             'deposits' => $deposits,
             'current_balance' => $currentBalance,
             'online_cash_register' => $onlineCashRegister,
@@ -80,7 +84,7 @@ class CashRegisterController extends AbstractController
         CashRegisterRepository $cashRegisterRepository,
         PaymentRepository $paymentRepository,
         CashDepositRepository $cashDepositRepository,
-        \App\Repository\TransactionTypeRepository $transactionTypeRepository,
+        \App\Repository\DepenseRepository $depenseRepository,
         \App\Service\NotificationService $notificationService
     ): Response {
         $school = $contextService->getCurrentSchool();
@@ -102,10 +106,12 @@ class CashRegisterController extends AbstractController
             return $this->redirectToRoute('admin_cash_register_index');
         }
 
-        // Solde disponible
+        // Encaisse physiquement disponible pour un nouveau versement : on déduit tous les
+        // versements non rejetés (en attente + approuvés, l'argent a quitté le tiroir) et les dépenses.
         $paymentsTotal = $paymentRepository->getTotalAmountByCashRegister($cashRegister->getId());
         $depositsTotal = $cashDepositRepository->getTotalByCashRegister($cashRegister->getId());
-        $currentBalance = (float) $cashRegister->getOpeningBalance() + $paymentsTotal - $depositsTotal;
+        $depensesTotal = $depenseRepository->getTotalByCashRegister($cashRegister->getId());
+        $currentBalance = (float) $cashRegister->getOpeningBalance() + $paymentsTotal - $depositsTotal - $depensesTotal;
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('deposit', $request->request->get('_token'))) {
@@ -137,27 +143,6 @@ class CashRegisterController extends AbstractController
                     ->setNotes(trim((string) $request->request->get('notes', '')) ?: null);
 
                 $entityManager->persist($deposit);
-
-                // Trace dans les transactions financières (sortie de caisse vers la banque).
-                $transaction = (new FinancialTransaction())
-                    ->setTransactionNumber($this->generateTransactionNumber($entityManager))
-                    ->setSchool($cashRegister->getSchool())
-                    ->setType('transfert')
-                    ->setTransactionType($transactionTypeRepository->findOneBy(['name' => 'Versement bancaire']))
-                    ->setCategory('autre')
-                    ->setAmount($formattedAmount)
-                    ->setTransactionDate(new \DateTime())
-                    ->setPaymentMethod('espèces')
-                    ->setStatus('confirmé')
-                    ->setReference($reference)
-                    ->setDescription(sprintf(
-                        'Versement en banque depuis la caisse de %s (bordereau %s)',
-                        $cashier->getFullName(),
-                        $reference
-                    ))
-                    ->setRecordedBy($cashier);
-
-                $entityManager->persist($transaction);
 
                 // Notifier les fondateurs qu'un versement attend leur approbation.
                 $notificationService->notifyRole(
@@ -253,22 +238,5 @@ class CashRegisterController extends AbstractController
         ]);
     }
 
-    /**
-     * Génère un numéro de transaction unique pour un versement (VST-AAAAMMJJ-NNNN).
-     */
-    private function generateTransactionNumber(EntityManagerInterface $entityManager): string
-    {
-        $prefix = 'VST-' . date('Ymd') . '-';
-
-        $count = (int) $entityManager->createQueryBuilder()
-            ->select('COUNT(t.id)')
-            ->from(FinancialTransaction::class, 't')
-            ->where('t.transactionNumber LIKE :prefix')
-            ->setParameter('prefix', $prefix . '%')
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return $prefix . str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
-    }
 }
 

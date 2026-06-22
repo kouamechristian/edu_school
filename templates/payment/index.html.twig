@@ -59,13 +59,13 @@
             </div>
             <a href="{{ path('admin_payment_pending') }}" class="col-6 col-xl-3 text-decoration-none">
                 <div class="stat-card warning h-100"><div class="card-body d-flex align-items-center justify-content-between">
-                    <div><div class="stat-label mb-1">En Attente</div><div class="stat-value">{{ payments|filter(payment => payment.status == 'en_attente')|length }}</div></div>
+                    <div><div class="stat-label mb-1">En Attente</div><div class="stat-value">{{ all_payments|filter(payment => payment.status == 'en_attente')|length }}</div></div>
                     <div class="stat-icon"><i class="fas fa-clock"></i></div>
                 </div></div>
             </a>
             <a href="{{ path('admin_payment_recent') }}" class="col-6 col-xl-3 text-decoration-none">
                 <div class="stat-card info h-100"><div class="card-body d-flex align-items-center justify-content-between">
-                    <div><div class="stat-label mb-1">Cette Semaine</div><div class="stat-value">{{ payments|filter(payment => payment.createdAt >= date('-7 days'))|length }}</div></div>
+                    <div><div class="stat-label mb-1">Cette Semaine</div><div class="stat-value">{{ all_payments|filter(payment => payment.createdAt >= date('-7 days'))|length }}</div></div>
                     <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
                 </div></div>
             </a>
@@ -138,8 +138,7 @@
                                             {% if payment.status == 'payé' %}
                                                 <a href="{{ path('admin_payment_receipt', {'id': payment.id}) }}" target="_blank" rel="noopener" class="btn btn-outline-success" title="Reçu PDF"><i class="fas fa-file-pdf"></i></a>
                                             {% endif %}
-                                            <a href="{{ path('admin_payment_edit', {'id': payment.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
-                                            {% if payment.status == 'en_attente' %}
+                                            {% if payment.status == 'en_attente' or payment.status == 'partiellement_payé' %}
                                                 <form method="post" action="{{ path('admin_payment_confirm', {'id': payment.id}) }}" class="d-inline">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('confirm' ~ payment.id) }}">
                                                     <button type="submit" class="btn btn-outline-success" title="Confirmer"><i class="fas fa-check"></i></button>
@@ -149,10 +148,12 @@
                                                     <button type="submit" class="btn btn-outline-danger" title="Annuler" onclick="return confirm('Êtes-vous sûr de vouloir annuler ce paiement ?')"><i class="fas fa-times"></i></button>
                                                 </form>
                                             {% endif %}
+                                           {% if is_granted('ROLE_ADMIN') %}   
                                             <form method="post" action="{{ path('admin_payment_delete', {'id': payment.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?')">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ payment.id) }}">
                                                 <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                             </form>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
@@ -162,6 +163,7 @@
                         </tbody>
                     </table>
                 </div>
+                {% include '_pagination.html.twig' with { pagination: payments } %}
             </div>
         </div>
     {% else %}

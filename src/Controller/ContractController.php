@@ -25,7 +25,8 @@ class ContractController extends AbstractController
     public function index(
         ContractRepository $contractRepository,
         SchoolContextService $contextService,
-        Request $request
+        Request $request,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
 
@@ -39,7 +40,7 @@ class ContractController extends AbstractController
         }
 
         $status = $request->query->get('status');
-        $contracts = $contractRepository->findBySchool($currentSchool->getId(), $status);
+        $contracts = $paginator->paginate($contractRepository->findBySchool($currentSchool->getId(), $status), $request->query->getInt('page', 1), 50);
 
         return $this->render('contract/index.html.twig', [
             'contracts' => $contracts,

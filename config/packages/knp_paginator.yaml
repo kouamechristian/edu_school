@@ -1,0 +1,9 @@
+knp_paginator:
+    page_range: 5                       # nombre de pages affichées autour de la page courante
+    default_options:
+        page_name: page                 # paramètre de requête : ?page=N
+        sort_field_name: sort
+        sort_direction_name: direction
+        distinct: true
+    template:
+        pagination: '@KnpPaginator/Pagination/bootstrap_v5_pagination.html.twig'

@@ -298,6 +298,7 @@ class ParentPortalController extends AbstractController
         return $this->render('parent/finance.html.twig', [
             'child' => $child,
             'finance' => $this->portal->getFinancialReport($child),
+            'registration' => $child->getScolariteRegistration(),
             'payments' => $paymentRepository->findByStudent($child),
         ]);
     }

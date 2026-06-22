@@ -5,6 +5,7 @@ namespace App\Tests\Entity;
 use App\Entity\Classroom;
 use App\Entity\Grade;
 use App\Entity\Level;
+use App\Entity\Registration;
 use App\Entity\School;
 use App\Entity\SchoolGroup;
 use App\Entity\SchoolYear;
@@ -20,11 +21,31 @@ class StudentTest extends TestCase
         $this->student = new Student();
     }
 
+    /**
+     * Rattache une inscription à l'élève (la scolarité est portée par Registration).
+     */
+    private function attachRegistration(?Classroom $classroom = null): Registration
+    {
+        $year = new SchoolYear();
+        $year->setStartDate(new \DateTime('2026-09-01'));
+
+        $registration = new Registration();
+        $registration->setSchoolYear($year);
+        if ($classroom !== null) {
+            $registration->setClassroom($classroom);
+        }
+
+        $this->student->addRegistration($registration);
+
+        return $registration;
+    }
+
     public function testNewStudentHasDefaults(): void
     {
         $this->assertNull($this->student->getId());
         $this->assertTrue($this->student->isActive());
-        $this->assertSame('affecte', $this->student->getStatus());
+        // Sans inscription, le statut dérivé vaut « non affecté ».
+        $this->assertSame('non_affecte', $this->student->getStatus());
         $this->assertInstanceOf(\DateTimeInterface::class, $this->student->getCreatedAt());
     }
 
@@ -43,15 +64,11 @@ class StudentTest extends TestCase
 
     public function testStatusLabel(): void
     {
-        $cases = [
-            'affecte' => 'Affecté',
-            'non_affecte' => 'Non affecté',
-        ];
+        $this->student->setStatus('affecte');
+        $this->assertSame('Affecté', $this->student->getStatusLabel());
 
-        foreach ($cases as $status => $expected) {
-            $this->student->setStatus($status);
-            $this->assertSame($expected, $this->student->getStatusLabel());
-        }
+        $this->student->setStatus('non_affecte');
+        $this->assertSame('Non affecté', $this->student->getStatusLabel());
     }
 
     public function testStatusColor(): void
@@ -89,11 +106,12 @@ class StudentTest extends TestCase
 
     public function testClassroomAndLevelRelations(): void
     {
-        $classroom = new Classroom();
         $level = new Level();
+        $classroom = new Classroom();
+        $classroom->setLevel($level);
 
-        $this->student->setClassroom($classroom);
-        $this->student->setLevel($level);
+        // Classe et niveau sont portés par l'inscription ; le niveau dérive de la classe.
+        $this->attachRegistration($classroom);
 
         $this->assertSame($classroom, $this->student->getClassroom());
         $this->assertSame($level, $this->student->getLevel());

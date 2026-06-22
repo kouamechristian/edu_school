@@ -24,13 +24,14 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class TeacherController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(UserRepository $userRepository, SchoolContextService $contextService): Response
+    public function index(UserRepository $userRepository, SchoolContextService $contextService, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         $school = $contextService->getCurrentSchool();
 
         $teachers = $school
             ? $userRepository->findByTypeInSchool('enseignant', $school->getId())
             : $userRepository->findByType('enseignant');
+        $teachers = $paginator->paginate($teachers, $request->query->getInt('page', 1), 50);
 
         return $this->render('teacher/index.html.twig', [
             'teachers' => $teachers,

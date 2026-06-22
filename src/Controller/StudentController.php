@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Controller\Concern\HandlesEntityDeletion;
 use App\Controller\Concern\HandlesFileUpload;
 use App\Entity\Classroom;
+use App\Entity\Registration;
 use App\Entity\Student;
 use App\Entity\StudentTransfer;
 use App\Entity\PreRegistration;
@@ -17,7 +18,9 @@ use App\Repository\PaymentRepository;
 use App\Repository\PreRegistrationRepository;
 use App\Repository\ClassroomRepository;
 use App\Repository\LevelRepository;
+use App\Service\EnrollmentService;
 use App\Service\FeeAssignmentService;
+use App\Service\RegistrationManager;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
@@ -48,7 +51,9 @@ class StudentController extends AbstractController
         private EntityManagerInterface $entityManager,
         private SchoolContextService $schoolContextService,
         private FeeAssignmentService $feeAssignmentService,
-        private \App\Service\MatriculeGenerator $matriculeGenerator
+        private \App\Service\MatriculeGenerator $matriculeGenerator,
+        private RegistrationManager $registrationManager,
+        private EnrollmentService $enrollmentService
     ) {}
 
     #[Route('/transfer', name: 'transfer', methods: ['GET', 'POST'])]
@@ -69,10 +74,9 @@ class StudentController extends AbstractController
 
         $classrooms = $classroomRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
 
-        // Élèves actifs de l'établissement (pour le sélecteur).
+        // Élèves actifs de l'établissement (pour le sélecteur). La classe/niveau
+        // sont portés par l'inscription (chargés à la demande via les getters).
         $students = $studentRepository->createQueryBuilder('s')
-            ->leftJoin('s.classroom', 'c')->addSelect('c')
-            ->leftJoin('s.level', 'l')->addSelect('l')
             ->leftJoin('s.school', 'school')
             ->where('school.id = :schoolId')
             ->andWhere('s.isActive = :active')
@@ -123,10 +127,16 @@ class StudentController extends AbstractController
 
                 $this->entityManager->persist($transfer);
 
-                // Application du transfert sur l'élève.
-                $student->setClassroom($toClassroom);
-                $student->setLevel($toClassroom->getLevel());
-                $student->setStatus('affecte');
+                // Application du transfert sur l'inscription de l'année (+ legacy).
+                $existing = $schoolYear ? $student->getRegistrationForYear($schoolYear) : null;
+                $this->registrationManager->syncRegistration(
+                    $student,
+                    $schoolYear,
+                    $toClassroom,
+                    $toClassroom->getLevel(),
+                    $student->isRepeating(),
+                    $existing?->isBoursier() ?? false
+                );
 
                 $this->entityManager->flush();
 
@@ -167,167 +177,46 @@ class StudentController extends AbstractController
         ]);
     }
 
-    #[Route('/enrollment', name: 'enrollment', methods: ['GET', 'POST'])]
-    public function enrollment(
-        Request $request,
-        PreRegistrationRepository $preRegistrationRepository,
-        ClassroomRepository $classroomRepository,
-        LevelRepository $levelRepository,
-        StudentRepository $studentRepository,
-        StudentFeeRepository $studentFeeRepository,
-        PaymentRepository $paymentRepository
-    ): Response {
-        $school = $this->schoolContextService->getCurrentSchool();
-        $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
-        
-        if (!$school) {
-            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour voir les inscriptions.');
-            return $this->redirectToRoute('admin_student_index');
-        }
-        
-        // Récupérer les préinscriptions validées prêtes pour l'inscription.
-        // L'inscription est liée à l'année scolaire : on ne propose que les
-        // préinscriptions validées de l'année courante.
-        $preRegistrations = $preRegistrationRepository->findReadyForEnrollment($school->getId(), $schoolYear?->getId());
-        
-        // Récupérer les classes et niveaux de l'établissement
-        $classrooms = $classroomRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
-        $levels = $levelRepository->findBySchool($school->getId());
-        $enrollmentsThisYear = [];
-        if ($schoolYear) {
-            $enrollmentsThisYear = $studentRepository->createQueryBuilder('s')
-                ->leftJoin('s.school', 'school')
-                ->leftJoin('s.schoolYear', 'sy')
-                ->leftJoin('s.classroom', 'c')
-                ->leftJoin('s.level', 'l')
-                ->where('school.id = :schoolId')
-                ->andWhere('sy.id = :schoolYearId')
-                ->setParameter('schoolId', $school->getId())
-                ->setParameter('schoolYearId', $schoolYear->getId())
-                ->orderBy('s.createdAt', 'DESC')
-                ->getQuery()
-                ->getResult();
-        }
-
-        // Données financières par élève inscrit (payé, annulé, restant).
-        $enrollmentFinancials = [];
-        foreach ($enrollmentsThisYear as $s) {
-            $total = $studentFeeRepository->getTotalByStudent($s->getId());
-            $paid = $studentFeeRepository->getTotalPaidByStudent($s->getId());
-            $stats = $paymentRepository->getPaymentStatsByStudent($s);
-            $remaining = max(0, $total - $paid);
-            $enrollmentFinancials[$s->getId()] = [
-                'total' => $total,
-                'paid' => $paid,
-                'cancelled' => (float) ($stats['cancelled_amount'] ?? 0),
-                'remaining' => $remaining,
-            ];
-        }
-
-        // Classes groupées par niveau (pour proposer les classes adaptées à chaque élève).
-        $classroomsByLevel = [];
-        foreach ($classrooms as $classroom) {
-            $levelId = $classroom->getLevel()?->getId();
-            if ($levelId) {
-                $classroomsByLevel[$levelId][] = ['id' => $classroom->getId(), 'name' => $classroom->getName()];
-            }
-        }
-        $allClassrooms = array_map(fn ($c) => ['id' => $c->getId(), 'name' => $c->getName()], $classrooms);
-
-        // Inscription d'UN seul élève à la fois.
-        if ($request->isMethod('POST')) {
-            $preRegistrationId = $request->request->get('pre_registration_id');
-            $classId = $request->request->get('class_id');
-
-            if (!$this->isCsrfTokenValid('enroll' . $preRegistrationId, $request->request->get('_token'))) {
-                $this->addFlash('error', 'Jeton de sécurité invalide.');
-                return $this->redirectToRoute('admin_student_enrollment');
-            }
-
-            $preRegistration = $preRegistrationId ? $preRegistrationRepository->find($preRegistrationId) : null;
-
-            if (!$preRegistration
-                || $preRegistration->getStatus() !== 'validated'
-                || $preRegistration->getSchool()?->getId() !== $school->getId()) {
-                $this->addFlash('error', 'Préinscription introuvable ou non valide pour l\'inscription.');
-                return $this->redirectToRoute('admin_student_enrollment');
-            }
-
-            if (!$classId) {
-                $this->addFlash('error', 'Veuillez sélectionner une classe pour inscrire l\'élève.');
-                return $this->redirectToRoute('admin_student_enrollment');
-            }
-
-            $student = $this->createStudentFromPreRegistration($preRegistration, $classId, $schoolYear);
-            $this->entityManager->persist($student);
-
-            $preRegistration->setStatus('enrolled');
-            $preRegistration->setEnrolledAt(new \DateTime());
-            $student->setPreRegistration($preRegistration);
-            $preRegistration->setStudent($student);
-
-            $this->entityManager->flush();
-
-            $feeCount = $this->feeAssignmentService->assignScolariteFeesForStudent($student);
-            if ($feeCount > 0) {
-                $this->entityManager->flush();
-            }
-
-            $message = sprintf('L\'élève %s a été inscrit avec succès.', $student->getFullName());
-            if ($feeCount > 0) {
-                $message .= sprintf(' %d frais automatiquement affecté(s).', $feeCount);
-            }
-            $this->addFlash('success', $message);
-
-            return $this->redirectToRoute('admin_student_enrollment');
-        }
-
-        // Classes proposées par préinscription (selon le niveau demandé, sinon toutes).
-        $enrollChoices = [];
-        foreach ($preRegistrations as $preReg) {
-            $levelId = $preReg->getRequestedLevel()?->getId();
-            $enrollChoices[$preReg->getId()] = ($levelId && !empty($classroomsByLevel[$levelId]))
-                ? $classroomsByLevel[$levelId]
-                : $allClassrooms;
-        }
-
-        return $this->render('student/enrollment.html.twig', [
-            'preRegistrations' => $preRegistrations,
-            'classrooms' => $classrooms,
-            'levels' => $levels,
-            'enrollChoices' => $enrollChoices,
-            'enrollments_this_year' => $enrollmentsThisYear,
-            'enrollment_financials' => $enrollmentFinancials,
-            'current_school_year' => $schoolYear,
-        ]);
-    }
-
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(StudentRepository $studentRepository, StudentFeeRepository $studentFeeRepository, PreRegistrationRepository $preRegistrationRepository, Request $request): Response
+    public function index(StudentRepository $studentRepository, StudentFeeRepository $studentFeeRepository, PreRegistrationRepository $preRegistrationRepository, Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         $school = $this->schoolContextService->getCurrentSchool();
-        $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
         $search = $request->query->get('search', '');
         $status = $request->query->get('status', '');
         $level = $request->query->get('level', '');
         $gender = $request->query->get('gender', '');
 
+        // La liste élèves est le référentiel de l'établissement (toutes années) :
+        // on n'exige pas d'inscription pour l'année courante (les élèves importés
+        // mais pas encore inscrits doivent rester visibles).
         $queryBuilder = $studentRepository->createQueryBuilder('s')
             ->leftJoin('s.school', 'school')
-            ->leftJoin('s.level', 'l')
-            ->leftJoin('s.preRegistration', 'pr')
+            // Pré-chargement de l'inscription issue de la préinscription d'origine
+            // (classe / niveau / année) pour l'affichage, sans requêtes N+1. Le parent
+            // « pr » doit être sélectionné pour que « reg » puisse y être rattaché.
+            ->leftJoin('s.preRegistration', 'pr')->addSelect('pr')
+            ->leftJoin('pr.registration', 'reg')->addSelect('reg')
+            ->leftJoin('reg.classroom', 'regc')->addSelect('regc')
+            ->leftJoin('regc.level', 'regl')->addSelect('regl')
+            ->leftJoin('reg.schoolYear', 'regy')->addSelect('regy')
             ->where('school.id = :schoolId')
             ->andWhere('s.isActive = :isActive')
             ->setParameter('schoolId', $school->getId())
             ->setParameter('isActive', true)
             ->orderBy('s.lastName', 'ASC');
 
-        // Aligne la liste sur l'année scolaire en cours (cohérence avec les
-        // statistiques du tableau de bord). Sans année sélectionnée, on n'applique
-        // pas de filtre pour rester rétro-compatible.
-        if ($schoolYear) {
-            $queryBuilder->andWhere('s.schoolYear = :schoolYearId')
-                ->setParameter('schoolYearId', $schoolYear->getId());
+        // Statut : attribut de l'élève (référentiel).
+        if ($status) {
+            $queryBuilder->andWhere('s.status = :status')->setParameter('status', $status);
+        }
+
+        // Niveau : porté par l'inscription → jointure registration (seulement si filtré).
+        if ($level) {
+            $queryBuilder->innerJoin(PreRegistration::class, 'r_pre', 'WITH', 's.preRegistration = r_pre OR r_pre.existingStudent = s')
+                ->innerJoin(Registration::class, 'r', 'WITH', 'r.preRegistration = r_pre')
+                ->leftJoin('r.classroom', 'rc')
+                ->distinct()
+                ->andWhere('rc.level = :levelId')->setParameter('levelId', $level);
         }
 
         if ($search) {
@@ -335,26 +224,19 @@ class StudentController extends AbstractController
                 ->setParameter('search', '%' . $search . '%');
         }
 
-        if ($status) {
-            $queryBuilder->andWhere('s.status = :status')
-                ->setParameter('status', $status);
-        }
-
-        if ($level) {
-            $queryBuilder->andWhere('l.id = :levelId')
-                ->setParameter('levelId', $level);
-        }
-
         if ($gender) {
             $queryBuilder->andWhere('s.gender = :gender')
                 ->setParameter('gender', $gender);
         }
 
-        $students = $queryBuilder->getQuery()->getResult();
+        // Liste complète (filtrée) pour les statistiques globales, puis pagination 50/page :
+        // les données dérivées (frais, etc.) ne sont calculées que pour la page courante.
+        $allStudents = $queryBuilder->getQuery()->getResult();
+        $students = $paginator->paginate($allStudents, $request->query->getInt('page', 1), 50);
 
-        // Nombre d'inscriptions et de préinscriptions par élève depuis sa venue dans
-        // l'établissement. L'identité d'un même élève au fil des années repose sur le
-        // matricule national (stable) ; à défaut, on s'en tient à l'enregistrement courant.
+        // Nombre de préinscriptions par élève depuis sa venue dans l'établissement
+        // (regroupé par matricule national, stable d'une année à l'autre). Le nombre
+        // d'inscriptions est, lui, lu directement via les Registration de l'élève (template).
         $nationals = [];
         foreach ($students as $student) {
             $mn = trim((string) $student->getMatriculeNational());
@@ -364,11 +246,9 @@ class StudentController extends AbstractController
         }
         $nationals = array_keys($nationals);
 
-        $enrollmentByNational = $studentRepository->countBySchoolGroupedByNational($school->getId(), $nationals);
         $preRegByNational = $preRegistrationRepository->countBySchoolGroupedByNational($school->getId(), $nationals);
 
         $tuitionData = [];
-        $enrollmentCounts = [];
         $preRegistrationCounts = [];
         foreach ($students as $student) {
             $totalAmount = $studentFeeRepository->getTotalByStudent($student->getId());
@@ -381,11 +261,8 @@ class StudentController extends AbstractController
 
             $mn = trim((string) $student->getMatriculeNational());
             if ($mn !== '') {
-                $enrollmentCounts[$student->getId()] = $enrollmentByNational[$mn] ?? 1;
                 $preRegistrationCounts[$student->getId()] = $preRegByNational[$mn] ?? 0;
             } else {
-                // Sans matricule national, impossible de regrouper : on compte l'enregistrement courant.
-                $enrollmentCounts[$student->getId()] = 1;
                 $preReg = $student->getPreRegistration();
                 $preRegistrationCounts[$student->getId()] =
                     ($preReg && in_array($preReg->getStatus(), ['validated', 'enrolled'], true)) ? 1 : 0;
@@ -393,15 +270,14 @@ class StudentController extends AbstractController
         }
 
         $stats = [
-            'total' => count($students),
-            'affecte' => count(array_filter($students, fn($s) => $s->getStatus() === 'affecte')),
-            'non_affecte' => count(array_filter($students, fn($s) => $s->getStatus() === 'non_affecte')),
+            'total' => count($allStudents),
+            'affecte' => count(array_filter($allStudents, fn($s) => $s->getStatus() === 'affecte')),
+            'non_affecte' => count(array_filter($allStudents, fn($s) => $s->getStatus() === 'non_affecte')),
         ];
 
         return $this->render('student/index.html.twig', [
             'students' => $students,
             'tuition_data' => $tuitionData,
-            'enrollment_counts' => $enrollmentCounts,
             'preregistration_counts' => $preRegistrationCounts,
             'stats' => $stats,
             'search' => $search,
@@ -424,16 +300,29 @@ class StudentController extends AbstractController
 
         $classrooms = $classroomRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
 
-        // Nombre d'élèves inscrits (actifs) par classe.
-        $rows = $studentRepository->createQueryBuilder('s')
-            ->select('IDENTITY(s.classroom) AS cid, COUNT(s.id) AS cnt')
-            ->leftJoin('s.school', 'sc')
-            ->where('sc.id = :schoolId')
-            ->andWhere('s.isActive = :active')
-            ->andWhere('s.classroom IS NOT NULL')
-            ->setParameter('schoolId', $school->getId())
-            ->setParameter('active', true)
-            ->groupBy('s.classroom')
+        // Toutes les statistiques sont calées sur les inscriptions (Registration) de
+        // l'année scolaire courante : un « élève inscrit » est un élève possédant une
+        // inscription active pour cette école et cette année. On ne s'appuie plus sur
+        // Student.isActive seul (qui inclut d'anciens élèves jamais réinscrits cette année).
+        $applyEnrolmentScope = function ($qb) use ($school, $schoolYear) {
+            $qb->innerJoin(PreRegistration::class, 'i_pre', 'WITH', 's.preRegistration = i_pre OR i_pre.existingStudent = s')
+                ->innerJoin(Registration::class, 'i', 'WITH', 'i.preRegistration = i_pre')
+                ->andWhere('i.school = :schoolId')
+                ->andWhere('i.isActive = :active')
+                ->setParameter('schoolId', $school->getId())
+                ->setParameter('active', true);
+            if ($schoolYear) {
+                $qb->andWhere('i.schoolYear = :yearId')
+                    ->setParameter('yearId', $schoolYear->getId());
+            }
+            return $qb;
+        };
+
+        // Nombre d'élèves inscrits par classe pour l'année courante.
+        $rows = $applyEnrolmentScope($studentRepository->createQueryBuilder('s'))
+            ->select('IDENTITY(i.classroom) AS cid, COUNT(DISTINCT s.id) AS cnt')
+            ->andWhere('i.classroom IS NOT NULL')
+            ->groupBy('i.classroom')
             ->getQuery()
             ->getScalarResult();
         $countByClassroom = [];
@@ -441,25 +330,15 @@ class StudentController extends AbstractController
             $countByClassroom[(int) $r['cid']] = (int) $r['cnt'];
         }
 
-        // Statistiques.
-        $totalStudents = (int) $studentRepository->createQueryBuilder('s')
-            ->select('COUNT(s.id)')
-            ->leftJoin('s.school', 'sc')
-            ->where('sc.id = :schoolId')
-            ->andWhere('s.isActive = :active')
-            ->setParameter('schoolId', $school->getId())
-            ->setParameter('active', true)
+        // Statistiques globales (élèves distincts inscrits cette année).
+        $totalStudents = (int) $applyEnrolmentScope($studentRepository->createQueryBuilder('s'))
+            ->select('COUNT(DISTINCT s.id)')
             ->getQuery()
             ->getSingleScalarResult();
 
-        $withoutBirthCertificate = (int) $studentRepository->createQueryBuilder('s')
-            ->select('COUNT(s.id)')
-            ->leftJoin('s.school', 'sc')
-            ->where('sc.id = :schoolId')
-            ->andWhere('s.isActive = :active')
+        $withoutBirthCertificate = (int) $applyEnrolmentScope($studentRepository->createQueryBuilder('s'))
+            ->select('COUNT(DISTINCT s.id)')
             ->andWhere('s.birthCertificateNumber IS NULL OR s.birthCertificateNumber = :empty')
-            ->setParameter('schoolId', $school->getId())
-            ->setParameter('active', true)
             ->setParameter('empty', '')
             ->getQuery()
             ->getSingleScalarResult();
@@ -605,11 +484,15 @@ class StudentController extends AbstractController
     /**
      * En-têtes de colonnes utilisés pour l'export et l'import Excel.
      */
+    /**
+     * En-têtes de l'export/import : uniquement les données du référentiel Student.
+     * Le niveau, la classe, le redoublant et le boursier relèvent de l'inscription
+     * (Registration) et se gèrent via le module d'inscription, pas par l'import.
+     */
     private const EXCEL_HEADERS = [
         'Matricule interne', 'Matricule national', 'Nom', 'Prénom', 'Genre (M/F)', 'Date de naissance (JJ/MM/AAAA)',
         'Lieu de naissance', 'Nationalité', 'Numéro extrait de naissance', 'Numéro CMU',
-        'Téléphone', 'Email', 'Adresse', 'Dernière école fréquentée', 'Doublant (Oui/Non)',
-        'Niveau', 'Classe', 'Statut',
+        'Téléphone', 'Email', 'Adresse', 'Dernière école fréquentée', 'Statut (Affecté/Non affecté)',
         'Nom parent', 'Téléphone parent', 'Email parent', 'Fonction parent', 'Domicile parent', 'Photo',
     ];
 
@@ -629,20 +512,25 @@ class StudentController extends AbstractController
 
         $qb = $studentRepository->createQueryBuilder('s')
             ->leftJoin('s.school', 'school')
-            ->leftJoin('s.level', 'l')
             ->where('school.id = :schoolId')
             ->setParameter('schoolId', $school->getId())
             ->orderBy('s.lastName', 'ASC');
 
-        if ($search) {
-            $qb->andWhere('s.firstName LIKE :search OR s.lastName LIKE :search OR s.matriculeInterne LIKE :search OR s.matriculeNational LIKE :search')
-                ->setParameter('search', '%' . $search . '%');
-        }
+        // Statut = attribut de l'élève ; niveau = porté par l'inscription.
         if ($status) {
             $qb->andWhere('s.status = :status')->setParameter('status', $status);
         }
         if ($level) {
-            $qb->andWhere('l.id = :levelId')->setParameter('levelId', $level);
+            $qb->innerJoin(PreRegistration::class, 'r_pre', 'WITH', 's.preRegistration = r_pre OR r_pre.existingStudent = s')
+                ->innerJoin(Registration::class, 'r', 'WITH', 'r.preRegistration = r_pre')
+                ->leftJoin('r.classroom', 'rc')
+                ->distinct()
+                ->andWhere('rc.level = :levelId')->setParameter('levelId', $level);
+        }
+
+        if ($search) {
+            $qb->andWhere('s.firstName LIKE :search OR s.lastName LIKE :search OR s.matriculeInterne LIKE :search OR s.matriculeNational LIKE :search')
+                ->setParameter('search', '%' . $search . '%');
         }
 
         $students = $qb->getQuery()->getResult();
@@ -651,7 +539,7 @@ class StudentController extends AbstractController
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Élèves');
         $sheet->fromArray(self::EXCEL_HEADERS, null, 'A1');
-        $sheet->getStyle('A1:X1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:U1')->getFont()->setBold(true);
 
         $rowNum = 2;
         foreach ($students as $s) {
@@ -670,9 +558,6 @@ class StudentController extends AbstractController
                 $s->getEmail(),
                 $s->getAddress(),
                 $s->getLastSchoolAttended(),
-                $s->isRepeating() ? 'Oui' : 'Non',
-                $s->getLevel()?->getName(),
-                $s->getClassroom()?->getName(),
                 $s->getStatusLabel(),
                 $s->getParentName(),
                 $s->getParentPhone(),
@@ -684,7 +569,7 @@ class StudentController extends AbstractController
             $rowNum++;
         }
 
-        foreach (range('A', 'X') as $col) {
+        foreach (range('A', 'U') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -700,18 +585,17 @@ class StudentController extends AbstractController
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Modèle élèves');
         $sheet->fromArray(self::EXCEL_HEADERS, null, 'A1');
-        $sheet->getStyle('A1:X1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:U1')->getFont()->setBold(true);
 
         // Ligne d'exemple (laisser le matricule interne vide pour génération automatique)
         $sheet->fromArray([
             '', '123456789', 'DUPONT', 'Jean', 'M', '15/09/2012',
             'Abidjan', 'Ivoirienne', 'EN-2012-001', 'CMU123456',
-            '0612345678', 'jean.dupont@example.com', '15 rue de la Paix', 'École Les Oranges', 'Non',
-            '6ème', '', '',
+            '0612345678', 'jean.dupont@example.com', '15 rue de la Paix', 'École Les Oranges', 'Non affecté',
             'DUPONT Pierre', '0698765432', 'pierre.dupont@example.com', 'Commerçant', 'Cocody, Abidjan', '',
         ], null, 'A2');
 
-        foreach (range('A', 'X') as $col) {
+        foreach (range('A', 'U') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -719,10 +603,9 @@ class StudentController extends AbstractController
     }
 
     #[Route('/import', name: 'import', methods: ['POST'])]
-    public function import(Request $request, LevelRepository $levelRepository): Response
+    public function import(Request $request): Response
     {
         $school = $this->schoolContextService->getCurrentSchool();
-        $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
 
         if (!$school) {
             $this->addFlash('warning', 'Veuillez sélectionner un établissement pour importer des élèves.');
@@ -749,25 +632,45 @@ class StudentController extends AbstractController
 
         $rows = $spreadsheet->getActiveSheet()->toArray(null, true, false, false);
 
-        // Index des niveaux de l'établissement par nom (pour la correspondance).
-        $levelByName = [];
-        foreach ($levelRepository->findBy(['school' => $school]) as $lvl) {
-            $levelByName[mb_strtolower(trim($lvl->getName()))] = $lvl;
+        if (count($rows) < 2) {
+            $this->addFlash('warning', 'Le fichier ne contient aucune donnée à importer.');
+            return $this->redirectToRoute('admin_student_index');
         }
 
+        // Mapping des colonnes par EN-TÊTE (et non par position) : l'import reste
+        // correct même si l'ordre des colonnes change ou si des colonnes sont ajoutées.
+        $colIndex = $this->mapImportColumns($rows[0]);
+
+        if (!isset($colIndex['lastName'], $colIndex['firstName'])) {
+            $this->addFlash('error', 'En-têtes non reconnus : la première ligne doit contenir au moins les colonnes « Nom » et « Prénom ». Téléchargez le modèle pour le bon format.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        // Lecture d'une cellule de la ligne par nom de champ (via le mapping d'en-têtes).
+        $cell = static function (array $row, ?int $idx): ?string {
+            if ($idx === null || !array_key_exists($idx, $row)) {
+                return null;
+            }
+            $v = trim((string) ($row[$idx] ?? ''));
+            return $v === '' ? null : $v;
+        };
+
+        // L'import alimente uniquement le référentiel élève (Student). L'affectation
+        // à une classe (inscription) se fait ensuite via le module d'inscription.
         $created = 0;
         $skipped = 0;
 
         foreach ($rows as $i => $row) {
             if ($i === 0) {
-                continue; // En-tête
+                continue; // Ligne d'en-tête
             }
 
-            $lastName = trim((string) ($row[2] ?? ''));
-            $firstName = trim((string) ($row[3] ?? ''));
+            $lastName = (string) ($cell($row, $colIndex['lastName'] ?? null) ?? '');
+            $firstName = (string) ($cell($row, $colIndex['firstName'] ?? null) ?? '');
+            $matricule = (string) ($cell($row, $colIndex['matriculeInterne'] ?? null) ?? '');
 
             // Ligne entièrement vide : on ignore silencieusement.
-            if ($lastName === '' && $firstName === '' && trim((string) ($row[0] ?? '')) === '') {
+            if ($lastName === '' && $firstName === '' && $matricule === '') {
                 continue;
             }
 
@@ -781,48 +684,42 @@ class StudentController extends AbstractController
             $student->setLastName($lastName);
             $student->setFirstName($firstName);
 
-            $matricule = trim((string) ($row[0] ?? ''));
             if ($matricule === '') {
                 $matricule = $this->matriculeGenerator->generate($this->entityManager, Student::class);
             }
             $student->setMatriculeInterne($matricule);
-            $student->setMatriculeNational($this->cleanCell($row[1] ?? null));
+            $student->setMatriculeNational($cell($row, $colIndex['matriculeNational'] ?? null));
 
-            $gender = strtoupper(trim((string) ($row[4] ?? '')));
+            $gender = strtoupper((string) ($cell($row, $colIndex['gender'] ?? null) ?? ''));
             if (in_array($gender, ['M', 'F'], true)) {
                 $student->setGender($gender);
             }
 
-            if ($dob = $this->parseImportDate($row[5] ?? null)) {
+            $dobIdx = $colIndex['dateOfBirth'] ?? null;
+            if ($dobIdx !== null && ($dob = $this->parseImportDate($row[$dobIdx] ?? null))) {
                 $student->setDateOfBirth($dob);
             }
 
-            $student->setPlaceOfBirth($this->cleanCell($row[6] ?? null));
-            $student->setNationality($this->cleanCell($row[7] ?? null));
-            $student->setBirthCertificateNumber($this->cleanCell($row[8] ?? null));
-            $student->setCmuNumber($this->cleanCell($row[9] ?? null));
-            $student->setPhone($this->cleanCell($row[10] ?? null));
-            $student->setEmail($this->cleanCell($row[11] ?? null));
-            $student->setAddress($this->cleanCell($row[12] ?? null));
-            $student->setLastSchoolAttended($this->cleanCell($row[13] ?? null));
-            $student->setIsRepeating($this->parseBoolean($row[14] ?? null));
+            $student->setPlaceOfBirth($cell($row, $colIndex['placeOfBirth'] ?? null));
+            $student->setNationality($cell($row, $colIndex['nationality'] ?? null));
+            $student->setBirthCertificateNumber($cell($row, $colIndex['birthCertificateNumber'] ?? null));
+            $student->setCmuNumber($cell($row, $colIndex['cmuNumber'] ?? null));
+            $student->setPhone($cell($row, $colIndex['phone'] ?? null));
+            $student->setEmail($cell($row, $colIndex['email'] ?? null));
+            $student->setAddress($cell($row, $colIndex['address'] ?? null));
+            $student->setLastSchoolAttended($cell($row, $colIndex['lastSchoolAttended'] ?? null));
 
-            $levelName = mb_strtolower(trim((string) ($row[15] ?? '')));
-            if ($levelName !== '' && isset($levelByName[$levelName])) {
-                $student->setLevel($levelByName[$levelName]);
-            }
+            // Statut administratif : « Affecté » sinon « Non affecté » par défaut.
+            $statusCell = mb_strtolower((string) ($cell($row, $colIndex['status'] ?? null) ?? ''));
+            $student->setStatus(in_array($statusCell, ['affecte', 'affecté', 'affectee', 'affectée'], true) ? 'affecte' : 'non_affecte');
 
-            $student->setParentName($this->cleanCell($row[18] ?? null));
-            $student->setParentPhone($this->cleanCell($row[19] ?? null));
-            $student->setParentEmail($this->cleanCell($row[20] ?? null));
-            $student->setParentFunction($this->cleanCell($row[21] ?? null));
-            $student->setParentAddress($this->cleanCell($row[22] ?? null));
+            $student->setParentName($cell($row, $colIndex['parentName'] ?? null));
+            $student->setParentPhone($cell($row, $colIndex['parentPhone'] ?? null));
+            $student->setParentEmail($cell($row, $colIndex['parentEmail'] ?? null));
+            $student->setParentFunction($cell($row, $colIndex['parentFunction'] ?? null));
+            $student->setParentAddress($cell($row, $colIndex['parentAddress'] ?? null));
 
             $student->setSchool($school);
-            if ($schoolYear) {
-                $student->setSchoolYear($schoolYear);
-            }
-            $student->setStatus('non_affecte');
 
             $this->entityManager->persist($student);
             $created++;
@@ -833,7 +730,7 @@ class StudentController extends AbstractController
         }
 
         if ($created > 0) {
-            $message = "{$created} élève(s) importé(s) avec succès.";
+            $message = "{$created} élève(s) importé(s) dans le référentiel. Inscrivez-les dans une classe via le module d'inscription.";
             if ($skipped > 0) {
                 $message .= " {$skipped} ligne(s) ignorée(s) (nom ou prénom manquant).";
             }
@@ -862,6 +759,75 @@ class StudentController extends AbstractController
         $value = trim((string) ($value ?? ''));
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Associe chaque colonne du fichier importé à un champ élève, à partir de la
+     * ligne d'en-têtes (correspondance insensible à la casse et aux accents).
+     * Rend l'import robuste à un changement d'ordre ou à des colonnes en plus.
+     *
+     * @param array<int, mixed> $headerRow
+     * @return array<string, int> champ => index de colonne
+     */
+    private function mapImportColumns(array $headerRow): array
+    {
+        // Normalisation : minuscule, sans accents, espaces réduits.
+        $normalize = static function (mixed $value): string {
+            $s = mb_strtolower(trim((string) ($value ?? '')));
+            $s = strtr($s, [
+                'à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a',
+                'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+                'î' => 'i', 'ï' => 'i', ' í' => 'i',
+                'ô' => 'o', 'ö' => 'o', 'ó' => 'o',
+                'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ú' => 'u',
+                'ç' => 'c',
+            ]);
+            return preg_replace('/\s+/', ' ', $s);
+        };
+
+        // Alias acceptés par champ (forme normalisée). La correspondance est EXACTE
+        // pour éviter les collisions (« nom » vs « nom parent »).
+        $aliases = [
+            'matriculeInterne' => ['matricule interne', 'matricule'],
+            'matriculeNational' => ['matricule national'],
+            'lastName' => ['nom'],
+            'firstName' => ['prenom'],
+            'gender' => ['genre (m/f)', 'genre', 'sexe'],
+            'dateOfBirth' => ['date de naissance (jj/mm/aaaa)', 'date de naissance', 'date naissance'],
+            'placeOfBirth' => ['lieu de naissance', 'lieu naissance'],
+            'nationality' => ['nationalite'],
+            'birthCertificateNumber' => ['numero extrait de naissance', 'extrait de naissance', 'numero extrait'],
+            'cmuNumber' => ['numero cmu', 'cmu'],
+            'phone' => ['telephone', 'tel', 'telephone eleve'],
+            'email' => ['email', 'e-mail', 'mail'],
+            'address' => ['adresse'],
+            'lastSchoolAttended' => ['derniere ecole frequentee', 'derniere ecole'],
+            'status' => ['statut (affecte/non affecte)', 'statut', 'affectation'],
+            'parentName' => ['nom parent', 'nom du parent', 'nom du parent/tuteur'],
+            'parentPhone' => ['telephone parent', 'tel parent', 'telephone du parent'],
+            'parentEmail' => ['email parent', 'email du parent', 'mail parent'],
+            'parentFunction' => ['fonction parent', 'fonction du parent'],
+            'parentAddress' => ['domicile parent', 'adresse parent', 'domicile du parent'],
+            'photo' => ['photo'],
+        ];
+
+        // Index inverse : libellé normalisé => champ.
+        $labelToField = [];
+        foreach ($aliases as $field => $labels) {
+            foreach ($labels as $label) {
+                $labelToField[$label] = $field;
+            }
+        }
+
+        $map = [];
+        foreach ($headerRow as $idx => $header) {
+            $label = $normalize($header);
+            if ($label !== '' && isset($labelToField[$label]) && !isset($map[$labelToField[$label]])) {
+                $map[$labelToField[$label]] = (int) $idx;
+            }
+        }
+
+        return $map;
     }
 
     private function parseBoolean(mixed $value): bool
@@ -991,6 +957,8 @@ class StudentController extends AbstractController
                 $student->setPhoto($photo);
             }
 
+            // La fiche élève ne modifie que le référentiel (identité/contact/tuteur).
+            // Le rattachement scolaire (classe/niveau/statut) est géré via l'inscription.
             $this->entityManager->flush();
 
             $this->addFlash('success', 'Élève modifié avec succès.');
@@ -1049,56 +1017,55 @@ class StudentController extends AbstractController
         return $this->redirectToRoute('admin_student_archive');
     }
 
-    private function createStudentFromPreRegistration(PreRegistration $preRegistration, ?int $classId, ?\App\Entity\SchoolYear $currentSchoolYear): Student
+    /**
+     * Change le statut (affecté / non affecté) de l'inscription de l'année courante
+     * et réadapte les frais de scolarité en conséquence.
+     */
+    #[Route('/{id}/set-status', name: 'set_status', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function setStatus(Request $request, Student $student): Response
     {
-        $student = new Student();
-        $student->setFirstName($preRegistration->getFirstName());
-        $student->setLastName($preRegistration->getLastName());
-        $student->setDateOfBirth($preRegistration->getDateOfBirth());
-        $student->setGender($preRegistration->getGender());
-        $student->setPhone($preRegistration->getPhone());
-        $student->setEmail($preRegistration->getEmail());
-        $student->setAddress($preRegistration->getAddress());
-        $student->setParentName($preRegistration->getParentName());
-        $student->setParentPhone($preRegistration->getParentPhone());
-        $student->setParentEmail($preRegistration->getParentEmail());
-        $student->setEmergencyContact($preRegistration->getEmergencyContact());
-        $student->setEmergencyPhone($preRegistration->getEmergencyPhone());
-        $student->setMedicalInfo($preRegistration->getMedicalInfo());
-        $student->setNotes($preRegistration->getNotes());
-        // Champs civils/scolaires supplémentaires reportés depuis la préinscription
-        $student->setPlaceOfBirth($preRegistration->getPlaceOfBirth());
-        $student->setNationality($preRegistration->getNationality());
-        $student->setBirthCertificateNumber($preRegistration->getBirthCertificateNumber());
-        $student->setCmuNumber($preRegistration->getCmuNumber());
-        $student->setLastSchoolAttended($preRegistration->getLastSchoolAttended());
-        $student->setIsRepeating($preRegistration->isRepeating());
-        $student->setPhoto($preRegistration->getPhoto());
-        $student->setParentFunction($preRegistration->getParentFunction());
-        $student->setParentAddress($preRegistration->getParentAddress());
-        $student->setSchool($preRegistration->getSchool());
-        $student->setSchoolYear($preRegistration->getSchoolYear() ?? $currentSchoolYear);
-        
-        // Assigner la classe si sélectionnée
-        if ($classId) {
-            $classroom = $this->entityManager->getRepository(\App\Entity\Classroom::class)->find($classId);
-            $student->setClassroom($classroom);
-            // Le niveau doit correspondre à la classe choisie (sinon les frais du niveau ne s'affectent pas correctement)
-            if ($classroom && $classroom->getLevel()) {
-                $student->setLevel($classroom->getLevel());
-            }
+        if (!$this->isCsrfTokenValid('set_status' . $student->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('admin_student_index');
         }
 
-        // Si aucune classe (ou classe sans niveau), utiliser le niveau de la préinscription
-        if (!$student->getLevel()) {
-            $student->setLevel($preRegistration->getRequestedLevel());
+        $status = $request->request->get('status');
+        if (!in_array($status, ['affecte', 'non_affecte'], true)) {
+            $this->addFlash('error', 'Statut invalide.');
+            return $this->redirectToRoute('admin_student_index');
         }
-        
-        $student->setStatus('affecte');
-        $student->setMatriculeInterne($this->matriculeGenerator->generate($this->entityManager, Student::class));
-        $student->setMatriculeNational($preRegistration->getMatriculeNational());
-        // La relation est maintenant gérée par PreRegistration
 
-        return $student;
+        $year = $this->schoolContextService->getCurrentSchoolYear();
+        $registration = $year ? $student->getRegistrationForYear($year) : $student->getLatestRegistration();
+
+        if (!$registration) {
+            $this->addFlash('warning', sprintf('%s n\'a pas d\'inscription pour l\'année courante.', $student->getFullName()));
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $student->setStatus($status);
+
+        // Réadapte les frais de l'inscription de l'année selon le nouveau statut.
+        $result = $this->feeAssignmentService->syncScolariteFeesForRegistration($registration);
+        $this->entityManager->flush();
+
+        $message = sprintf('%s est désormais « %s ».', $student->getFullName(), $student->getStatusLabel());
+        $details = [];
+        if ($result['added'] > 0) {
+            $details[] = sprintf('%d frais ajouté(s)', $result['added']);
+        }
+        if ($result['removed'] > 0) {
+            $details[] = sprintf('%d frais retiré(s)', $result['removed']);
+        }
+        if ($result['kept_paid'] > 0) {
+            $details[] = sprintf('%d frais déjà payé(s) conservé(s)', $result['kept_paid']);
+        }
+        if ($details !== []) {
+            $message .= ' (' . implode(', ', $details) . ')';
+        }
+        $this->addFlash('success', $message);
+
+        $referer = $request->headers->get('referer');
+        return $referer ? $this->redirect($referer) : $this->redirectToRoute('admin_student_index');
     }
 }

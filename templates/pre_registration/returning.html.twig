@@ -33,7 +33,7 @@
                            value="{{ matricule_national }}" placeholder="Ex. 25096333 A" autofocus required>
                 </div>
                 <div class="col-md-4">
-                    <button type="submit" class="btn btn-success w-100"><i class="fas fa-magnifying-glass me-1"></i> Rechercher</button>
+                    <button type="submit" class="btn btn-success w-100"><i class="fas fa-magnifying-glass me-1"></i> Je me pré-inscris</button>
                 </div>
             </form>
             {% if matricule_national and not student %}
@@ -62,7 +62,8 @@
                     <div class="card-body">
                         {{ include('pre_registration/_form_fields.html.twig', {
                             action: path('admin_pre_registration_new'),
-                            submit_label: 'Enregistrer la réinscription'
+                            submit_label: 'Enregistrer la réinscription',
+                            existing_student_id: student.id
                         }) }}
                     </div>
                 </div>

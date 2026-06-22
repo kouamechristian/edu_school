@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier l'équivalence{% endblock %}
+{% block heading %}Modifier l'équivalence{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-9">
+            {% embed 'components/page_header.html.twig' with {
+                title: block('heading'),
+                subtitle: equivalent.code ~ ' — ' ~ equivalent.libelle,
+                icon: 'fa-code-compare',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Matières équivalentes', path: path('admin_subject_equivalent_index') },
+                    { label: block('heading') }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_subject_equivalent_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
+            <div class="card"><div class="card-body">
+                {% include 'subject_equivalent/_form.html.twig' %}
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

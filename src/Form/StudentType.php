@@ -3,8 +3,6 @@
 namespace App\Form;
 
 use App\Entity\Student;
-use App\Entity\Level;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -96,14 +94,6 @@ class StudentType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Nom de la dernière école'],
             ])
-            ->add('isRepeating', ChoiceType::class, [
-                'label' => 'Doublant',
-                'required' => false,
-                'choices' => ['Non' => false, 'Oui' => true],
-                'expanded' => false,
-                'placeholder' => false,
-                'attr' => ['class' => 'form-select'],
-            ])
             ->add('photoFile', FileType::class, [
                 'label' => 'Photo de l\'élève',
                 'mapped' => false,
@@ -162,22 +152,10 @@ class StudentType extends AbstractType
                 'label' => 'Notes',
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'rows' => 3]
-            ])
-            ->add('level', EntityType::class, [
-                'class' => Level::class,
-                'choice_label' => 'name',
-                'label' => 'Niveau',
-                'required' => false,
-                'attr' => ['class' => 'form-control']
-            ])
-            ->add('status', ChoiceType::class, [
-                'label' => 'Statut',
-                'choices' => [
-                    'Affecté' => 'affecte',
-                    'Non affecté' => 'non_affecte',
-                ],
-                'attr' => ['class' => 'form-control']
             ]);
+        // Niveau / classe / statut / redoublant relèvent de l'inscription
+        // (Registration) et se gèrent via l'inscription, le transfert et le bouton
+        // de statut — plus sur la fiche élève (référentiel).
     }
 
     public function configureOptions(OptionsResolver $resolver): void

@@ -23,7 +23,9 @@ class PeriodController extends AbstractController
     #[Route('/', name: 'admin_period_index', methods: ['GET'])]
     public function index(
         PeriodRepository $periodRepository,
-        SchoolContextService $contextService
+        SchoolContextService $contextService,
+        \Symfony\Component\HttpFoundation\Request $request,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         $currentYear = $contextService->getCurrentSchoolYear();
@@ -37,9 +39,10 @@ class PeriodController extends AbstractController
             ]);
         }
 
-        $periods = $periodRepository->findBySchoolAndYear(
-            $currentSchool->getId(),
-            $currentYear->getId()
+        $periods = $paginator->paginate(
+            $periodRepository->findBySchoolAndYear($currentSchool->getId(), $currentYear->getId()),
+            $request->query->getInt('page', 1),
+            50
         );
 
         return $this->render('period/index.html.twig', [

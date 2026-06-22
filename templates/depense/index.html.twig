@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Dépenses{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Dépenses',
+        subtitle: current_school ? current_school.name : 'Sorties d\'argent depuis la caisse',
+        icon: 'fa-money-bill-trend-up',
+        color: 'danger',
+        breadcrumb: [ { label: 'Finances' }, { label: 'Dépenses' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_depense_new') }}" class="btn btn-danger"><i class="fas fa-plus me-1"></i> Nouvelle dépense</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-6">
+            <div class="stat-card danger h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                <div><div class="stat-label mb-1">Total dépenses confirmées</div><div class="stat-value" style="font-size:1.1rem;">{{ total_confirme|number_format(0, ',', ' ') }} <small class="text-muted">FCFA</small></div></div>
+                <div class="stat-icon"><i class="fas fa-money-bill-trend-up"></i></div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des dépenses <span class="badge badge-soft ms-1">{{ depenses.getTotalItemCount }}</span></h6></div>
+        <div class="card-body">
+            {% if depenses is empty %}
+                {{ empty_state('fa-money-bill-trend-up', 'Aucune dépense', 'Cliquez sur « Nouvelle dépense » pour enregistrer une sortie de caisse.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>N°</th><th>Motif</th><th>Catégorie</th><th>Bénéficiaire</th>
+                                <th class="text-end">Montant</th><th>Date</th><th>Méthode</th><th class="text-center">Statut</th>
+                                <th class="text-end" width="140">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in depenses %}
+                            <tr class="{{ d.status == 'annulée' ? 'opacity-50' : '' }}">
+                                <td><span class="badge badge-soft secondary">{{ d.numero }}</span></td>
+                                <td class="fw-semibold">{{ d.libelle }}</td>
+                                <td><span class="badge badge-soft">{{ d.categoryLabel }}</span></td>
+                                <td>{{ d.beneficiary ?: '—' }}</td>
+                                <td class="text-end fw-bold text-danger">{{ d.amount|number_format(0, ',', ' ') }}</td>
+                                <td class="text-muted">{{ d.depenseDate ? d.depenseDate|date('d/m/Y') : '—' }}</td>
+                                <td>{{ d.paymentMethod }}</td>
+                                <td class="text-center"><span class="badge bg-{{ d.statusColor }}">{{ d.statusLabel }}</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_depense_edit', {'id': d.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        <form method="post" action="{{ path('admin_depense_cancel', {'id': d.id}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ d.id) }}">
+                                            <button type="submit" class="btn btn-outline-secondary" title="{{ d.status == 'annulée' ? 'Réactiver' : 'Annuler' }}"><i class="fas fa-{{ d.status == 'annulée' ? 'rotate-left' : 'ban' }}"></i></button>
+                                        </form>
+                                        {% if is_granted('ROLE_ADMIN') %}
+                                        <form method="post" action="{{ path('admin_depense_delete', {'id': d.id}) }}" onsubmit="return confirm('Supprimer définitivement cette dépense ?');" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ d.id) }}">
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% include '_pagination.html.twig' with { pagination: depenses } %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

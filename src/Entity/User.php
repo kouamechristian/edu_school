@@ -111,6 +111,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $schools;
 
     /**
+     * Dernier établissement sélectionné par l'utilisateur (contexte de bascule).
+     *
+     * Persisté en base afin que le choix survive à la déconnexion et à l'expiration
+     * de la session : à la reconnexion, l'utilisateur retrouve son établissement et
+     * non le premier de la liste.
+     */
+    #[ORM\ManyToOne(targetEntity: School::class)]
+    #[ORM\JoinColumn(name: 'last_school_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?School $lastSchool = null;
+
+    /**
      * Enfants rattachés à ce parent (auto-association via matricule + date de naissance).
      *
      * Relation 1—N : côté inverse de Student.parentUser. Comme un élève ne référence
@@ -503,6 +514,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeSchool(School $school): static
     {
         $this->schools->removeElement($school);
+
+        return $this;
+    }
+
+    public function getLastSchool(): ?School
+    {
+        return $this->lastSchool;
+    }
+
+    public function setLastSchool(?School $lastSchool): static
+    {
+        $this->lastSchool = $lastSchool;
 
         return $this;
     }

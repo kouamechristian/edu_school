@@ -16,10 +16,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class NotificationController extends AbstractController
 {
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(NotificationRepository $repository): Response
+    public function index(NotificationRepository $repository, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         return $this->render('notification/index.html.twig', [
-            'notifications' => $repository->findForUser($this->getUser()),
+            'notifications' => $paginator->paginate($repository->findForUser($this->getUser()), $request->query->getInt('page', 1), 50),
         ]);
     }
 

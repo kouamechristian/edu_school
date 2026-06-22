@@ -67,13 +67,32 @@ class CashDepositRepository extends ServiceEntityRepository
      */
     public function getTotalByCashRegister(int $cashRegisterId): float
     {
-        // Les versements rejetés ne réduisent pas le solde.
+        // Versements non rejetés (en attente + approuvés) : encaisse physiquement
+        // sortie de la caisse, utilisée pour borner le montant d'un nouveau versement.
         $result = $this->createQueryBuilder('d')
             ->select('SUM(d.amount) as total')
             ->andWhere('d.cashRegister = :id')
             ->andWhere('d.status != :rejected')
             ->setParameter('id', $cashRegisterId)
             ->setParameter('rejected', 'rejeté')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($result ?? 0);
+    }
+
+    /**
+     * Total des versements APPROUVÉS d'une caisse : ceux-ci seuls réduisent le solde
+     * officiel (le versement n'est déduit qu'une fois validé par le fondateur).
+     */
+    public function getApprovedTotalByCashRegister(int $cashRegisterId): float
+    {
+        $result = $this->createQueryBuilder('d')
+            ->select('SUM(d.amount) as total')
+            ->andWhere('d.cashRegister = :id')
+            ->andWhere('d.status = :approved')
+            ->setParameter('id', $cashRegisterId)
+            ->setParameter('approved', 'approuvé')
             ->getQuery()
             ->getSingleScalarResult();
 

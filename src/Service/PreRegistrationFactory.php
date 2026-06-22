@@ -47,6 +47,10 @@ class PreRegistrationFactory
         $preRegistration->setSchool($school);
         $preRegistration->setSchoolYear($schoolYear);
 
+        // Réinscription : on conserve le lien vers l'élève existant pour le réutiliser
+        // à l'inscription (pas de duplication) — marque aussi le type « returning ».
+        $preRegistration->setExistingStudent($student);
+
         return $preRegistration;
     }
 }

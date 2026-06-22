@@ -1,0 +1,129 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Nouvelle inscription{% endblock %}
+{% block heading %}Nouvelle inscription{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
+            {% embed 'components/page_header.html.twig' with {
+                title: block('heading'),
+                subtitle: current_school_year ? 'Année scolaire ' ~ current_school_year.name : 'Inscrire une préinscription validée',
+                icon: 'fa-id-card-clip',
+                color: 'success',
+                breadcrumb: [
+                    { label: 'Inscriptions', path: path('admin_registration_index') },
+                    { label: block('heading') }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_pre_registration_index') }}" class="btn btn-outline-primary"><i class="fas fa-clipboard-list me-1"></i> Préinscriptions</a>
+                    <a href="{{ path('admin_registration_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
+            {% if preRegistrations|length > 0 %}
+                <div class="card">
+                    <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-user-graduate me-2"></i>Informations de l'inscription</h6></div>
+                    <div class="card-body">
+                        {{ form_start(form, {'attr': {'id': 'enrollForm'}}) }}
+                            <div class="mb-3" id="prereg-wrap">{{ form_row(form.preRegistration) }}</div>
+                            <div class="mb-3" id="class-wrap">{{ form_row(form.classroom) }}</div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">{{ form_row(form.isRepeating) }}</div>
+                                <div class="col-md-4 mb-3">{{ form_row(form.boursier) }}</div>
+                            </div>
+                            <p class="text-muted small"><i class="fas fa-info-circle me-1"></i> L'élève est créé (nouvel élève) ou réutilisé (ancien élève) à partir des informations de la préinscription, puis reçoit automatiquement ses frais de scolarité.</p>
+                            <div class="d-flex justify-content-between mt-3 pt-3 border-top">
+                                <a href="{{ path('admin_registration_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                                <button type="submit" class="btn btn-success"><i class="fas fa-user-graduate me-1"></i> Inscrire</button>
+                            </div>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            {% else %}
+                <div class="card"><div class="card-body">
+                    {{ empty_state('fa-clipboard-list', 'Aucune préinscription validée', 'Une inscription part d\'une préinscription validée. Validez d\'abord une préinscription.') }}
+                    <div class="text-center">
+                        <a href="{{ path('admin_pre_registration_index') }}" class="btn btn-primary"><i class="fas fa-clipboard-list me-1"></i> Voir les préinscriptions</a>
+                        <a href="{{ path('admin_pre_registration_choose') }}" class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i> Nouvelle préinscription</a>
+                    </div>
+                </div></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if preRegistrations|length > 0 %}
+<script>
+(function () {
+    // Pour chaque préinscription : les classes de son niveau (non pleines).
+    const data = {{ enroll_data|json_encode|raw }};
+    // On cible le <select> à l'intérieur de conteneurs à id connu : indépendant des
+    // noms/ids générés par Symfony et du type (Form ou FormView).
+    const preSelect = document.querySelector('#prereg-wrap select');
+    const classSelect = document.querySelector('#class-wrap select');
+    if (!preSelect || !classSelect) {
+        console.error('[inscription] champs select introuvables');
+        return;
+    }
+
+    const placeholder = classSelect.options.length ? classSelect.options[0].text : 'Choisir une classe…';
+
+    function classLabel(c) {
+        return (c.remaining !== null && c.remaining !== undefined)
+            ? c.name + ' (reste ' + c.remaining + ' place' + (c.remaining > 1 ? 's' : '') + ')'
+            : c.name;
+    }
+
+    function refreshClasses() {
+        const entry = data[preSelect.value];
+        const current = classSelect.value;
+        classSelect.innerHTML = '';
+
+        // Placeholder toujours présent ; le champ reste déroulable en permanence.
+        const ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = entry ? placeholder : 'Choisissez d\'abord une préinscription…';
+        classSelect.appendChild(ph);
+
+        // Aucune préinscription choisie → on n'affiche AUCUNE classe (pas d'autres niveaux).
+        if (!entry) {
+            return;
+        }
+
+        if (!entry.classes || entry.classes.length === 0) {
+            const none = document.createElement('option');
+            none.value = '';
+            none.disabled = true;
+            none.textContent = entry.level
+                ? 'Aucune classe disponible pour le niveau ' + entry.level
+                : 'Aucune classe disponible';
+            classSelect.appendChild(none);
+            return;
+        }
+
+        // Uniquement les classes du niveau de la préinscription choisie.
+        entry.classes.forEach(function (c) {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = classLabel(c);
+            classSelect.appendChild(opt);
+        });
+
+        // Restaure la sélection si elle est toujours proposée.
+        if (Array.from(classSelect.options).some(function (o) { return o.value === current; })) {
+            classSelect.value = current;
+        }
+    }
+
+    preSelect.addEventListener('change', refreshClasses);
+    refreshClasses();
+})();
+</script>
+{% endif %}
+{% endblock %}

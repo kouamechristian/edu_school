@@ -68,6 +68,14 @@ class Evaluation
     #[ORM\Column]
     private bool $isActive = true;
 
+    /** Notes validées (verrouillées) ; annulable tant qu'aucun bulletin n'est généré. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isValidated = false;
+
+    /** Verrou définitif : un bulletin couvrant cette évaluation a été généré. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $lockedByBulletin = false;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -250,6 +258,57 @@ class Evaluation
         $this->isActive = $isActive;
 
         return $this;
+    }
+
+    public function isValidated(): bool
+    {
+        return $this->isValidated;
+    }
+
+    public function setIsValidated(bool $isValidated): static
+    {
+        $this->isValidated = $isValidated;
+
+        return $this;
+    }
+
+    public function isLockedByBulletin(): bool
+    {
+        return $this->lockedByBulletin;
+    }
+
+    public function setLockedByBulletin(bool $lockedByBulletin): static
+    {
+        $this->lockedByBulletin = $lockedByBulletin;
+
+        return $this;
+    }
+
+    /** Les notes sont modifiables tant que l'évaluation n'est ni validée ni verrouillée par un bulletin. */
+    public function isEditable(): bool
+    {
+        return !$this->isValidated && !$this->lockedByBulletin;
+    }
+
+    /** Statut global affiché : Verrouillée > Validée > Publiée > Brouillon. */
+    public function getStatusLabel(): string
+    {
+        return match (true) {
+            $this->lockedByBulletin => 'Verrouillée',
+            $this->isValidated => 'Validée',
+            $this->isPublished => 'Publiée',
+            default => 'Brouillon',
+        };
+    }
+
+    public function getStatusColor(): string
+    {
+        return match (true) {
+            $this->lockedByBulletin => 'secondary',
+            $this->isValidated => 'success',
+            $this->isPublished => 'info',
+            default => 'warning',
+        };
     }
 
     public function getCreatedAt(): ?\DateTimeImmutable

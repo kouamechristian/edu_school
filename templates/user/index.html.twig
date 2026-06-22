@@ -102,10 +102,10 @@
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ user.id) }}">
                                             <button type="submit" class="btn btn-outline-secondary" title="{{ user.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ user.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
-                                        <form method="post" action="{{ path('admin_user_delete', {'id': user.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');" class="d-inline">
+                                       {# <form method="post" action="{{ path('admin_user_delete', {'id': user.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ user.id) }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
-                                        </form>
+                                        </form> #}
                                     </div>
                                 </td>
                             </tr>
@@ -113,6 +113,7 @@
                         </tbody>
                     </table>
                 </div>
+                {% include '_pagination.html.twig' with { pagination: users } %}
             {% endif %}
         </div>
     </div>

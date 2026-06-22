@@ -24,7 +24,8 @@ class RoomController extends AbstractController
     public function index(
         RoomRepository $roomRepository,
         SchoolContextService $contextService,
-        Request $request
+        Request $request,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         
@@ -47,6 +48,8 @@ class RoomController extends AbstractController
         } else {
             $rooms = $roomRepository->findBySchool($schoolId);
         }
+
+        $rooms = $paginator->paginate($rooms, $request->query->getInt('page', 1), 50);
 
         return $this->render('room/index.html.twig', [
             'rooms' => $rooms,

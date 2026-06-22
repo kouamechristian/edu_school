@@ -96,7 +96,9 @@ class EvaluationType extends AbstractType
             ->add('subject', EntityType::class, [
                 'label' => 'Matière',
                 'class' => Subject::class,
-                'choice_label' => 'name',
+                'choice_label' => fn (Subject $subject) => $subject->getLevel()
+                    ? sprintf('%s (%s)', $subject->getName(), $subject->getLevel()->getName())
+                    : $subject->getName(),
                 'attr' => ['class' => 'form-select'],
                 'placeholder' => 'Sélectionnez une matière',
                 'query_builder' => function ($repository) use ($schoolId, $restrictToTeacher, $teacherSubjectIds) {

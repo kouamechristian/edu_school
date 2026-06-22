@@ -323,21 +323,5 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
         return $qb->getQuery()->getResult();
     }
-
-    /**
-     * Trouver les élèves d'une classe
-     */
-    public function findByClassroom(int $classroomId): array
-    {
-        return $this->createQueryBuilder('u')
-            ->andWhere('u.userType = :type')
-            ->andWhere('u.isActive = :active')
-            ->setParameter('type', 'eleve')
-            ->setParameter('active', true)
-            ->orderBy('u.lastName', 'ASC')
-            ->addOrderBy('u.firstName', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
 }
 

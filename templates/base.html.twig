@@ -455,8 +455,23 @@
         .ts-dropdown {
             border: 1px solid var(--es-border, #e5e9f0);
             border-radius: 0.5rem;
-            box-shadow: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.12);
+            box-shadow: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.18);
             overflow: hidden;
+            /* Rattachée au <body> : doit passer au-dessus des modales (1055),
+               offcanvas et autres calques, mais sous les toasts (1090). */
+            z-index: 1085;
+            margin-top: 0.25rem;
+        }
+        /* Liste plus haute et options plus aérées pour une meilleure lisibilité */
+        .ts-dropdown .ts-dropdown-content {
+            max-height: 280px;
+        }
+        .ts-dropdown .option,
+        .ts-dropdown .no-results,
+        .ts-dropdown .optgroup-header,
+        .ts-dropdown .create {
+            padding: 0.5rem 0.85rem;
+            font-size: 0.92rem;
         }
         .ts-dropdown .active {
             background-color: rgba(var(--es-accent-rgb, 16,185,129), 0.12);
@@ -684,7 +699,7 @@
                Paramétrage de l'établissement (cycles, niveaux, classes, frais...)
                ============================================================== #}
             {% if is_granted('ROLE_ADMIN') %}
-            {% set config_active = current_route starts with 'admin_cycle' or current_route starts with 'admin_level' or current_route starts with 'admin_faculty' or current_route starts with 'admin_round' or current_route starts with 'admin_classroom' or current_route starts with 'admin_fee' or current_route starts with 'admin_document_type' or current_route starts with 'admin_room' or current_route starts with 'admin_time_slot' %}
+            {% set config_active = current_route starts with 'admin_cycle' or current_route starts with 'admin_level' or current_route starts with 'admin_faculty' or current_route starts with 'admin_round' or current_route starts with 'admin_classroom' or current_route starts with 'admin_fee' or current_route starts with 'admin_document_type' or current_route starts with 'admin_room' or current_route starts with 'admin_time_slot' or current_route starts with 'admin_subject_equivalent' %}
             <div class="nav-section">Configuration</div>
             <li class="nav-item">
                 <a href="#" class="nav-link dropdown-toggle {{ config_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuConfig" aria-expanded="{{ config_active ? 'true' : 'false' }}">
@@ -737,6 +752,11 @@
                             <i class="fas fa-clock"></i><span>Plages Horaires</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_subject_equivalent_index') }}" class="nav-link {{ current_route starts with 'admin_subject_equivalent' ? 'active' : '' }}">
+                            <i class="fas fa-code-compare"></i><span>Matières équivalentes</span>
+                        </a>
+                    </li>
                 </ul>
             </li>
             {% endif %}
@@ -757,7 +777,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ path('admin_student_index') }}" class="nav-link {{ current_route starts with 'admin_student' and current_route not in ['admin_student_enrollment', 'admin_student_transfer', 'admin_student_archive', 'admin_student_dashboard', 'admin_student_classroom_students'] ? 'active' : '' }}">
+                        <a href="{{ path('admin_student_index') }}" class="nav-link {{ current_route starts with 'admin_student' and current_route not in ['admin_student_transfer', 'admin_student_archive', 'admin_student_dashboard', 'admin_student_classroom_students'] ? 'active' : '' }}">
                             <i class="fas fa-list"></i><span>Liste des Élèves</span>
                         </a>
                     </li>
@@ -767,7 +787,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ path('admin_student_enrollment') }}" class="nav-link {{ current_route == 'admin_student_enrollment' ? 'active' : '' }}">
+                        <a href="{{ path('admin_registration_index') }}" class="nav-link {{ current_route starts with 'admin_registration' ? 'active' : '' }}">
                             <i class="fas fa-graduation-cap"></i><span>Inscriptions</span>
                         </a>
                     </li>
@@ -814,7 +834,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ path('admin_subject_index') }}" class="nav-link {{ current_route starts with 'admin_subject' and not (current_route starts with 'admin_subject_type') ? 'active' : '' }}">
+                        <a href="{{ path('admin_subject_index') }}" class="nav-link {{ current_route starts with 'admin_subject' and not (current_route starts with 'admin_subject_type') and not (current_route starts with 'admin_subject_equivalent') ? 'active' : '' }}">
                             <i class="fas fa-book"></i><span>Matières</span>
                         </a>
                     </li>
@@ -953,8 +973,7 @@
             {% set finance_active = current_route starts with 'admin_fee'
                 or current_route starts with 'admin_payment'
                 or current_route starts with 'admin_cash_register'
-                or current_route starts with 'admin_financial_transaction'
-                or current_route starts with 'admin_transaction_type'
+                or current_route starts with 'admin_depense'
             %}
             <div class="nav-section">Finances</div>
 
@@ -983,17 +1002,15 @@
                     {% endif %}
                     {% if is_granted('ROLE_CAISSE') %}
                     <li class="nav-item">
-                        <a href="{{ path('admin_financial_transaction_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_financial_transaction' ? 'active' : '' }}">
-                            <i class="fas fa-exchange-alt"></i>
-                            <span>Transactions</span>
+                        <a href="{{ path('admin_depense_index') }}" class="nav-link {{ current_route starts with 'admin_depense' ? 'active' : '' }}">
+                            <i class="fas fa-money-bill-trend-up"></i>
+                            <span>Dépenses</span>
                         </a>
                     </li>
-                    {% endif %}
-                    {% if is_granted('ROLE_CAISSE') %}
                     <li class="nav-item">
-                        <a href="{{ path('admin_transaction_type_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_transaction_type' ? 'active' : '' }}">
-                            <i class="fas fa-tags"></i>
-                            <span>Types de transaction</span>
+                        <a href="{{ path('admin_cash_register_deposit') }}" class="nav-link {{ current_route == 'admin_cash_register_deposit' ? 'active' : '' }}">
+                            <i class="fas fa-money-bill-transfer"></i>
+                            <span>Versements</span>
                         </a>
                     </li>
                     {% endif %}
@@ -1437,6 +1454,11 @@
                     create: false,
                     allowEmptyOption: true,
                     placeholder: placeholder || 'Rechercher...',
+                    // La liste déroulante est rattachée au <body> : elle échappe
+                    // ainsi à tout conteneur en overflow (card, .table-responsive,
+                    // modale) qui sinon la tronquerait ou la masquerait derrière
+                    // les éléments situés en dessous.
+                    dropdownParent: 'body',
                     render: {
                         no_results: function () {
                             return '<div class="no-results px-2 py-1 text-muted">Aucun résultat</div>';

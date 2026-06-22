@@ -7,6 +7,7 @@ use App\Entity\SchoolYear;
 use App\Entity\User;
 use App\Repository\SchoolRepository;
 use App\Repository\SchoolYearRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -19,7 +20,8 @@ class SchoolContextService
         private RequestStack $requestStack,
         private SchoolRepository $schoolRepository,
         private SchoolYearRepository $schoolYearRepository,
-        private Security $security
+        private Security $security,
+        private EntityManagerInterface $entityManager
     ) {
     }
 
@@ -28,6 +30,17 @@ class SchoolContextService
      */
     public function getCurrentSchool(): ?School
     {
+        $user = $this->security->getUser();
+
+        // Sans utilisateur authentifié (page de login, requête publique, sous-requête
+        // sans contexte de sécurité), on ne touche NI la session NI la base : sinon la
+        // page de login amorcerait current_school_id avec le premier établissement et
+        // écraserait le choix réel de l'utilisateur juste après sa connexion.
+        if (!$user instanceof User) {
+            $available = $this->getAvailableSchools();
+            return $available[0] ?? null;
+        }
+
         $session = $this->requestStack->getSession();
         $schoolId = $session->get(self::SESSION_SCHOOL_KEY);
 
@@ -37,8 +50,19 @@ class SchoolContextService
             $school = $this->schoolRepository->find($schoolId);
             // L'établissement en session doit rester dans la liste autorisée.
             if ($school && $this->isSchoolAllowed($school, $available)) {
+                // On reflète l'établissement actif sur l'utilisateur pour qu'il
+                // soit restauré après déconnexion, même sans clic explicite sur la bascule.
+                $this->rememberLastSchool($school);
                 return $school;
             }
+        }
+
+        // Aucun établissement en session (déconnexion, expiration, 1re visite) :
+        // on restaure le dernier choix persisté de l'utilisateur s'il est encore autorisé.
+        $lastSchool = $user->getLastSchool();
+        if ($lastSchool && $this->isSchoolAllowed($lastSchool, $available)) {
+            $this->setCurrentSchool($lastSchool);
+            return $lastSchool;
         }
 
         // Sinon, prendre le premier établissement autorisé.
@@ -75,12 +99,43 @@ class SchoolContextService
     {
         $session = $this->requestStack->getSession();
         $session->set(self::SESSION_SCHOOL_KEY, $school->getId());
-        
+
+        // Mémoriser le choix sur l'utilisateur pour qu'il survive à la déconnexion
+        // et à l'expiration de la session.
+        $this->rememberLastSchool($school);
+
         // Charger automatiquement l'année en cours (globale)
         $currentYear = $this->schoolYearRepository->findCurrent();
         if ($currentYear) {
             $this->setCurrentSchoolYear($currentYear);
         }
+    }
+
+    /**
+     * Persiste sur l'utilisateur connecté le dernier établissement utilisé.
+     *
+     * On re-charge l'utilisateur depuis l'EntityManager par son identifiant pour
+     * être certain de manipuler une entité suivie (l'instance du jeton de sécurité
+     * peut être détachée selon le contexte), garantissant ainsi le flush en base.
+     */
+    private function rememberLastSchool(School $school): void
+    {
+        $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            return;
+        }
+
+        $managedUser = $this->entityManager->getRepository(User::class)->find($user->getId());
+        if (!$managedUser instanceof User) {
+            return;
+        }
+
+        if ($managedUser->getLastSchool()?->getId() === $school->getId()) {
+            return;
+        }
+
+        $managedUser->setLastSchool($school);
+        $this->entityManager->flush();
     }
 
     /**

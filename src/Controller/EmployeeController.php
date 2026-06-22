@@ -30,7 +30,8 @@ class EmployeeController extends AbstractController
     public function index(
         EmployeeRepository $employeeRepository,
         SchoolContextService $contextService,
-        Request $request
+        Request $request,
+        \Knp\Component\Pager\PaginatorInterface $paginator
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
 
@@ -52,6 +53,8 @@ class EmployeeController extends AbstractController
         } else {
             $employees = $employeeRepository->findActiveBySchool($schoolId);
         }
+
+        $employees = $paginator->paginate($employees, $request->query->getInt('page', 1), 50);
 
         return $this->render('employee/index.html.twig', [
             'employees' => $employees,

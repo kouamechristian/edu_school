@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier l'inscription{% endblock %}
+{% block heading %}Modifier l'inscription{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
+            {% embed 'components/page_header.html.twig' with {
+                title: block('heading'),
+                subtitle: registration.student ? registration.student.fullName ~ ' — ' ~ registration.schoolYear.name : null,
+                icon: 'fa-id-card-clip',
+                color: 'primary',
+                breadcrumb: [
+                    { label: 'Inscriptions', path: path('admin_registration_index') },
+                    { label: block('heading') }
+                ]
+            } %}
+                {% block actions %}
+                    <a href="{{ path('admin_registration_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                {% endblock %}
+            {% endembed %}
+
+            {% include '_flash.html.twig' %}
+
+            {# Rappel des informations figées à la création (issues de la préinscription). #}
+            <div class="card mb-3">
+                <div class="card-body d-flex flex-wrap gap-4">
+                    <div><div class="text-muted small">Élève</div><div class="fw-semibold">{{ registration.student ? registration.student.fullName : '—' }}<br><small class="text-muted">{{ registration.student.matriculeInterne ?? '—' }}</small></div></div>
+                    <div><div class="text-muted small">Année scolaire</div><div class="fw-semibold">{{ registration.schoolYear.name }}</div></div>
+                    <div><div class="text-muted small">Préinscription d'origine</div><div class="fw-semibold">{% if registration.preRegistration %}<span class="badge badge-soft info">#{{ registration.preRegistration.id }} · {{ registration.preRegistration.typeLabel }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {% include 'registration/_form.html.twig' %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -8,12 +8,14 @@ use App\Entity\Absence;
 use App\Entity\School;
 use App\Repository\AbsenceRepository;
 use App\Repository\StudentRepository;
+use Doctrine\ORM\EntityManagerInterface;
 
 class AttendanceService
 {
     public function __construct(
         private AbsenceRepository $absenceRepository,
-        private StudentRepository $studentRepository
+        private StudentRepository $studentRepository,
+        private EntityManagerInterface $entityManager
     ) {
     }
 

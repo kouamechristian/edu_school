@@ -52,6 +52,7 @@
                         </tbody>
                     </table>
                 </div>
+                {% include '_pagination.html.twig' with { pagination: document_types } %}
             {% else %}
                 <div class="empty-state">
                     <div class="empty-icon"><i class="fas fa-file-alt"></i></div>

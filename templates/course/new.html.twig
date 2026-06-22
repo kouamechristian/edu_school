@@ -60,6 +60,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const classroomSelect = document.getElementById('course_classroom');
     const subjectSelect = document.getElementById('course_subject');
     const teacherSelect = document.getElementById('course_teacher');
     if (!subjectSelect || !teacherSelect) {
@@ -70,6 +71,75 @@ document.addEventListener('DOMContentLoaded', function () {
     const placeholderText = (teacherSelect.options[0] && teacherSelect.options[0].value === '')
         ? teacherSelect.options[0].textContent
         : 'Sélectionnez un enseignant';
+    const subjectPlaceholder = (subjectSelect.options[0] && subjectSelect.options[0].value === '')
+        ? subjectSelect.options[0].textContent
+        : 'Sélectionnez une matière';
+
+    // Vide le champ matière (compatible TomSelect ou select natif).
+    function clearSubjects() {
+        const ts = subjectSelect.tomselect;
+        if (ts) {
+            ts.clear(true);
+            ts.clearOptions();
+            ts.refreshOptions(false);
+        } else {
+            subjectSelect.innerHTML = '';
+            const ph = document.createElement('option');
+            ph.value = '';
+            ph.textContent = subjectPlaceholder;
+            subjectSelect.appendChild(ph);
+        }
+    }
+
+    // Remplit le champ matière avec la liste reçue, en conservant la sélection.
+    function setSubjects(list, selectedId) {
+        const ts = subjectSelect.tomselect;
+        let found = false;
+        if (ts) {
+            ts.clear(true);
+            ts.clearOptions();
+            list.forEach(function (s) {
+                ts.addOption({ value: String(s.id), text: s.name });
+                if (selectedId && String(selectedId) === String(s.id)) { found = true; }
+            });
+            ts.refreshOptions(false);
+            if (selectedId && found) { ts.setValue(String(selectedId), true); }
+        } else {
+            subjectSelect.innerHTML = '';
+            const ph = document.createElement('option');
+            ph.value = '';
+            ph.textContent = subjectPlaceholder;
+            subjectSelect.appendChild(ph);
+            list.forEach(function (s) {
+                const opt = document.createElement('option');
+                opt.value = String(s.id);
+                opt.textContent = s.name;
+                if (selectedId && String(selectedId) === opt.value) {
+                    opt.selected = true;
+                    found = true;
+                }
+                subjectSelect.appendChild(opt);
+            });
+        }
+        return found ? selectedId : null;
+    }
+
+    function loadSubjects(classroomId, selectedSubjectId, selectedTeacherId, selectedTeacherLabel) {
+        if (!classroomId) {
+            clearSubjects();
+            clearTeachers();
+            return;
+        }
+        fetch(base + 'subjects-by-classroom/' + encodeURIComponent(classroomId), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (list) {
+                const keptSubject = setSubjects(list, selectedSubjectId);
+                loadTeachers(keptSubject, keptSubject ? selectedTeacherId : null, selectedTeacherLabel);
+            })
+            .catch(function () { /* erreur réseau : on laisse le champ vide */ });
+    }
 
     // Vide le champ enseignant (compatible TomSelect ou select natif).
     function clearTeachers() {
@@ -138,13 +208,28 @@ document.addEventListener('DOMContentLoaded', function () {
         loadTeachers(subjectSelect.value, null, null);
     });
 
+    if (classroomSelect) {
+        classroomSelect.addEventListener('change', function () {
+            // Nouvelle classe : on recharge les matières du niveau et on
+            // réinitialise matière + enseignant.
+            loadSubjects(classroomSelect.value, null, null, null);
+        });
+    }
+
     // Init différé (setTimeout 0) pour s'exécuter APRÈS l'initialisation de
     // TomSelect, qui se fait aussi sur DOMContentLoaded.
     setTimeout(function () {
-        const currentLabel = teacherSelect.options[teacherSelect.selectedIndex]
+        const currentTeacherLabel = teacherSelect.options[teacherSelect.selectedIndex]
             ? teacherSelect.options[teacherSelect.selectedIndex].textContent
             : null;
-        loadTeachers(subjectSelect.value, teacherSelect.value, currentLabel);
+
+        if (classroomSelect) {
+            // Filtre les matières selon la classe déjà sélectionnée (édition),
+            // en conservant matière et enseignant enregistrés.
+            loadSubjects(classroomSelect.value, subjectSelect.value, teacherSelect.value, currentTeacherLabel);
+        } else {
+            loadTeachers(subjectSelect.value, teacherSelect.value, currentTeacherLabel);
+        }
     }, 0);
 });
 </script>

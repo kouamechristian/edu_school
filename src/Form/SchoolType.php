@@ -49,11 +49,10 @@ class SchoolType extends AbstractType
             ->add('type', ChoiceType::class, [
                 'label' => 'Type d\'établissement',
                 'choices' => [
-                    'Maternelle' => 'maternelle',
-                    'Primaire' => 'primaire',
-                    'Collège' => 'college',
-                    'Lycée' => 'lycee',
-                    'Université / Grande École' => 'universite',
+                    'PRESCOLAIRE-PRIMAIRE' => 'PRESCOLAIRE-PRIMAIRE',
+                    'SECONDAIRE GENERAL' => 'SECONDAIRE GENERAL',
+                    'TECHNIQUE ET PROFESSIONNEL' => 'TECHNIQUE ET PROFESSIONNEL',
+                    'UNIVERSITE' => 'UNIVERSITE',
                 ],
                 'attr' => ['class' => 'form-select'],
                 'placeholder' => 'Sélectionnez un type',

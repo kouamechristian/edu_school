@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\StudentFeeRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -26,6 +28,17 @@ class StudentFee
     #[ORM\JoinColumn(nullable: false)]
     private ?Fee $fee = null;
 
+    /**
+     * Registration (année scolaire) à laquelle ce frais est rattaché.
+     *
+     * Nullable pendant la phase de migration : les frais existants seront rattachés
+     * progressivement à l'inscription correspondante. À terme, ce champ deviendra
+     * obligatoire et remplacera le lien direct vers l'élève.
+     */
+    #[ORM\ManyToOne(targetEntity: Registration::class, inversedBy: 'studentFees')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Registration $registration = null;
+
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\PositiveOrZero]
     private ?string $amount = null;
@@ -43,12 +56,19 @@ class StudentFee
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $updatedAt = null;
 
+    /**
+     * Paiements rattachés à cette ligne de frais (côté inverse de Payment.studentFee).
+     */
+    #[ORM\OneToMany(mappedBy: 'studentFee', targetEntity: Payment::class)]
+    private Collection $payments;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
         $this->paidAmount = '0.00';
         $this->status = 'non_paye';
+        $this->payments = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -81,6 +101,17 @@ class StudentFee
     public function setFee(?Fee $fee): static
     {
         $this->fee = $fee;
+        return $this;
+    }
+
+    public function getRegistration(): ?Registration
+    {
+        return $this->registration;
+    }
+
+    public function setRegistration(?Registration $registration): static
+    {
+        $this->registration = $registration;
         return $this;
     }
 
@@ -163,6 +194,50 @@ class StudentFee
         } else {
             $this->status = 'non_paye';
         }
+    }
+
+    /**
+     * @return Collection<int, Payment>
+     */
+    public function getPayments(): Collection
+    {
+        return $this->payments;
+    }
+
+    public function addPayment(Payment $payment): static
+    {
+        if (!$this->payments->contains($payment)) {
+            $this->payments->add($payment);
+            $payment->setStudentFee($this);
+        }
+
+        return $this;
+    }
+
+    public function removePayment(Payment $payment): static
+    {
+        if ($this->payments->removeElement($payment)) {
+            if ($payment->getStudentFee() === $this) {
+                $payment->setStudentFee(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Montant total des paiements annulés sur cette ligne de frais.
+     */
+    public function getCancelledAmount(): float
+    {
+        $total = 0.0;
+        foreach ($this->payments as $payment) {
+            if ($payment->getStatus() === 'annulé') {
+                $total += (float) $payment->getAmount();
+            }
+        }
+
+        return $total;
     }
 
     public function getCreatedAt(): ?\DateTimeInterface

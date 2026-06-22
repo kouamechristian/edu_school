@@ -22,7 +22,7 @@ class FacultyController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(FacultyRepository $facultyRepository, SchoolContextService $contextService): Response
+    public function index(FacultyRepository $facultyRepository, SchoolContextService $contextService, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         $currentSchool = $contextService->getCurrentSchool();
 
@@ -36,7 +36,7 @@ class FacultyController extends AbstractController
         }
 
         return $this->render('faculty/index.html.twig', [
-            'faculties' => $facultyRepository->findBySchool($currentSchool->getId()),
+            'faculties' => $paginator->paginate($facultyRepository->findBySchool($currentSchool->getId()), $request->query->getInt('page', 1), 50),
             'current_school' => $currentSchool,
         ]);
     }

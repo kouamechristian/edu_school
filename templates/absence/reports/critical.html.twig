@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Élèves à risque{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Élèves à risque',
+        subtitle: 'Élèves dont le taux d\'assiduité est critique',
+        icon: 'fa-triangle-exclamation',
+        color: 'warning',
+        breadcrumb: [
+            { label: 'Absences', path: path('admin_absence_index') },
+            { label: 'Élèves à risque' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_absence_attendance_report') }}" class="btn btn-light"><i class="fas fa-chart-line me-1"></i> Rapport d'assiduité</a>
+            <a href="{{ path('admin_absence_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {# Paramètres #}
+    <div class="card filter-card mb-4">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-sliders me-2"></i>Seuil critique</h6></div>
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="threshold" class="form-label">Taux d'assiduité minimum (%)</label>
+                    <input type="number" name="threshold" id="threshold" class="form-control" min="0" max="100" step="1" value="{{ threshold }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Appliquer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Statistiques #}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-4">
+            <div class="stat-card danger h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                <div><div class="stat-label mb-1">Élèves à risque</div><div class="stat-value">{{ critical_students|length }}</div></div>
+                <div class="stat-icon"><i class="fas fa-user-xmark"></i></div>
+            </div></div>
+        </div>
+        <div class="col-6 col-xl-4">
+            <div class="stat-card warning h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                <div><div class="stat-label mb-1">Seuil critique</div><div class="stat-value">{{ threshold }}%</div></div>
+                <div class="stat-icon"><i class="fas fa-gauge-high"></i></div>
+            </div></div>
+        </div>
+    </div>
+
+    {% if critical_students is not empty %}
+        <div class="card table-card">
+            <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Élèves concernés</h6></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr><th>Élève</th><th class="text-center">Taux d'assiduité</th><th class="text-center">Total</th><th class="text-center">Justifiées</th><th class="text-center">Non justifiées</th><th class="text-center">En attente</th><th class="text-center">Statut</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for studentStat in critical_students %}
+                                {% set rateClass = studentStat.attendance_rate >= 90 ? 'success' : (studentStat.attendance_rate >= 75 ? 'warning' : 'danger') %}
+                                <tr>
+                                    <td class="fw-semibold">{{ studentStat.student.fullName }}</td>
+                                    <td class="text-center" style="min-width:140px;">
+                                        <div class="progress" style="height: 18px;"><div class="progress-bar bg-{{ rateClass }}" role="progressbar" style="width: {{ studentStat.attendance_rate }}%" title="{{ studentStat.attendance_rate }}%"></div></div>
+                                        <small class="text-muted">{{ studentStat.attendance_rate }}%</small>
+                                    </td>
+                                    <td class="text-center"><span class="badge badge-soft info">{{ studentStat.total_absences }}</span></td>
+                                    <td class="text-center"><span class="badge badge-soft success">{{ studentStat.justified_absences }}</span></td>
+                                    <td class="text-center"><span class="badge badge-soft danger">{{ studentStat.unjustified_absences }}</span></td>
+                                    <td class="text-center"><span class="badge badge-soft warning">{{ studentStat.pending_absences }}</span></td>
+                                    <td class="text-center">
+                                        {% if studentStat.attendance_rate >= 75 %}<span class="badge badge-soft warning">Attention</span>
+                                        {% else %}<span class="badge badge-soft danger">Critique</span>{% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-circle-check"></i></div>
+                    <h6>Aucun élève à risque</h6>
+                    <p class="mb-0">Aucun élève n'a un taux d'assiduité inférieur à {{ threshold }}%.</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

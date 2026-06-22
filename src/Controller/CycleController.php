@@ -21,7 +21,7 @@ class CycleController extends AbstractController
     use HandlesEntityDeletion;
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(CycleRepository $cycleRepository, SchoolContextService $contextService): Response
+    public function index(CycleRepository $cycleRepository, SchoolContextService $contextService, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         $currentSchool = $contextService->getCurrentSchool();
 
@@ -35,7 +35,7 @@ class CycleController extends AbstractController
         }
 
         return $this->render('cycle/index.html.twig', [
-            'cycles' => $cycleRepository->findBySchool($currentSchool->getId()),
+            'cycles' => $paginator->paginate($cycleRepository->findBySchool($currentSchool->getId()), $request->query->getInt('page', 1), 50),
             'current_school' => $currentSchool,
         ]);
     }

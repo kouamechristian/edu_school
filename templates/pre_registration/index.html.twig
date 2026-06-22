@@ -14,7 +14,9 @@
         breadcrumb: [ { label: 'Préinscriptions' } ]
     } %}
         {% block actions %}
-            <a href="{{ path('admin_student_enrollment') }}" class="btn btn-success"><i class="fas fa-user-graduate me-1"></i> Inscription</a>
+           {% if is_granted('ROLE_INSCRIPTION') %}
+            <a href="{{ path('admin_registration_index') }}" class="btn btn-success"><i class="fas fa-user-graduate me-1"></i> Inscription</a>
+           {% endif %}
             <a href="{{ path('admin_pre_registration_choose') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouvelle Préinscription</a>
         {% endblock %}
     {% endembed %}
@@ -124,6 +126,7 @@
                         </tbody>
                     </table>
                 </div>
+                {% include '_pagination.html.twig' with { pagination: pre_registrations } %}
             {% else %}
                 {{ empty_state('fa-clipboard-list', 'Aucune préinscription trouvée', current_school ? 'Aucune préinscription pour l\'établissement ' ~ current_school.name ~ '.' : 'Veuillez sélectionner un établissement pour voir les préinscriptions.') }}
             {% endif %}

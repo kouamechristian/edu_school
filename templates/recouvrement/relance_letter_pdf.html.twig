@@ -25,6 +25,12 @@
         .amount-box td.v { text-align: right; }
         .amount-box .total td { font-weight: bold; background: #fbeaea; }
 
+        .ech { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        .ech th, .ech td { border: 1px solid #1e3a5f; padding: 5px 8px; font-size: 11px; }
+        .ech th { background: #1e3a5f; color: #fff; text-align: left; }
+        .ech td.v { text-align: right; }
+        .ech .total td { font-weight: bold; background: #fbeaea; }
+
         p { margin: 8px 0; text-align: justify; }
         .sign { margin-top: 36px; width: 100%; }
         .sign td { vertical-align: top; width: 50%; }
@@ -61,26 +67,86 @@
         </tr>
     </table>
 
-    <div class="object">Objet : Relance pour solde de scolarité impayé</div>
+    {% if overdue > 0 %}
+    <div class="object">Objet : Relance pour échéances de scolarité impayées</div>
 
     <p>Madame, Monsieur,</p>
 
     <p>
         Sauf erreur ou omission de notre part, il ressort de nos écritures que la scolarité de votre enfant
         <b>{{ student.lastName|upper }} {{ student.firstName }}</b>, inscrit(e) en classe de
-        <b>{{ student.classroom ? student.classroom.name : '—' }}</b>, présente à ce jour un solde restant dû.
+        <b>{{ student.classroom ? student.classroom.name : '—' }}</b>, présente à ce jour
+        <b>{{ overdue_count }} échéance(s) dépassée(s)</b> non réglée(s).
     </p>
 
+    {% if overdue_details is not empty %}
+        <table class="ech">
+            <thead>
+                <tr>
+                    <th>Frais</th>
+                    <th>Échéance</th>
+                    <th>Date limite</th>
+                    <th>Retard</th>
+                    <th style="text-align:right;">Montant échu</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line in overdue_details %}
+                    <tr>
+                        <td>{{ line.fee }}</td>
+                        <td>{{ line.order_number ? 'N° ' ~ line.order_number : 'Échéance unique' }}</td>
+                        <td>{{ line.due_date|date('d/m/Y') }}</td>
+                        <td>{{ line.days_overdue }} j</td>
+                        <td class="v">{{ line.amount|number_format(0, ',', ' ') }} F CFA</td>
+                    </tr>
+                {% endfor %}
+                <tr class="total">
+                    <td colspan="4">Total échu impayé</td>
+                    <td class="v">{{ overdue|number_format(0, ',', ' ') }} F CFA</td>
+                </tr>
+            </tbody>
+        </table>
+    {% endif %}
+
     <table class="amount-box">
-        <tr><td class="k">Montant total dû</td><td class="v">{{ due|number_format(0, ',', ' ') }} F CFA</td></tr>
-        <tr><td class="k">Montant déjà payé</td><td class="v">{{ paid|number_format(0, ',', ' ') }} F CFA</td></tr>
-        <tr class="total"><td class="k">Reste à payer</td><td class="v">{{ balance|number_format(0, ',', ' ') }} F CFA</td></tr>
+        <tr><td class="k">Montant échu impayé</td><td class="v">{{ overdue|number_format(0, ',', ' ') }} F CFA</td></tr>
+        <tr><td class="k">Reste total à payer (année)</td><td class="v">{{ balance|number_format(0, ',', ' ') }} F CFA</td></tr>
+        {% if next_due_date %}<tr><td class="k">Prochaine échéance ({{ next_due_date|date('d/m/Y') }})</td><td class="v">{{ next_due_amount|number_format(0, ',', ' ') }} F CFA</td></tr>{% endif %}
     </table>
 
     <p>
-        Nous vous prions de bien vouloir procéder au règlement de ce solde dans les meilleurs délais
-        auprès de notre service de la comptabilité, afin de régulariser la situation de votre enfant.
+        Nous vous prions de bien vouloir procéder au règlement du <b>montant échu</b> de
+        <b>{{ overdue|number_format(0, ',', ' ') }} F CFA</b> dans les meilleurs délais auprès de notre
+        service de la comptabilité, afin de régulariser la situation de votre enfant.
     </p>
+    {% else %}
+    <div class="object">Objet : Situation des paiements de scolarité</div>
+
+    <p>Madame, Monsieur,</p>
+
+    <p>
+        Nous vous informons qu'à ce jour, la scolarité de votre enfant
+        <b>{{ student.lastName|upper }} {{ student.firstName }}</b>, inscrit(e) en classe de
+        <b>{{ student.classroom ? student.classroom.name : '—' }}</b>, est <b>à jour</b> au regard
+        des échéances de paiement arrivées à terme. Aucune somme n'est exigible à cette date.
+    </p>
+
+    <table class="amount-box">
+        <tr><td class="k">Montant échu impayé</td><td class="v">0 F CFA</td></tr>
+        <tr><td class="k">Reste total à payer (année)</td><td class="v">{{ balance|number_format(0, ',', ' ') }} F CFA</td></tr>
+        {% if next_due_date %}<tr><td class="k">Prochaine échéance ({{ next_due_date|date('d/m/Y') }})</td><td class="v">{{ next_due_amount|number_format(0, ',', ' ') }} F CFA</td></tr>{% endif %}
+    </table>
+
+    {% if balance > 0 and next_due_date %}
+    <p>
+        Nous vous invitons à anticiper le règlement de la prochaine échéance du
+        <b>{{ next_due_date|date('d/m/Y') }}</b> ({{ next_due_amount|number_format(0, ',', ' ') }} F CFA)
+        afin de maintenir cette situation favorable.
+    </p>
+    {% else %}
+    <p>Nous vous remercions de votre ponctualité dans le règlement des frais de scolarité.</p>
+    {% endif %}
+    {% endif %}
 
     <p>
         Comptant sur votre diligence habituelle, nous vous prions d'agréer, Madame, Monsieur,
