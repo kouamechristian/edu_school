@@ -147,6 +147,15 @@ class PreRegistration
     #[ORM\JoinColumn(nullable: true)]
     private ?User $validatedBy = null;
 
+    /**
+     * Parent ayant soumis la préinscription depuis l'espace parent (le cas échéant).
+     * Sert à déclencher, à la validation, l'affectation des frais à l'élève et la
+     * notification du parent (paiement en ligne ou sur place).
+     */
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $submittedBy = null;
+
     #[ORM\OneToMany(mappedBy: 'preRegistration', targetEntity: PreRegistrationDocument::class, cascade: ['persist', 'remove'])]
     private Collection $documents;
 
@@ -745,6 +754,22 @@ class PreRegistration
             $this->type = 'returning';
         }
         return $this;
+    }
+
+    public function getSubmittedBy(): ?User
+    {
+        return $this->submittedBy;
+    }
+
+    public function setSubmittedBy(?User $submittedBy): static
+    {
+        $this->submittedBy = $submittedBy;
+        return $this;
+    }
+
+    public function isSubmittedByParent(): bool
+    {
+        return $this->submittedBy !== null;
     }
 
     public function __toString(): string

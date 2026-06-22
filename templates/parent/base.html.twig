@@ -75,6 +75,13 @@
                 </div>
                 {% endif %}
 
+                {# Cloche de notifications #}
+                <a href="{{ path('parent_notifications') }}" class="pp-nav-btn pp-bell" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    {% set pp_unread = parent_unread_notifications() %}
+                    {% if pp_unread > 0 %}<span class="pp-bell-badge">{{ pp_unread > 9 ? '9+' : pp_unread }}</span>{% endif %}
+                </a>
+
                 {# Menu utilisateur #}
                 <div class="pp-dropdown" data-pp-dropdown>
                     <button class="pp-nav-btn" type="button" data-pp-toggle style="padding-left:.3rem;">
@@ -84,6 +91,7 @@
                     <div class="pp-dropdown-menu">
                         <div class="pp-dd-head">{{ app.user ? app.user.email : '' }}</div>
                         <a href="{{ path('parent_dashboard') }}"><i class="fas fa-grip"></i> Tableau de bord</a>
+                        <a href="{{ path('parent_notifications') }}"><i class="fas fa-bell"></i> Notifications</a>
                         <a href="{{ path('parent_payments') }}"><i class="fas fa-receipt"></i> Mes paiements</a>
                         <a href="{{ path('parent_link_child') }}"><i class="fas fa-user-plus"></i> Rattacher un enfant</a>
                         <div class="pp-dd-divider"></div>

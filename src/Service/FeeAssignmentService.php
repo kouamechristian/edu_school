@@ -140,6 +140,53 @@ class FeeAssignmentService
     }
 
     /**
+     * Affecte les frais de scolarité d'un NIVEAU directement à un élève, sans
+     * exiger d'inscription/classe. Utilisé à la validation d'une préinscription en
+     * ligne (espace parent) : les frais du niveau souhaité sont liés à l'élève et
+     * deviennent immédiatement payables.
+     *
+     * @return int Nombre de frais effectivement affectés
+     */
+    public function assignScolariteFeesForStudentByLevel(Student $student, \App\Entity\Level $level): int
+    {
+        $school = $student->getSchool() ?? $level->getSchool();
+        if (!$school) {
+            return 0;
+        }
+
+        $status = $student->getStatus();
+        $fees = [];
+
+        foreach ($this->feeRepository->findScolariteFeesForLevel($school, $level) as $fee) {
+            if (in_array($fee->getType(), ['pour_tous', $status], true)) {
+                $fees[$fee->getId()] = $fee;
+            }
+        }
+        foreach ($this->feeRepository->findScolariteFeesSchoolWide($school) as $fee) {
+            if (in_array($fee->getType(), ['pour_tous', $status], true)) {
+                $fees[$fee->getId()] = $fee;
+            }
+        }
+
+        $count = 0;
+        foreach ($fees as $fee) {
+            if ($this->assignFeeToStudent($fee, $student, $student->getLatestRegistration())) {
+                $count++;
+            }
+        }
+
+        if ($count > 0) {
+            $this->logger->info('Frais scolarité affectés par niveau (validation préinscription parent)', [
+                'student' => $student->getFullName(),
+                'level' => $level->getName(),
+                'count' => $count,
+            ]);
+        }
+
+        return $count;
+    }
+
+    /**
      * Frais de scolarité applicables à une inscription : frais du niveau + frais
      * « établissement », restreints aux types compatibles avec le statut de l'élève
      * (« pour_tous » + le statut affecté/non affecté).

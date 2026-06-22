@@ -11,6 +11,8 @@ use App\Form\PreRegistrationType;
 use App\Repository\PreRegistrationRepository;
 use App\Repository\DocumentTypeRepository;
 use App\Repository\StudentRepository;
+use App\Service\FeeAssignmentService;
+use App\Service\NotificationService;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
@@ -333,7 +335,9 @@ class PreRegistrationController extends AbstractController
     #[Route('/{id}/validate', name: 'validate', methods: ['POST'])]
     public function validate(
         PreRegistration $preRegistration,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        FeeAssignmentService $feeAssignmentService,
+        NotificationService $notificationService
     ): Response {
         if (!$preRegistration->canBeValidated()) {
             $this->addFlash('error', 'Cette préinscription ne peut pas être validée dans son état actuel.');
@@ -346,7 +350,40 @@ class PreRegistrationController extends AbstractController
 
         $entityManager->flush();
 
-        $this->addFlash('success', 'La préinscription a été validée avec succès.');
+        // Préinscription soumise par un parent : à la validation on lie immédiatement
+        // les frais de scolarité (du niveau souhaité) à l'élève, puis on notifie le
+        // parent qu'il peut régler en ligne ou se rendre à l'établissement.
+        $feeCount = 0;
+        if ($preRegistration->isSubmittedByParent()) {
+            $student = $preRegistration->getExistingStudent();
+            $level = $preRegistration->getRequestedLevel();
+
+            if ($student && $level) {
+                $feeCount = $feeAssignmentService->assignScolariteFeesForStudentByLevel($student, $level);
+                $entityManager->flush();
+            }
+
+            if ($student) {
+                $parent = $preRegistration->getSubmittedBy() ?? $student->getParentUser();
+                if ($parent) {
+                    $notificationService->notify(
+                        $parent,
+                        'Préinscription validée',
+                        sprintf(
+                            'La préinscription de %s a été validée. Vous pouvez régler les frais de scolarité en ligne depuis votre espace, ou vous rendre à l\'établissement.',
+                            $student->getFullName()
+                        ),
+                        $this->generateUrl('parent_child_finance', ['id' => $student->getId()]),
+                        'fa-money-check-dollar'
+                    );
+                    $entityManager->flush();
+                }
+            }
+        }
+
+        $this->addFlash('success', $feeCount > 0
+            ? sprintf('Préinscription validée. %d frais de scolarité affecté(s) à l\'élève et parent notifié.', $feeCount)
+            : 'La préinscription a été validée avec succès.');
 
         return $this->redirectToRoute('admin_pre_registration_show', ['id' => $preRegistration->getId()]);
     }

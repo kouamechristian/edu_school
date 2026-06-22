@@ -21,14 +21,14 @@
 {% set ring = avg is not null ? (avg / 20 * 100)|round : 0 %}
 {% set ring_color = avg is null ? '#94a3b8' : (avg >= 14 ? '#10b981' : (avg >= 10 ? '#f59e0b' : '#ef4444')) %}
 
-{# Réinscription : démarche en ligne pour l'année suivante (ancien élève) #}
+{# Préinscription : démarche en ligne pour l'année suivante (ancien élève) #}
 <section class="pp-card pp-reveal" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:.9rem;">
-        <span class="pp-card-title" style="margin:0;"><i class="fas fa-user-graduate"></i> Réinscription</span>
-        <span class="pp-child-sub" style="margin:0;">Inscrivez {{ child.firstName }} pour une nouvelle année scolaire.</span>
+        <span class="pp-card-title" style="margin:0;"><i class="fas fa-user-graduate"></i> Préinscription</span>
+        <span class="pp-child-sub" style="margin:0;">Préinscrivez {{ child.firstName }} pour une nouvelle année scolaire.</span>
     </div>
     <a href="{{ path('parent_child_reenroll', {id: child.id}) }}" class="pp-btn pp-btn-primary" style="padding:.45rem 1rem;">
-        <i class="fas fa-paper-plane"></i> Demander la réinscription
+        <i class="fas fa-paper-plane"></i> Demander la préinscription
     </a>
 </section>
 

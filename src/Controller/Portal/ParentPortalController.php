@@ -4,11 +4,14 @@ namespace App\Controller\Portal;
 
 use App\Controller\Concern\HandlesFileUpload;
 use App\Entity\Level;
+use App\Entity\Notification;
 use App\Entity\Payment;
 use App\Entity\PreRegistration;
+use App\Entity\PreRegistrationDocument;
 use App\Entity\Student;
 use App\Form\PreRegistrationType;
 use App\Repository\CourseRepository;
+use App\Repository\NotificationRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\PeriodRepository;
 use App\Repository\TimeSlotRepository;
@@ -93,20 +96,18 @@ class ParentPortalController extends AbstractController
                 return $this->redirectToRoute('parent_link_child');
             }
 
-            $matricule = trim((string) $request->request->get('matricule'));
-            $birthDateRaw = (string) $request->request->get('birth_date');
-            $birthDate = \DateTime::createFromFormat('!Y-m-d', $birthDateRaw) ?: null;
+            $matriculeNational = trim((string) $request->request->get('matricule_national'));
 
-            if ($matricule === '' || !$birthDate) {
-                $this->addFlash('error', 'Veuillez renseigner le matricule et la date de naissance.');
+            if ($matriculeNational === '') {
+                $this->addFlash('error', 'Veuillez renseigner le matricule national de l\'élève.');
 
                 return $this->redirectToRoute('parent_link_child');
             }
 
-            $child = $studentRepository->findOneActiveByMatriculeAndBirthDate($matricule, $birthDate);
+            $child = $studentRepository->findOneActiveByMatriculeNational($matriculeNational);
 
             if (!$child) {
-                $this->addFlash('error', "Aucun élève actif ne correspond à ce matricule et à cette date de naissance. Vérifiez les informations auprès du secrétariat.");
+                $this->addFlash('error', "Aucun élève actif ne correspond à ce matricule national. Vérifiez le matricule auprès du secrétariat.");
 
                 return $this->redirectToRoute('parent_link_child');
             }
@@ -126,6 +127,12 @@ class ParentPortalController extends AbstractController
             }
 
             $parent->addChild($child);
+
+            // Rattache aussi le parent à l'établissement de l'enfant (contexte de navigation).
+            if ($school = $child->getSchool() ?? $child->getClassroom()?->getSchool() ?? $child->getLevel()?->getSchool()) {
+                $parent->addSchool($school);
+            }
+
             $em->flush();
 
             $this->addFlash('success', sprintf('%s a bien été rattaché·e à votre compte.', $child->getFullName()));
@@ -216,14 +223,14 @@ class ParentPortalController extends AbstractController
                 ->setParameter('last', $preRegistration->getLastName())
                 ->setParameter('dob', $preRegistration->getDateOfBirth())
                 ->setParameter('year', $preRegistration->getSchoolYear())
-                ->setParameter('statuses', ['pending', 'validated'])
+                ->setParameter('statuses', ['pending', 'documents_received', 'validated'])
                 ->setMaxResults(1)
                 ->getQuery()
                 ->getOneOrNullResult();
 
             if ($duplicate) {
                 $this->addFlash('warning', sprintf(
-                    'Une demande de réinscription pour %s sur cette année scolaire est déjà en cours de traitement.',
+                    'Une demande de préinscription pour %s sur cette année scolaire est déjà en cours de traitement.',
                     $child->getFullName()
                 ));
 
@@ -240,14 +247,23 @@ class ParentPortalController extends AbstractController
                 $preRegistration->setPhoto($photo);
             }
 
-            $preRegistration->setStatus('pending');
+            // Marque l'origine « parent » : déclenche frais + notification à la validation.
+            $preRegistration->setSubmittedBy($this->getCurrentParent());
+
+            // Pièces jointes téléversées par le parent en même temps que la demande.
+            $docCount = $this->attachUploadedDocuments($preRegistration, $request, $slugger);
+
+            // Avec des documents, la demande est directement « prête à valider » ;
+            // sinon elle reste « en attente » (le secrétariat réclamera les pièces).
+            $preRegistration->setStatus($docCount > 0 ? 'documents_received' : 'pending');
 
             $em->persist($preRegistration);
             $em->flush();
 
             $this->addFlash('success', sprintf(
-                'La demande de réinscription de %s a bien été transmise à l\'établissement.',
-                $child->getFullName()
+                'La demande de préinscription de %s a bien été transmise%s. Vous serez notifié(e) dès sa validation.',
+                $child->getFullName(),
+                $docCount > 0 ? sprintf(' avec %d document(s)', $docCount) : ''
             ));
 
             return $this->redirectToRoute('parent_child_show', ['id' => $child->getId()]);
@@ -428,6 +444,50 @@ class ParentPortalController extends AbstractController
     }
 
     /**
+     * Centre de notifications du parent (frais à régler, validations, etc.).
+     */
+    #[Route('/notifications', name: 'parent_notifications', methods: ['GET'])]
+    public function notifications(NotificationRepository $notificationRepository): Response
+    {
+        return $this->render('parent/notifications.html.twig', [
+            'notifications' => $notificationRepository->findForUser($this->getCurrentParent()),
+        ]);
+    }
+
+    /**
+     * Ouvre une notification : la marque comme lue puis redirige vers son lien.
+     */
+    #[Route('/notifications/{id}/ouvrir', name: 'parent_notification_open', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function openNotification(Notification $notification, EntityManagerInterface $em): Response
+    {
+        if ($notification->getRecipient()?->getId() !== $this->getCurrentParent()->getId()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $notification->setIsRead(true);
+        $em->flush();
+
+        return $this->redirect($notification->getLink() ?: $this->generateUrl('parent_notifications'));
+    }
+
+    /**
+     * Marque toutes les notifications du parent comme lues.
+     */
+    #[Route('/notifications/lire-tout', name: 'parent_notifications_read_all', methods: ['POST'])]
+    public function readAllNotifications(Request $request, NotificationRepository $notificationRepository, EntityManagerInterface $em): Response
+    {
+        if ($this->isCsrfTokenValid('parent_notifications_read_all', (string) $request->request->get('_token'))) {
+            foreach ($notificationRepository->findForUser($this->getCurrentParent()) as $notification) {
+                $notification->setIsRead(true);
+            }
+            $em->flush();
+            $this->addFlash('success', 'Toutes vos notifications ont été marquées comme lues.');
+        }
+
+        return $this->redirectToRoute('parent_notifications');
+    }
+
+    /**
      * Résout la période demandée (?period=ID) en la validant contre les périodes
      * de l'élève ; à défaut, retourne la période courante.
      */
@@ -444,6 +504,49 @@ class ParentPortalController extends AbstractController
         }
 
         return $this->portal->getCurrentPeriod($child);
+    }
+
+    /**
+     * Téléverse les pièces jointes envoyées avec la préinscription (champ
+     * « documents[] ») et les rattache à la préinscription.
+     *
+     * @return int Nombre de documents effectivement enregistrés
+     */
+    private function attachUploadedDocuments(PreRegistration $preRegistration, Request $request, SluggerInterface $slugger): int
+    {
+        $files = $request->files->get('documents', []);
+        if (!is_array($files)) {
+            $files = [$files];
+        }
+
+        $count = 0;
+        foreach ($files as $file) {
+            if (!$file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                continue;
+            }
+
+            $originalName = $file->getClientOriginalName();
+            $size = $file->getSize();
+            $mime = $file->getClientMimeType();
+
+            $relativePath = $this->uploadFile($file, 'pre_registration_documents', $slugger);
+            if (!$relativePath) {
+                continue;
+            }
+
+            $doc = new PreRegistrationDocument();
+            $doc->setFileName(basename($relativePath));
+            $doc->setOriginalFileName($originalName);
+            $doc->setMimeType($mime ?: 'application/octet-stream');
+            $doc->setFileSize((int) $size);
+            $doc->setFilePath($relativePath);
+            $doc->setPreRegistration($preRegistration);
+            $preRegistration->addDocument($doc);
+
+            $count++;
+        }
+
+        return $count;
     }
 
     private function getCurrentParent(): \App\Entity\User

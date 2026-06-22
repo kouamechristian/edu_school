@@ -1,16 +1,16 @@
 {% extends 'parent/base.html.twig' %}
 
-{% block title %}Réinscription · {{ child.fullName }}{% endblock %}
+{% block title %}Préinscription · {{ child.fullName }}{% endblock %}
 
 {% block breadcrumb %}
     <div class="pp-breadcrumb">
         <a href="{{ path('parent_dashboard') }}">Tableau de bord</a> /
         <a href="{{ path('parent_child_show', {id: child.id}) }}">{{ child.fullName }}</a> /
-        Réinscription
+        Préinscription
     </div>
 {% endblock %}
-{% block page_title %}Réinscription de {{ child.fullName }}{% endblock %}
-{% block page_subtitle %}Demande de réinscription pour une nouvelle année scolaire — {{ school.name }}.{% endblock %}
+{% block page_title %}Préinscription de {{ child.fullName }}{% endblock %}
+{% block page_subtitle %}Demande de préinscription pour une nouvelle année scolaire — {{ school.name }}.{% endblock %}
 
 {% block stylesheets %}
 <style>
@@ -39,7 +39,7 @@
 <div class="pp-grid cols-2" style="align-items:start;">
     <section class="pp-card pp-reveal" style="grid-column:1 / -1;">
         <div class="pp-card-title" style="margin-bottom:.4rem;">
-            <i class="fas fa-user-graduate"></i> Formulaire de réinscription
+            <i class="fas fa-user-graduate"></i> Formulaire de préinscription
         </div>
         <p class="pp-child-sub" style="margin-bottom:1.25rem;">
             <i class="fas fa-circle-info"></i>
@@ -94,9 +94,21 @@
             <div>{{ form_label(form.medicalInfo) }}{{ form_widget(form.medicalInfo) }}{{ form_errors(form.medicalInfo) }}</div>
             <div>{{ form_label(form.notes) }}{{ form_widget(form.notes) }}{{ form_errors(form.notes) }}</div>
 
+            <div class="pp-section-title"><i class="fas fa-paperclip"></i> Pièces justificatives</div>
+            <div>
+                <label for="documents">Documents à joindre</label>
+                <input type="file" id="documents" name="documents[]" multiple class="form-control"
+                       accept=".pdf,.jpg,.jpeg,.png,.webp">
+                <div class="form-help">
+                    Joignez les pièces demandées (extrait de naissance, bulletins, photo…).
+                    Vous pouvez sélectionner plusieurs fichiers (PDF ou images). En joignant
+                    vos documents, la demande sera directement transmise pour validation.
+                </div>
+            </div>
+
             <div style="display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap;">
                 <button type="submit" class="pp-btn pp-btn-primary">
-                    <i class="fas fa-paper-plane"></i> Envoyer la demande de réinscription
+                    <i class="fas fa-paper-plane"></i> Envoyer la demande de préinscription
                 </button>
                 <a href="{{ path('parent_child_show', {id: child.id}) }}" class="pp-btn pp-btn-ghost">
                     <i class="fas fa-arrow-left"></i> Annuler

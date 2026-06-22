@@ -4,6 +4,7 @@ namespace App\Twig;
 
 use App\Entity\SchoolYear;
 use App\Entity\User;
+use App\Repository\NotificationRepository;
 use App\Service\GradeCalculationService;
 use App\Service\ParentContextService;
 use App\Service\ParentPortalService;
@@ -18,6 +19,7 @@ class AppExtension extends AbstractExtension
         private ParentPortalService $parentPortalService,
         private ParentContextService $parentContextService,
         private Security $security,
+        private NotificationRepository $notificationRepository,
     ) {
     }
 
@@ -30,7 +32,22 @@ class AppExtension extends AbstractExtension
             new TwigFunction('parent_children', [$this, 'parentChildren']),
             new TwigFunction('parent_school_years', [$this, 'parentSchoolYears']),
             new TwigFunction('parent_selected_year', [$this, 'parentSelectedYear']),
+            new TwigFunction('parent_unread_notifications', [$this, 'parentUnreadNotifications']),
         ];
+    }
+
+    /**
+     * Nombre de notifications non lues du parent connecté (badge de la cloche).
+     */
+    public function parentUnreadNotifications(): int
+    {
+        $user = $this->security->getUser();
+
+        if (!$user instanceof User) {
+            return 0;
+        }
+
+        return $this->notificationRepository->countUnreadForUser($user);
     }
 
     /**

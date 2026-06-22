@@ -6,7 +6,7 @@
     <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> / Rattacher un enfant</div>
 {% endblock %}
 {% block page_title %}Rattacher un enfant{% endblock %}
-{% block page_subtitle %}Reliez un élève à votre compte avec son matricule et sa date de naissance.{% endblock %}
+{% block page_subtitle %}Reliez un élève à votre compte avec son matricule national.{% endblock %}
 
 {% block body %}
 <div class="pp-grid cols-2" style="align-items:start;">
@@ -16,21 +16,13 @@
         <form method="post" action="{{ path('parent_link_child') }}">
             <input type="hidden" name="_token" value="{{ csrf_token('parent_link_child') }}">
 
-            <div style="margin-bottom:1.1rem;">
-                <label for="matricule" class="pp-child-sub" style="display:block;margin-bottom:.4rem;font-weight:600;">
-                    <i class="fas fa-id-badge"></i> Matricule interne
-                </label>
-                <input type="text" id="matricule" name="matricule" required autofocus
-                       placeholder="Ex. MAT-2024-0123"
-                       value="{{ app.request.request.get('matricule') }}"
-                       style="width:100%;border:1px solid #e3e8f0;border-radius:12px;padding:.7rem 1rem;font-size:1rem;color:#1e3a5f;background:#fff;">
-            </div>
-
             <div style="margin-bottom:1.5rem;">
-                <label for="birth_date" class="pp-child-sub" style="display:block;margin-bottom:.4rem;font-weight:600;">
-                    <i class="fas fa-cake-candles"></i> Date de naissance
+                <label for="matricule_national" class="pp-child-sub" style="display:block;margin-bottom:.4rem;font-weight:600;">
+                    <i class="fas fa-id-card"></i> Matricule national de l'élève
                 </label>
-                <input type="date" id="birth_date" name="birth_date" required
+                <input type="text" id="matricule_national" name="matricule_national" required autofocus
+                       placeholder="Matricule national de l'élève"
+                       value="{{ app.request.request.get('matricule_national') }}"
                        style="width:100%;border:1px solid #e3e8f0;border-radius:12px;padding:.7rem 1rem;font-size:1rem;color:#1e3a5f;background:#fff;">
             </div>
 
@@ -43,9 +35,8 @@
     <section class="pp-card pp-reveal">
         <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-circle-info"></i> Comment ça marche ?</div>
         <ul style="margin:0;padding-left:1.1rem;color:#475569;line-height:1.7;font-size:.95rem;">
-            <li>Saisissez le <strong>matricule interne</strong> de l'élève (figurant sur ses documents scolaires).</li>
-            <li>Indiquez sa <strong>date de naissance exacte</strong>.</li>
-            <li>Si les deux informations correspondent, l'élève apparaîtra immédiatement dans votre tableau de bord.</li>
+            <li>Saisissez le <strong>matricule national</strong> de l'élève (figurant sur ses documents scolaires).</li>
+            <li>S'il correspond à un élève actif, ce dernier apparaîtra immédiatement dans votre tableau de bord.</li>
         </ul>
         <p class="pp-child-sub" style="margin-top:1rem;">
             <i class="fas fa-shield-halved"></i> Vous pouvez rattacher plusieurs enfants. En cas de difficulté, contactez le secrétariat de l'établissement.

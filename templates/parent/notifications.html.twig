@@ -1,0 +1,68 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> / Notifications</div>
+{% endblock %}
+{% block page_title %}Mes notifications{% endblock %}
+{% block page_subtitle %}Validations de préinscription, frais à régler et informations de l'établissement.{% endblock %}
+
+{% block body %}
+{% set unread = notifications|filter(n => not n.isRead)|length %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+    <div class="pp-child-sub">
+        {{ notifications|length }} notification(s){% if unread > 0 %} · <strong style="color:#b91c1c;">{{ unread }} non lue(s)</strong>{% endif %}
+    </div>
+    {% if unread > 0 %}
+    <form method="post" action="{{ path('parent_notifications_read_all') }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('parent_notifications_read_all') }}">
+        <button type="submit" class="pp-btn pp-btn-ghost"><i class="fas fa-check-double"></i> Tout marquer comme lu</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if notifications is empty %}
+    <div class="pp-card pp-reveal">
+        <div class="pp-empty">
+            <i class="fas fa-bell-slash"></i>
+            <h3 class="pp-section-title">Aucune notification</h3>
+            <p>Vous serez notifié(e) ici dès qu'une préinscription est validée ou qu'un frais est à régler.</p>
+        </div>
+    </div>
+{% else %}
+    <div class="pp-grid" style="gap:0.8rem;">
+        {% for n in notifications %}
+            <a href="{{ path('parent_notification_open', {id: n.id}) }}"
+               class="pp-card hoverable pp-reveal pp-notif{{ n.isRead ? '' : ' unread' }}"
+               style="display:flex;align-items:flex-start;gap:1rem;">
+                <span class="pp-notif-icon"><i class="fas {{ n.icon|default('fa-bell') }}"></i></span>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:.5rem;">
+                        <strong style="color:#1e3a5f;">{{ n.title }}</strong>
+                        {% if not n.isRead %}<span class="pp-badge red">Nouveau</span>{% endif %}
+                    </div>
+                    <div class="pp-child-sub" style="margin-top:.25rem;line-height:1.5;">{{ n.message }}</div>
+                    <div class="pp-child-sub" style="margin-top:.4rem;font-size:.74rem;">
+                        <i class="fas fa-clock"></i> {{ n.createdAt ? n.createdAt|date('d/m/Y à H:i') : '' }}
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right" style="color:#cbd5e1;align-self:center;"></i>
+            </a>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .pp-notif-icon {
+        width:46px;height:46px;border-radius:13px;flex-shrink:0;
+        display:inline-flex;align-items:center;justify-content:center;
+        background:linear-gradient(135deg,#10b981,#0ea5e9);color:#fff;font-size:1.15rem;
+        box-shadow:0 8px 18px -8px rgba(16,185,129,.6);
+    }
+    .pp-notif.unread { border-left:4px solid #10b981; background:linear-gradient(90deg,rgba(16,185,129,.05),#fff 18%); }
+</style>
+{% endblock %}
