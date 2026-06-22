@@ -224,13 +224,19 @@ class GradeCalculationService
             }
 
             $coef = (float) $subject->getCoefficient();
+            // La moyenne reste pondérée sur /20 (cohérence mention/moyenne générale) ;
+            // la note affichée de la matière est ramenée sur son barème « note sur bulletin ».
             $moyCoef = round($avg * $coef, 2);
+            $bareme = (int) ($subject->getNoteSurBulletin() ?: 20);
+            $moyBareme = round($avg * $bareme / 20, 2);
             $rankInfo = $this->rankAmong($subjectAverages[$sid] ?? [], $student->getId());
 
             $rows[] = [
                 'name' => $subject->getName(),
                 'nc' => false,
                 'moy' => $avg,
+                'bareme' => $bareme,
+                'moy_bareme' => $moyBareme,
                 'coef' => $coef,
                 'moy_coef' => $moyCoef,
                 'rank' => $rankInfo['rank'],

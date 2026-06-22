@@ -70,7 +70,7 @@
         <thead>
             <tr>
                 <th style="width:30%">Disciplines</th>
-                <th>Moy./20</th>
+                <th>Note</th>
                 <th>Coef.</th>
                 <th>Moy Coef.</th>
                 <th>Rang</th>
@@ -86,7 +86,7 @@
                         <td class="c">NC</td><td class="c">NC</td><td class="c">NC</td><td class="c">NC</td>
                         <td>{{ row.teacher ?: '' }}</td><td></td>
                     {% else %}
-                        <td class="c">{{ row.moy|number_format(row.moy == row.moy|round ? 0 : 2, ',', ' ') }}</td>
+                        <td class="c">{{ row.moy_bareme|number_format(row.moy_bareme == row.moy_bareme|round ? 0 : 2, ',', ' ') }} / {{ row.bareme }}</td>
                         <td class="c">{{ row.coef|number_format(row.coef == row.coef|round ? 0 : 2, ',', ' ') }}</td>
                         <td class="c">{{ row.moy_coef|number_format(2, ',', ' ') }}</td>
                         <td class="c">{{ row.rank }} {{ row.rank == 1 ? 'er' : 'è' }}{{ row.ex ? ' EX' : '' }}</td>
