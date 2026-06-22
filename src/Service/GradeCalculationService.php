@@ -86,8 +86,8 @@ class GradeCalculationService
 
     /**
      * Synthèse des absences d'un élève sur une période : heures totales / justifiées /
-     * non justifiées, et pénalité de conduite = Σ (penaltyPoints du type × heures),
-     * sur TOUTES les absences (justifiées ou non).
+     * non justifiées, et pénalité de conduite = Σ (penaltyPoints du type) — un retrait
+     * FIXE par absence, sur TOUTES les absences (justifiées ou non).
      *
      * @return array{total: float, justified: float, unjustified: float, penalty: float, count: int}
      */
@@ -111,9 +111,8 @@ class GradeCalculationService
                 $unjustified += $hours; // non justifiée + en attente
             }
 
-            // Pénalité configurée sur le type d'absence (points par heure).
-            $points = (float) ($absence->getAbsenceType()?->getPenaltyPoints() ?? 0);
-            $penalty += $points * $hours;
+            // Pénalité configurée sur le type d'absence : retrait fixe par absence.
+            $penalty += (float) ($absence->getAbsenceType()?->getPenaltyPoints() ?? 0);
         }
 
         return [
