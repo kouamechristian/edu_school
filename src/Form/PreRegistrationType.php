@@ -175,12 +175,16 @@ class PreRegistrationType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'rows' => 2, 'placeholder' => 'Domicile du parent/tuteur'],
             ])
-            ->add('emergencyContact', TextType::class, [
+            ->add('emergencyContact', TelType::class, [
                 'label' => 'Contact d\'urgence',
                 'required' => false,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Nom du contact d\'urgence',
+                    'maxlength' => 10,
+                    'inputmode' => 'numeric',
+                    'pattern' => '\d{10}',
+                    'placeholder' => '0700000000',
+                    'title' => 'Exactement 10 chiffres',
                 ],
             ])
             ->add('emergencyPhone', TelType::class, [

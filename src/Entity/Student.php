@@ -88,6 +88,7 @@ class Student
     private ?string $parentAddress = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Regex(pattern: '/^(\d{10})?$/', message: 'Le numéro de contact d\'urgence doit contenir exactement 10 chiffres.')]
     private ?string $emergencyContact = null;
 
     #[ORM\Column(length: 20, nullable: true)]
