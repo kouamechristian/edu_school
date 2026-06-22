@@ -2,17 +2,17 @@
 
 namespace App\Controller;
 
-use App\Entity\GeneratedBulletin;
+use App\Entity\Bulletin;
 use App\Entity\Period;
+use App\Entity\Student;
 use App\Entity\User;
-use App\Repository\ClassroomRepository;
-use App\Repository\EvaluationRepository;
-use App\Repository\GeneratedBulletinRepository;
+use App\Form\BulletinFormType;
+use App\Repository\BulletinRepository;
 use App\Repository\PeriodRepository;
 use App\Repository\StudentRepository;
 use App\Service\GradeCalculationService;
-use Doctrine\ORM\EntityManagerInterface;
 use App\Service\SchoolContextService;
+use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,74 +30,130 @@ class BulletinController extends AbstractController
     ) {
     }
 
+    /**
+     * Liste des bulletins créés (libellé, niveau, période…), avec un bouton « Nouveau ».
+     */
     #[Route('/', name: 'admin_bulletin_index', methods: ['GET'])]
     public function index(
-        ClassroomRepository $classroomRepository,
-        PeriodRepository $periodRepository,
-        StudentRepository $studentRepository,
-        GeneratedBulletinRepository $generatedBulletinRepository,
-        SchoolContextService $contextService,
-        Request $request
+        BulletinRepository $bulletinRepository,
+        SchoolContextService $contextService
+    ): Response {
+        $currentSchool = $contextService->getCurrentSchool();
+        $currentYear = $contextService->getCurrentSchoolYear();
+
+        return $this->render('bulletin/index.html.twig', [
+            'bulletins' => $currentSchool ? $bulletinRepository->findBySchool($currentSchool->getId()) : [],
+            'current_school' => $currentSchool,
+            'current_year' => $currentYear,
+        ]);
+    }
+
+    /**
+     * Création d'un bulletin : libellé, moyenne sur, niveau, période. À l'enregistrement,
+     * on redirige vers la page listant tous les élèves du niveau choisi.
+     */
+    #[Route('/new', name: 'admin_bulletin_new', methods: ['GET', 'POST'])]
+    public function new(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        SchoolContextService $contextService
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         $currentYear = $contextService->getCurrentSchoolYear();
 
         if (!$currentSchool || !$currentYear) {
             $this->addFlash('warning', 'Veuillez sélectionner un établissement et une année scolaire.');
-            return $this->render('bulletin/index.html.twig', [
-                'classrooms' => [],
-                'periods' => [],
-                'generated_bulletins' => [],
-            ]);
+
+            return $this->redirectToRoute('admin_bulletin_index');
         }
 
-        $classrooms = $classroomRepository->findBySchool($currentSchool->getId());
-        $periods = $periodRepository->findBySchoolAndYear(
-            $currentSchool->getId(),
-            $currentYear->getId()
-        );
+        $bulletin = new Bulletin();
+        $form = $this->createForm(BulletinFormType::class, $bulletin);
+        $form->handleRequest($request);
 
-        $selectedClassroom = $request->query->getint('classroom');
-        $selectedPeriod = $request->query->getint('period');
+        if ($form->isSubmitted() && $form->isValid()) {
+            $bulletin->setSchool($currentSchool);
+            if ($this->getUser() instanceof User) {
+                $bulletin->setCreatedBy($this->getUser());
+            }
 
-        $students = [];
-        if ($selectedClassroom) {
-            $students = $this->getStudentsWithAverages($selectedClassroom, $selectedPeriod, $studentRepository, $periodRepository);
+            $entityManager->persist($bulletin);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Bulletin créé. Voici les élèves du niveau sélectionné.');
+
+            return $this->redirectToRoute('admin_bulletin_show', ['id' => $bulletin->getId()]);
         }
 
-        return $this->render('bulletin/index.html.twig', [
-            'classrooms' => $classrooms,
-            'periods' => $periods,
-            'selected_classroom' => $selectedClassroom,
-            'selected_period' => $selectedPeriod,
-            'students' => $students,
-            'current_school' => $currentSchool,
-            'current_year' => $currentYear,
-            'generated_bulletins' => $generatedBulletinRepository->findBySchoolAndYear(
-                $currentSchool->getId(),
-                $currentYear->getId()
-            ),
+        return $this->render('bulletin/new.html.twig', [
+            'form' => $form,
         ]);
     }
 
-    #[Route('/generate/{studentId}/{periodId}', name: 'admin_bulletin_generate', methods: ['GET'])]
-    public function generate(
-        int $studentId,
-        int $periodId,
-        StudentRepository $studentRepository,
-        PeriodRepository $periodRepository
+    /**
+     * Page d'un bulletin : tableau de tous les élèves du niveau choisi, avec leur
+     * moyenne générale pour la période (ramenée sur la base « moyenne sur »).
+     */
+    #[Route('/{id}', name: 'admin_bulletin_show', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function show(
+        Bulletin $bulletin,
+        StudentRepository $studentRepository
     ): Response {
-        $student = $studentRepository->find($studentId);
-        $period = $periodRepository->find($periodId);
+        $level = $bulletin->getLevel();
+        $period = $bulletin->getPeriod();
+        $school = $bulletin->getSchool();
+        $base = max(1, (int) $bulletin->getMoyenneSur());
 
-        if (!$student || !$period) {
-            throw $this->createNotFoundException('Élève ou période non trouvé');
+        $students = ($level && $school)
+            ? $studentRepository->findActiveBySchoolAndLevel($school->getId(), $level->getId())
+            : [];
+
+        $rows = [];
+        foreach ($students as $student) {
+            $averages = $period ? $this->gradeCalculationService->calculateStudentAveragesForPeriod($student, $period) : ['general_average' => null];
+            $avg20 = $averages['general_average'];               // moyenne sur 20
+            $scaled = $avg20 !== null ? round($avg20 * $base / 20, 2) : null;
+
+            $rows[] = [
+                'student' => $student,
+                'classroom' => $student->getClassroom(),
+                'average' => $scaled,
+                'has_grades' => $avg20 !== null,
+            ];
         }
 
-        return $this->bulletinPdfResponse($student, $period);
+        // Classement par moyenne décroissante (les non notés à la fin).
+        usort($rows, fn ($a, $b) => ($b['average'] ?? -1) <=> ($a['average'] ?? -1));
+
+        return $this->render('bulletin/show.html.twig', [
+            'bulletin' => $bulletin,
+            'rows' => $rows,
+            'base' => $base,
+        ]);
     }
 
-    #[Route('/pdf/{studentId}/{periodId}', name: 'admin_bulletin_pdf', methods: ['GET'])]
+    /**
+     * Suppression d'un bulletin.
+     */
+    #[Route('/{id}', name: 'admin_bulletin_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function delete(
+        Request $request,
+        Bulletin $bulletin,
+        EntityManagerInterface $entityManager
+    ): Response {
+        if ($this->isCsrfTokenValid('delete' . $bulletin->getId(), (string) $request->request->get('_token'))) {
+            $entityManager->remove($bulletin);
+            $entityManager->flush();
+            $this->addFlash('success', 'Bulletin supprimé.');
+        }
+
+        return $this->redirectToRoute('admin_bulletin_index');
+    }
+
+    /**
+     * Bulletin PDF (modèle officiel) d'un élève pour une période.
+     */
+    #[Route('/pdf/{studentId}/{periodId}', name: 'admin_bulletin_pdf', requirements: ['studentId' => '\d+', 'periodId' => '\d+'], methods: ['GET'])]
     public function generatePdf(
         int $studentId,
         int $periodId,
@@ -117,7 +173,7 @@ class BulletinController extends AbstractController
     /**
      * Construit le bulletin PDF (modèle officiel) d'un élève pour une période.
      */
-    private function bulletinPdfResponse(\App\Entity\Student $student, Period $period): Response
+    private function bulletinPdfResponse(Student $student, Period $period): Response
     {
         // Classe de l'élève pour l'année de la période (via son inscription),
         // avec repli sur la classe legacy.
@@ -164,98 +220,4 @@ class BulletinController extends AbstractController
 
         return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($path));
     }
-
-    #[Route('/batch-generate', name: 'admin_bulletin_batch_generate', methods: ['POST'])]
-    public function batchGenerate(
-        Request $request,
-        StudentRepository $studentRepository,
-        EvaluationRepository $evaluationRepository,
-        ClassroomRepository $classroomRepository,
-        PeriodRepository $periodRepository,
-        GeneratedBulletinRepository $generatedBulletinRepository,
-        EntityManagerInterface $entityManager
-    ): Response {
-        $classroomId = $request->request->getint('classroom');
-        $periodId = $request->request->getint('period');
-
-        if (!$classroomId || !$periodId) {
-            $this->addFlash('error', 'Veuillez sélectionner une classe et une période.');
-            return $this->redirectToRoute('admin_bulletin_index');
-        }
-
-        $classroom = $classroomRepository->find($classroomId);
-        $period = $periodRepository->find($periodId);
-        if (!$classroom || !$period) {
-            $this->addFlash('error', 'Classe ou période introuvable.');
-            return $this->redirectToRoute('admin_bulletin_index');
-        }
-
-        $students = $studentRepository->findActiveByClassroom($classroomId);
-
-        // Générer le bulletin verrouille les notes : les évaluations de cette
-        // classe/période ne sont plus modifiables.
-        $evaluations = $evaluationRepository->findByClassroomAndPeriod($classroomId, $periodId);
-        foreach ($evaluations as $evaluation) {
-            $evaluation->setIsValidated(true);
-            $evaluation->setLockedByBulletin(true);
-        }
-
-        // Enregistrer / mettre à jour la trace de génération.
-        $record = $generatedBulletinRepository->findOneByClassroomAndPeriod($classroomId, $periodId) ?? new GeneratedBulletin();
-        $record->setClassroom($classroom);
-        $record->setPeriod($period);
-        $record->setSchoolYear($period->getSchoolYear() ?? $classroom->getSchoolYear());
-        $record->setStudentCount(count($students));
-        $record->setGeneratedAt(new \DateTime());
-        if ($this->getUser() instanceof User) {
-            $record->setGeneratedBy($this->getUser());
-        }
-        if (!$record->getId()) {
-            $entityManager->persist($record);
-        }
-
-        $entityManager->flush();
-
-        $this->addFlash('success', sprintf(
-            'Bulletins générés pour %d élève(s). Les %d évaluation(s) de cette classe/période sont désormais verrouillées.',
-            count($students),
-            count($evaluations)
-        ));
-
-        return $this->redirectToRoute('admin_bulletin_index', [
-            'classroom' => $classroomId,
-            'period' => $periodId,
-        ]);
-    }
-
-    private function getStudentsWithAverages(int $classroomId, ?int $periodId, StudentRepository $studentRepository, PeriodRepository $periodRepository): array
-    {
-        $students = $studentRepository->findActiveByClassroom($classroomId);
-
-        if (!$periodId) {
-            return $students;
-        }
-
-        $period = $periodRepository->find($periodId);
-        if (!$period) {
-            return $students;
-        }
-
-        $studentsWithAverages = [];
-        foreach ($students as $student) {
-            $averages = $this->gradeCalculationService->calculateStudentAveragesForPeriod($student, $period);
-            $studentsWithAverages[] = [
-                'student' => $student,
-                'average' => $averages['general_average'],
-            ];
-        }
-
-        // Trier par moyenne décroissante
-        usort($studentsWithAverages, function($a, $b) {
-            return ($b['average'] ?? 0) <=> ($a['average'] ?? 0);
-        });
-
-        return $studentsWithAverages;
-    }
 }
-

@@ -1,14 +1,13 @@
 {% extends 'base.html.twig' %}
 {% from 'components/macros.html.twig' import empty_state %}
 
-{% block title %}Génération des Bulletins{% endblock %}
+{% block title %}Bulletins{% endblock %}
 
 {% block body %}
 <div class="container-fluid">
-    {# ── En-tête ── #}
     {% embed 'components/page_header.html.twig' with {
-        title: 'Génération des Bulletins',
-        subtitle: (current_school and current_year) ? current_school.name ~ '  ·  ' ~ current_year.name : 'Bulletins de notes par période',
+        title: 'Bulletins',
+        subtitle: (current_school and current_year) ? current_school.name ~ '  ·  ' ~ current_year.name : 'Bulletins par niveau et période',
         icon: 'fa-file-alt',
         color: 'primary',
         breadcrumb: [ { label: 'Bulletins' } ]
@@ -16,153 +15,55 @@
 
     {% include '_flash.html.twig' %}
 
-    {% if not current_school or not current_year %}
-        <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            Veuillez sélectionner un établissement et une année scolaire.
-        </div>
-    {% else %}
-        {# ── Sélection ── #}
-        <div class="card filter-card mb-4">
-            <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-filter me-2"></i>Sélection</h6></div>
-            <div class="card-body">
-                <form method="get" class="row g-3 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label">Classe <span class="text-danger">*</span></label>
-                        <select name="classroom" class="form-select" onchange="this.form.submit()" required>
-                            <option value="">— Sélectionnez une classe —</option>
-                            {% for classroom in classrooms %}
-                                <option value="{{ classroom.id }}" {{ selected_classroom == classroom.id ? 'selected' : '' }}>{{ classroom.fullName }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label">Période <span class="text-danger">*</span></label>
-                        <select name="period" class="form-select" onchange="this.form.submit()" required>
-                            <option value="">— Sélectionnez une période —</option>
-                            {% for period in periods %}
-                                <option value="{{ period.id }}" {{ selected_period == period.id ? 'selected' : '' }}>{{ period.name }} ({{ period.dateRange }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <a href="{{ path('admin_bulletin_index') }}" class="btn btn-light w-100"><i class="fas fa-redo me-1"></i> Réinitialiser</a>
-                    </div>
-                </form>
-            </div>
-        </div>
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{{ path('admin_bulletin_new') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Nouveau
+        </a>
+    </div>
 
-        {# ── Bulletins générés ── #}
-        <div class="card table-card mb-4">
-            <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-folder-open me-2"></i>Bulletins générés <span class="badge badge-soft ms-2">{{ generated_bulletins|length }}</span></h6></div>
-            <div class="card-body">
-                {% if generated_bulletins is empty %}
-                    {{ empty_state('fa-file-circle-xmark', 'Aucun bulletin généré', 'Sélectionnez une classe et une période ci-dessus, puis cliquez sur « Générer tous les bulletins ».') }}
-                {% else %}
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Classe</th>
-                                    <th>Période</th>
-                                    <th>Élèves</th>
-                                    <th>Généré le</th>
-                                    <th>Par</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for gb in generated_bulletins %}
-                                    <tr>
-                                        <td class="fw-semibold">{{ gb.classroom.fullName }}</td>
-                                        <td>{{ gb.period.name }}</td>
-                                        <td><span class="badge badge-soft secondary">{{ gb.studentCount }}</span></td>
-                                        <td class="text-muted">{{ gb.generatedAt|date('d/m/Y H:i') }}</td>
-                                        <td>{{ gb.generatedBy ? gb.generatedBy.fullName : '—' }}</td>
-                                        <td class="text-end">
-                                            <a href="{{ path('admin_bulletin_index', {'classroom': gb.classroom.id, 'period': gb.period.id}) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye me-1"></i> Consulter</a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% endif %}
-            </div>
+    <div class="card">
+        <div class="card-body">
+            {% if bulletins is empty %}
+                {{ empty_state('fa-file-alt', 'Aucun bulletin', 'Cliquez sur « Nouveau » pour créer un bulletin.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Libellé</th>
+                                <th>Niveau</th>
+                                <th>Période</th>
+                                <th class="text-center">Moyenne sur</th>
+                                <th>Créé le</th>
+                                <th class="text-end" width="160">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in bulletins %}
+                            <tr>
+                                <td class="fw-semibold">{{ b.libelle }}</td>
+                                <td>{{ b.level ? b.level.name : '—' }}</td>
+                                <td>{{ b.period ? b.period.name : '—' }}</td>
+                                <td class="text-center"><span class="badge badge-soft secondary">/ {{ b.moyenneSur }}</span></td>
+                                <td>{{ b.createdAt ? b.createdAt|date('d/m/Y H:i') : '—' }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_bulletin_show', {'id': b.id}) }}" class="btn btn-outline-primary" title="Ouvrir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <form method="post" action="{{ path('admin_bulletin_delete', {'id': b.id}) }}" onsubmit="return confirm('Supprimer ce bulletin ?');" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ b.id) }}">
+                                            <button class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
         </div>
-
-        {% if selected_classroom and selected_period %}
-            <div class="card table-card">
-                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <h6 class="m-0 fw-bold text-primary">
-                        <i class="fas fa-list me-2"></i>Liste des élèves
-                        <span class="badge badge-soft ms-2">{{ students|length }} élève(s)</span>
-                    </h6>
-                    {% if students|length > 0 %}
-                        <form method="post" action="{{ path('admin_bulletin_batch_generate') }}" class="d-inline">
-                            <input type="hidden" name="classroom" value="{{ selected_classroom }}">
-                            <input type="hidden" name="period" value="{{ selected_period }}">
-                            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Générer tous les bulletins ?')">
-                                <i class="fas fa-file-pdf me-1"></i> Générer tous les bulletins
-                            </button>
-                        </form>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    {% if students is empty %}
-                        {{ empty_state('fa-users', 'Aucun élève', 'Aucun élève trouvé dans cette classe.') }}
-                    {% else %}
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 5%;">Rang</th>
-                                        <th style="width: 40%;">Élève</th>
-                                        <th style="width: 20%;">Moyenne générale</th>
-                                        <th style="width: 20%;">Appréciation</th>
-                                        <th style="width: 15%;" class="text-end">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for index, item in students %}
-                                        <tr>
-                                            <td><strong class="text-primary">#{{ index + 1 }}</strong></td>
-                                            <td class="fw-semibold">{{ item.student.fullName }}</td>
-                                            <td>
-                                                {% if item.average %}
-                                                    <span class="badge badge-soft {{ item.average >= 10 ? 'success' : 'danger' }} fs-6">{{ item.average|number_format(2, '.', '') }} / 20</span>
-                                                {% else %}
-                                                    <span class="text-muted">—</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if item.average %}
-                                                    {% if item.average >= 16 %}<span class="badge badge-soft success">Très bien</span>
-                                                    {% elseif item.average >= 14 %}<span class="badge badge-soft info">Bien</span>
-                                                    {% elseif item.average >= 12 %}<span class="badge badge-soft">Assez bien</span>
-                                                    {% elseif item.average >= 10 %}<span class="badge badge-soft warning">Passable</span>
-                                                    {% else %}<span class="badge badge-soft danger">Insuffisant</span>{% endif %}
-                                                {% endif %}
-                                            </td>
-                                            <td class="text-end">
-                                                <div class="btn-group btn-group-sm">
-                                                    <a href="{{ path('admin_bulletin_pdf', {'studentId': item.student.id, 'periodId': selected_period}) }}" class="btn btn-outline-danger" title="Télécharger PDF" target="_blank"><i class="fas fa-file-pdf"></i></a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        {% else %}
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Sélectionnez une classe et une période</strong> pour afficher la liste des élèves et générer les bulletins.
-            </div>
-        {% endif %}
-    {% endif %}
+    </div>
 </div>
 {% endblock %}

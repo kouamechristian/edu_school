@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}{{ bulletin.libelle }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: bulletin.libelle,
+        subtitle: (bulletin.level ? bulletin.level.name : '') ~ '  ·  ' ~ (bulletin.period ? bulletin.period.name : '') ~ '  ·  Moyenne sur ' ~ bulletin.moyenneSur,
+        icon: 'fa-file-alt',
+        color: 'primary',
+        breadcrumb: [ { label: 'Bulletins', path: path('admin_bulletin_index') }, { label: bulletin.libelle } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="text-muted small">
+            <i class="fas fa-users me-1"></i> {{ rows|length }} élève(s) du niveau
+        </div>
+        <a href="{{ path('admin_bulletin_index') }}" class="btn btn-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Retour aux bulletins</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if rows is empty %}
+                {{ empty_state('fa-user-slash', 'Aucun élève', 'Aucun élève actif n\'est rattaché à ce niveau.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="text-center" width="70">Rang</th>
+                                <th>Matricule</th>
+                                <th>Élève</th>
+                                <th>Classe</th>
+                                <th class="text-center">Moyenne / {{ base }}</th>
+                                <th class="text-end" width="120">Bulletin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                                {% set s = row.student %}
+                                <tr>
+                                    <td class="text-center">{{ row.has_grades ? loop.index : '—' }}</td>
+                                    <td><span class="badge badge-soft secondary">{{ s.matriculeInterne ?? '—' }}</span></td>
+                                    <td class="fw-semibold">{{ s.fullName }}</td>
+                                    <td>{{ row.classroom ? row.classroom.name : 'Non affecté' }}</td>
+                                    <td class="text-center">
+                                        {% if row.average is not null %}
+                                            {% set cls = row.average >= (base * 0.7) ? 'success' : (row.average >= (base * 0.5) ? 'warning' : 'danger') %}
+                                            <span class="badge badge-soft {{ cls }}">{{ row.average }}</span>
+                                        {% else %}
+                                            <span class="text-muted">NC</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if bulletin.period %}
+                                        <a href="{{ path('admin_bulletin_pdf', {studentId: s.id, periodId: bulletin.period.id}) }}"
+                                           target="_blank" class="btn btn-sm btn-outline-primary" title="Imprimer le bulletin">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

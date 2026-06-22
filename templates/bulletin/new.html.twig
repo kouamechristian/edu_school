@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau bulletin{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Nouveau bulletin',
+        subtitle: 'Définissez le libellé, la base de la moyenne, le niveau et la période',
+        icon: 'fa-file-circle-plus',
+        color: 'primary',
+        breadcrumb: [ { label: 'Bulletins', path: path('admin_bulletin_index') }, { label: 'Nouveau' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card">
+        <div class="card-body">
+            {{ form_start(form) }}
+                {{ form_errors(form) }}
+                <div class="row">
+                    <div class="col-md-8 mb-3">{{ form_row(form.libelle) }}</div>
+                    <div class="col-md-4 mb-3">{{ form_row(form.moyenneSur) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">{{ form_row(form.level) }}</div>
+                    <div class="col-md-6 mb-3">{{ form_row(form.period) }}</div>
+                </div>
+                <div class="d-flex justify-content-between mt-3 pt-3 border-top">
+                    <a href="{{ path('admin_bulletin_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer</button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

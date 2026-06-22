@@ -37,7 +37,7 @@ class SubjectEquivalentType extends AbstractType
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Libellé de l\'équivalence'],
             ])
             ->add('subjectParent', ChoiceType::class, [
-                'label' => 'Matière',
+                'label' => 'Matière parente',
                 'required' => false,
                 'placeholder' => 'Sélectionnez une matière',
                 'choices' => array_combine(SubjectEquivalent::SUBJECTS, SubjectEquivalent::SUBJECTS),
