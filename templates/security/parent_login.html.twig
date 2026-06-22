@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion — EDU-SCHOOL</title>
+    <title>Espace Parent — Connexion — EDU-SCHOOL</title>
 
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
-    {# Bootstrap CSS #}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    {# Font Awesome #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    {# Google Fonts #}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
@@ -27,69 +24,45 @@
 
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: #0f1729;
-            position: relative;
-            overflow: hidden;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 20px; background: #0a1f1a; position: relative; overflow: hidden;
         }
-        /* Décor : halos lumineux subtils */
         body::before, body::after {
-            content: "";
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(90px);
-            opacity: 0.45;
-            z-index: 0;
+            content: ""; position: absolute; border-radius: 50%;
+            filter: blur(90px); opacity: 0.5; z-index: 0;
         }
-        body::before { width: 480px; height: 480px; background: #1e3a5f; top: -120px; left: -120px; }
-        body::after  { width: 420px; height: 420px; background: #10b981; bottom: -140px; right: -100px; opacity: 0.3; }
+        body::before { width: 480px; height: 480px; background: #10b981; top: -120px; left: -120px; opacity: 0.4; }
+        body::after  { width: 420px; height: 420px; background: #1e3a5f; bottom: -140px; right: -100px; }
 
         .login-container {
-            position: relative;
-            z-index: 1;
-            background: #fff;
-            border-radius: 22px;
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
-            overflow: hidden;
-            max-width: 920px;
-            width: 100%;
-            display: flex;
-            animation: rise 0.6s ease-out;
+            position: relative; z-index: 1; background: #fff; border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); overflow: hidden;
+            max-width: 920px; width: 100%; display: flex; animation: rise 0.6s ease-out;
         }
         @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* ── Volet gauche (présentation) ── */
+        /* ── Volet gauche (présentation espace parent) ── */
         .login-left {
-            flex: 1;
-            background: linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 100%);
-            padding: 56px 44px;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            position: relative;
+            flex: 1; background: linear-gradient(160deg, var(--emerald-dark) 0%, #064e3b 100%);
+            padding: 56px 44px; color: #fff; display: flex; flex-direction: column;
+            justify-content: center; position: relative;
         }
         .login-left::after {
-            content: "";
-            position: absolute; inset: 0;
-            background: radial-gradient(circle at 80% 10%, rgba(16,185,129,0.25), transparent 45%);
+            content: ""; position: absolute; inset: 0;
+            background: radial-gradient(circle at 80% 10%, rgba(255,255,255,0.18), transparent 45%);
         }
         .login-left > * { position: relative; z-index: 1; }
         .brand { font-family: 'Poppins', sans-serif; font-size: 2.1rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 12px; }
         .brand .brand-logo {
-            width: 50px; height: 50px; border-radius: 14px;
-            background: var(--emerald);
+            width: 50px; height: 50px; border-radius: 14px; background: #fff;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; box-shadow: 0 6px 18px rgba(16,185,129,0.4);
+            font-size: 1.5rem; color: var(--emerald-dark); box-shadow: 0 6px 18px rgba(0,0,0,0.25);
         }
-        .tagline { font-size: 1.05rem; opacity: 0.85; margin-bottom: 2.25rem; line-height: 1.5; }
+        .badge-space { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 999px; padding: 4px 14px; font-size: 0.8rem; font-weight: 600; margin-bottom: 1rem; }
+        .tagline { font-size: 1.05rem; opacity: 0.92; margin-bottom: 2.25rem; line-height: 1.5; }
         .features { list-style: none; }
-        .features li { margin-bottom: 1rem; display: flex; align-items: center; gap: 14px; font-size: 0.95rem; opacity: 0.95; }
-        .features li i { color: var(--emerald); font-size: 1.05rem; flex-shrink: 0; }
+        .features li { margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 14px; font-size: 0.95rem; opacity: 0.96; }
+        .features li i { color: #fff; font-size: 1.05rem; flex-shrink: 0; margin-top: 3px; }
 
         /* ── Volet droit (formulaire) ── */
         .login-right { flex: 1; padding: 56px 48px; display: flex; flex-direction: column; justify-content: center; }
@@ -100,41 +73,42 @@
         .input-group-text { background: #f8fafc; border: 1.5px solid #e2e8f0; border-right: none; border-radius: 12px 0 0 12px; color: #94a3b8; }
         .form-control { height: 50px; border-radius: 12px; border: 1.5px solid #e2e8f0; padding: 0 18px; font-size: 0.95rem; }
         .input-group .form-control { border-left: none; border-radius: 0 12px 12px 0; }
-        .form-control:focus { border-color: var(--navy); box-shadow: none; }
-        .input-group:focus-within .input-group-text { border-color: var(--navy); }
+        .form-control:focus { border-color: var(--emerald); box-shadow: none; }
+        .input-group:focus-within .input-group-text { border-color: var(--emerald); }
 
         .btn-login {
             height: 50px; border-radius: 12px;
-            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+            background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-dark) 100%);
             border: none; color: #fff; font-weight: 600; font-size: 1rem;
             transition: transform 0.2s, box-shadow 0.2s; width: 100%;
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
         }
-        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(30,58,95,0.35); color: #fff; }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(16,185,129,0.35); color: #fff; }
 
-        .forgot-password { color: var(--navy); text-decoration: none; font-size: 0.85rem; font-weight: 500; }
-        .forgot-password:hover { color: var(--emerald-dark); }
-        .form-check-input:checked { background-color: var(--navy); border-color: var(--navy); }
+        .form-check-input:checked { background-color: var(--emerald); border-color: var(--emerald); }
         .form-check-label { font-size: 0.88rem; color: #475569; }
 
-        .parent-register {
+        .register-cta {
             margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;
             text-align: center; font-size: 0.88rem; color: #64748b;
         }
-        .parent-register span { display: block; margin-bottom: 0.6rem; }
-        .btn-parent-register {
+        .register-cta span { display: block; margin-bottom: 0.6rem; }
+        .btn-register {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
             height: 46px; padding: 0 22px; border-radius: 12px;
             border: 1.5px solid var(--emerald); color: var(--emerald-dark);
             background: rgba(16,185,129,0.06); font-weight: 600; text-decoration: none;
             transition: background 0.2s, transform 0.2s;
         }
-        .btn-parent-register:hover { background: var(--emerald); color: #fff; transform: translateY(-2px); }
+        .btn-register:hover { background: var(--emerald); color: #fff; transform: translateY(-2px); }
+        .staff-link { display: block; margin-top: 1.25rem; text-align: center; font-size: 0.82rem; }
+        .staff-link a { color: var(--navy); text-decoration: none; font-weight: 500; }
+        .staff-link a:hover { color: var(--emerald-dark); }
 
         .alert { border-radius: 12px; border: none; border-left: 4px solid; font-size: 0.9rem; }
+        .alert-danger { background: rgba(239,68,68,0.08); border-left-color: #ef4444; color: #991b1b; }
         .alert-success { background: rgba(16,185,129,0.08); border-left-color: #10b981; color: #065f46; }
         .alert-warning { background: rgba(245,158,11,0.08); border-left-color: #f59e0b; color: #92400e; }
-        .alert-danger { background: rgba(239,68,68,0.08); border-left-color: #ef4444; color: #991b1b; }
         .alert-info { background: rgba(14,165,233,0.08); border-left-color: #0ea5e9; color: #075985; }
 
         @media (max-width: 768px) {
@@ -150,22 +124,22 @@
         <div class="login-left">
             <div class="brand">
                 <span class="brand-logo"><i class="fas fa-graduation-cap"></i></span>
-                EDU-SCHOOL
+                EDU-PARENT
             </div>
-            <p class="tagline">Système de Gestion Scolaire Intégré</p>
+            <span class="badge-space"><i class="fas fa-user-friends me-1"></i> Espace Parent</span>
+            <p class="tagline">Suivez la scolarité de vos enfants en toute simplicité.</p>
             <ul class="features">
-                <li><i class="fas fa-check-circle"></i><span>Gestion complète des établissements</span></li>
-                <li><i class="fas fa-check-circle"></i><span>Suivi des notes et des absences</span></li>
-                <li><i class="fas fa-check-circle"></i><span>Communication parents — école</span></li>
-                <li><i class="fas fa-check-circle"></i><span>Gestion financière intégrée</span></li>
-                <li><i class="fas fa-check-circle"></i><span>Rapports et statistiques en temps réel</span></li>
+                <li><i class="fas fa-chart-line"></i><span>Notes, bulletins et assiduité en temps réel</span></li>
+                <li><i class="fas fa-file-invoice-dollar"></i><span>Scolarité : consultation et paiement en ligne</span></li>
+                <li><i class="fas fa-redo"></i><span>Réinscription pour la nouvelle année</span></li>
+                <li><i class="fas fa-calendar-week"></i><span>Emploi du temps de la classe</span></li>
             </ul>
         </div>
 
         {# ── Formulaire ── #}
         <div class="login-right">
-            <h2 class="login-title">Connexion</h2>
-            <p class="login-subtitle">Accédez à votre espace personnel</p>
+            <h2 class="login-title">Connexion Parent</h2>
+            <p class="login-subtitle">Accédez à l'espace de suivi de vos enfants</p>
 
             {% for label, messages in app.flashes(['success', 'error', 'warning', 'info']) %}
                 {% for message in messages %}
@@ -185,21 +159,14 @@
                 </div>
             {% endif %}
 
-            {% if app.user %}
-                <div class="alert alert-info">
-                    Vous êtes connecté en tant que {{ app.user.userIdentifier }}.
-                    <a href="{{ path('app_logout') }}">Déconnexion</a>
-                </div>
-            {% endif %}
-
-            <form method="post">
+            <form method="post" action="{{ path('parent_login') }}">
                 <div class="mb-3">
-                    <label for="username" class="form-label">Nom d'utilisateur ou Email</label>
+                    <label for="username" class="form-label">Téléphone</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
                         <input type="text" value="{{ last_username ?: app.request.query.get('username') }}" name="username" id="username"
                                class="form-control" autocomplete="username" required autofocus
-                               placeholder="Entrez votre identifiant">
+                               placeholder="Votre numéro de téléphone">
                     </div>
                 </div>
 
@@ -209,18 +176,15 @@
                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
                         <input type="password" name="password" id="password"
                                class="form-control" autocomplete="current-password" required
-                               placeholder="Entrez votre mot de passe">
+                               placeholder="Votre mot de passe">
                     </div>
                 </div>
 
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
-                <div class="mb-4 d-flex justify-content-between align-items-center">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="_remember_me" id="remember_me">
-                        <label class="form-check-label" for="remember_me">Se souvenir de moi</label>
-                    </div>
-                    <a href="#" class="forgot-password"><i class="fas fa-key me-1"></i> Mot de passe oublié ?</a>
+                <div class="mb-4 form-check">
+                    <input class="form-check-input" type="checkbox" name="_remember_me" id="remember_me">
+                    <label class="form-check-label" for="remember_me">Se souvenir de moi</label>
                 </div>
 
                 <button class="btn-login" type="submit">
@@ -228,15 +192,15 @@
                 </button>
             </form>
 
-            <div class="parent-register">
-                <span>Vous êtes parent d'élève ?</span>
-                <a href="{{ path('parent_login') }}" class="btn-parent-register">
-                    <i class="fas fa-user-friends me-1"></i> Accéder à l'espace parent
+            <div class="register-cta">
+                <span>Pas encore de compte parent ?</span>
+                <a href="{{ path('parent_register') }}" class="btn-register">
+                    <i class="fas fa-user-plus me-1"></i> Créer un compte parent
                 </a>
             </div>
 
-            <div class="text-center mt-4">
-                <small style="color:#94a3b8;">© {{ "now"|date("Y") }} EDU-SCHOOL — Tous droits réservés</small>
+            <div class="staff-link">
+                <a href="{{ path('app_login') }}"><i class="fas fa-briefcase me-1"></i> Vous êtes membre du personnel ? Connexion ici</a>
             </div>
         </div>
     </div>

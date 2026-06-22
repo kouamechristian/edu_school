@@ -379,6 +379,33 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Retrouve un élève actif à partir de son seul matricule national (tous
+     * établissements confondus). Sert à l'auto-inscription d'un parent qui rattache
+     * son enfant — déjà connu de l'établissement — via le matricule national.
+     *
+     * Comparaison insensible à la casse et aux espaces de début/fin ; en cas de
+     * doublon, on retourne l'enregistrement le plus récent.
+     */
+    public function findOneActiveByMatriculeNational(string $matriculeNational): ?Student
+    {
+        $normalized = mb_strtolower(trim($matriculeNational));
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return $this->createQueryBuilder('s')
+            ->andWhere('LOWER(TRIM(s.matriculeNational)) = :mn')
+            ->andWhere('s.isActive = :active')
+            ->setParameter('mn', $normalized)
+            ->setParameter('active', true)
+            ->orderBy('s.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Compte le nombre d'inscriptions (enregistrements élève) par matricule national,
      * pour un établissement donné.
      *

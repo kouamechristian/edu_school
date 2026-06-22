@@ -84,6 +84,9 @@ security:
     # Note: Only the *first* access control that matches will be used
     access_control:
          - { path: ^/login$, roles: PUBLIC_ACCESS }
+         # Espace parent — pages publiques : connexion dédiée et auto-inscription.
+         - { path: ^/parent/connexion$, roles: PUBLIC_ACCESS }
+         - { path: ^/parent/inscription$, roles: PUBLIC_ACCESS }
          # Webhooks externes (passerelle de paiement) : accès public, sécurisés par signature.
          - { path: ^/webhook, roles: PUBLIC_ACCESS }
          # Portail Parent : réservé aux parents (et super-admins par héritage).

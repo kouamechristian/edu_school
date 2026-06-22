@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un compte parent — EDU-SCHOOL</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --navy: #1e3a5f;
+            --navy-dark: #14273f;
+            --emerald: #10b981;
+            --emerald-dark: #059669;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; background: #0f1729; position: relative; overflow: hidden;
+        }
+        body::before, body::after {
+            content: ""; position: absolute; border-radius: 50%;
+            filter: blur(90px); opacity: 0.45; z-index: 0;
+        }
+        body::before { width: 480px; height: 480px; background: #1e3a5f; top: -120px; left: -120px; }
+        body::after  { width: 420px; height: 420px; background: #10b981; bottom: -140px; right: -100px; opacity: 0.3; }
+
+        .login-container {
+            position: relative; z-index: 1; background: #fff; border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); overflow: hidden;
+            max-width: 920px; width: 100%; display: flex; animation: rise 0.6s ease-out;
+        }
+        @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+        .login-left {
+            flex: 1; background: linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 100%);
+            padding: 56px 44px; color: #fff; display: flex; flex-direction: column;
+            justify-content: center; position: relative;
+        }
+        .login-left::after {
+            content: ""; position: absolute; inset: 0;
+            background: radial-gradient(circle at 80% 10%, rgba(16,185,129,0.25), transparent 45%);
+        }
+        .login-left > * { position: relative; z-index: 1; }
+        .brand { font-family: 'Poppins', sans-serif; font-size: 2.1rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 12px; }
+        .brand .brand-logo {
+            width: 50px; height: 50px; border-radius: 14px; background: var(--emerald);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; box-shadow: 0 6px 18px rgba(16,185,129,0.4);
+        }
+        .tagline { font-size: 1.05rem; opacity: 0.85; margin-bottom: 2.25rem; line-height: 1.5; }
+        .features { list-style: none; }
+        .features li { margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 14px; font-size: 0.95rem; opacity: 0.95; }
+        .features li i { color: var(--emerald); font-size: 1.05rem; flex-shrink: 0; margin-top: 3px; }
+
+        .login-right { flex: 1; padding: 48px 48px; display: flex; flex-direction: column; justify-content: center; }
+        .login-title { font-family: 'Poppins', sans-serif; font-size: 1.7rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy); }
+        .login-subtitle { color: #94a3b8; margin-bottom: 1.5rem; font-size: 0.92rem; }
+
+        .form-label { font-weight: 500; color: #1e293b; font-size: 0.85rem; margin-bottom: 0.4rem; }
+        .input-group-text { background: #f8fafc; border: 1.5px solid #e2e8f0; border-right: none; border-radius: 12px 0 0 12px; color: #94a3b8; }
+        .form-control { height: 48px; border-radius: 12px; border: 1.5px solid #e2e8f0; padding: 0 16px; font-size: 0.95rem; }
+        .input-group .form-control { border-left: none; border-radius: 0 12px 12px 0; }
+        .form-control:focus { border-color: var(--navy); box-shadow: none; }
+        .input-group:focus-within .input-group-text { border-color: var(--navy); }
+        .field-help { font-size: 0.78rem; color: #94a3b8; margin-top: 0.3rem; }
+
+        .btn-login {
+            height: 50px; border-radius: 12px;
+            background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-dark) 100%);
+            border: none; color: #fff; font-weight: 600; font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s; width: 100%;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(16,185,129,0.35); color: #fff; }
+
+        .back-link { color: var(--navy); text-decoration: none; font-size: 0.88rem; font-weight: 500; }
+        .back-link:hover { color: var(--emerald-dark); }
+
+        .alert { border-radius: 12px; border: none; border-left: 4px solid; font-size: 0.9rem; }
+        .alert-danger { background: rgba(239,68,68,0.08); border-left-color: #ef4444; color: #991b1b; }
+        .alert-success { background: rgba(16,185,129,0.08); border-left-color: #10b981; color: #065f46; }
+        .alert-warning { background: rgba(245,158,11,0.08); border-left-color: #f59e0b; color: #92400e; }
+        .alert-info { background: rgba(14,165,233,0.08); border-left-color: #0ea5e9; color: #075985; }
+
+        @media (max-width: 768px) {
+            .login-left { display: none; }
+            .login-container { max-width: 480px; }
+            .login-right { padding: 40px 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        {# ── Présentation ── #}
+        <div class="login-left">
+            <div class="brand">
+                <span class="brand-logo"><i class="fas fa-graduation-cap"></i></span>
+                EDU-SCHOOL
+            </div>
+            <p class="tagline">Espace Parent</p>
+            <ul class="features">
+                <li><i class="fas fa-id-card"></i><span>Reliez votre enfant grâce à son <strong>matricule national</strong></span></li>
+                <li><i class="fas fa-chart-line"></i><span>Suivez ses notes et son assiduité</span></li>
+                <li><i class="fas fa-file-invoice-dollar"></i><span>Consultez et réglez la scolarité en ligne</span></li>
+                <li><i class="fas fa-redo"></i><span>Réinscrivez-le pour la nouvelle année</span></li>
+            </ul>
+        </div>
+
+        {# ── Formulaire ── #}
+        <div class="login-right">
+            <h2 class="login-title">Créer un compte parent</h2>
+            <p class="login-subtitle">Réservé aux parents d'élèves déjà inscrits dans l'établissement.</p>
+
+            {% for label, messages in app.flashes(['success', 'error', 'warning', 'info']) %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ label == 'success' ? 'check-circle' : (label == 'error' ? 'exclamation-triangle' : 'info-circle') }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            <form method="post">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="last_name" class="form-label">Nom</label>
+                        <input type="text" name="last_name" id="last_name" class="form-control"
+                               value="{{ old.last_name }}" required placeholder="Votre nom">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="first_name" class="form-label">Prénom</label>
+                        <input type="text" name="first_name" id="first_name" class="form-control"
+                               value="{{ old.first_name }}" required placeholder="Votre prénom">
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label for="phone" class="form-label">Téléphone</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                        <input type="tel" name="phone" id="phone" class="form-control"
+                               value="{{ old.phone }}" required placeholder="Ex : 0700000000">
+                    </div>
+                    <div class="field-help">Ce numéro vous servira d'identifiant pour vous connecter.</div>
+                </div>
+
+                <div class="mt-3">
+                    <label for="password" class="form-label">Mot de passe</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password" id="password" class="form-control"
+                               autocomplete="new-password" required minlength="6" placeholder="Au moins 6 caractères">
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label for="matricule_national" class="form-label">Matricule national de l'élève</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                        <input type="text" name="matricule_national" id="matricule_national" class="form-control"
+                               value="{{ old.matricule_national }}" required placeholder="Matricule national de votre enfant">
+                    </div>
+                    <div class="field-help">Permet de relier automatiquement votre enfant et son établissement à votre compte.</div>
+                </div>
+
+                <input type="hidden" name="_token" value="{{ csrf_token('parent_register') }}">
+
+                <button class="btn-login mt-4" type="submit">
+                    <i class="fas fa-user-plus"></i> Créer mon compte
+                </button>
+            </form>
+
+            <div class="text-center mt-4">
+                <a href="{{ path('parent_login') }}" class="back-link"><i class="fas fa-arrow-left me-1"></i> J'ai déjà un compte — Se connecter</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

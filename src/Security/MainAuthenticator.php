@@ -21,9 +21,20 @@ class MainAuthenticator extends AbstractLoginFormAuthenticator
     use TargetPathTrait;
 
     public const LOGIN_ROUTE = 'app_login';
+    public const PARENT_LOGIN_ROUTE = 'parent_login';
 
     public function __construct(private UrlGeneratorInterface $urlGenerator)
     {
+    }
+
+    /**
+     * On intercepte les soumissions des DEUX pages de connexion : celle du
+     * personnel (app_login) et celle, dédiée, de l'espace parent (parent_login).
+     */
+    public function supports(Request $request): bool
+    {
+        return $request->isMethod('POST')
+            && in_array($request->attributes->get('_route'), [self::LOGIN_ROUTE, self::PARENT_LOGIN_ROUTE], true);
     }
 
     public function authenticate(Request $request): Passport
@@ -59,8 +70,18 @@ class MainAuthenticator extends AbstractLoginFormAuthenticator
         return new RedirectResponse($this->urlGenerator->generate('app_home'));
     }
 
+    /**
+     * Renvoie l'utilisateur sur la page de connexion d'origine : un échec depuis
+     * l'espace parent ré-affiche la page parent (et non celle du personnel).
+     */
     protected function getLoginUrl(Request $request): string
     {
+        $route = $request->attributes->get('_route');
+
+        if ($route === self::PARENT_LOGIN_ROUTE || str_starts_with($request->getPathInfo(), '/parent')) {
+            return $this->urlGenerator->generate(self::PARENT_LOGIN_ROUTE);
+        }
+
         return $this->urlGenerator->generate(self::LOGIN_ROUTE);
     }
 }
