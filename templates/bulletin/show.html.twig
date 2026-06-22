@@ -15,11 +15,38 @@
 
     {% include '_flash.html.twig' %}
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="text-muted small">
-            <i class="fas fa-users me-1"></i> {{ rows|length }} élève(s) du niveau
+    {# ── Statut + actions ── #}
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="text-muted small"><i class="fas fa-users me-1"></i> {{ rows|length }} élève(s)</span>
+            {% if bulletin.isValidated %}
+                <span class="badge bg-success"><i class="fas fa-check me-1"></i> Validé{% if bulletin.validatedAt %} le {{ bulletin.validatedAt|date('d/m/Y') }}{% endif %}</span>
+            {% elseif bulletin.computed %}
+                <span class="badge bg-info text-dark"><i class="fas fa-calculator me-1"></i> Moyennes calculées{% if bulletin.computedAt %} le {{ bulletin.computedAt|date('d/m/Y H:i') }}{% endif %}</span>
+            {% else %}
+                <span class="badge bg-secondary">Non calculé</span>
+            {% endif %}
         </div>
-        <a href="{{ path('admin_bulletin_index') }}" class="btn btn-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Retour aux bulletins</a>
+
+        <div class="d-flex gap-2 flex-wrap">
+            {% if not bulletin.isValidated %}
+                <form method="post" action="{{ path('admin_bulletin_compute', {id: bulletin.id}) }}" class="d-inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('compute' ~ bulletin.id) }}">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-calculator me-1"></i> Calculer les moyennes</button>
+                </form>
+                <form method="post" action="{{ path('admin_bulletin_validate', {id: bulletin.id}) }}" class="d-inline"
+                      onsubmit="return confirm('Valider ce bulletin ? Le recalcul sera désactivé.');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('validate' ~ bulletin.id) }}">
+                    <button type="submit" class="btn btn-success" {{ bulletin.computed ? '' : 'disabled' }}>
+                        <i class="fas fa-check-circle me-1"></i> Valider
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{{ path('admin_bulletin_print_all', {id: bulletin.id}) }}" target="_blank" class="btn btn-outline-dark">
+                <i class="fas fa-print me-1"></i> Imprimer bulletin
+            </a>
+            <a href="{{ path('admin_bulletin_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        </div>
     </div>
 
     <div class="card">
@@ -36,14 +63,15 @@
                                 <th>Élève</th>
                                 <th>Classe</th>
                                 <th class="text-center">Moyenne / {{ base }}</th>
-                                <th class="text-end" width="120">Bulletin</th>
+                                <th>Mention</th>
+                                <th class="text-end" width="90">Bulletin</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for row in rows %}
                                 {% set s = row.student %}
                                 <tr>
-                                    <td class="text-center">{{ row.has_grades ? loop.index : '—' }}</td>
+                                    <td class="text-center fw-semibold">{{ row.rank ?? '—' }}</td>
                                     <td><span class="badge badge-soft secondary">{{ s.matriculeInterne ?? '—' }}</span></td>
                                     <td class="fw-semibold">{{ s.fullName }}</td>
                                     <td>{{ row.classroom ? row.classroom.name : 'Non affecté' }}</td>
@@ -55,10 +83,11 @@
                                             <span class="text-muted">NC</span>
                                         {% endif %}
                                     </td>
+                                    <td>{{ row.mention ?: '—' }}</td>
                                     <td class="text-end">
                                         {% if bulletin.period %}
                                         <a href="{{ path('admin_bulletin_pdf', {studentId: s.id, periodId: bulletin.period.id}) }}"
-                                           target="_blank" class="btn btn-sm btn-outline-primary" title="Imprimer le bulletin">
+                                           target="_blank" class="btn btn-sm btn-outline-primary" title="Imprimer le bulletin de l'élève">
                                             <i class="fas fa-print"></i>
                                         </a>
                                         {% endif %}

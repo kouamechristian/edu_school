@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\BulletinRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -50,15 +52,114 @@ class Bulletin
     private ?School $school = null;
 
     #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?SchoolYear $schoolYear = null;
+
+    #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true)]
     private ?User $createdBy = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isValidated = false;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $validatedAt = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $validatedBy = null;
+
+    /**
+     * Date du dernier calcul des moyennes (snapshot dans les lignes).
+     */
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $computedAt = null;
+
+    /**
+     * @var Collection<int, BulletinLine>
+     */
+    #[ORM\OneToMany(mappedBy: 'bulletin', targetEntity: BulletinLine::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['rank' => 'ASC'])]
+    private Collection $lines;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
+        $this->lines = new ArrayCollection();
+    }
+
+    public function isValidated(): bool
+    {
+        return $this->isValidated;
+    }
+
+    public function setIsValidated(bool $isValidated): static
+    {
+        $this->isValidated = $isValidated;
+        return $this;
+    }
+
+    public function getValidatedAt(): ?\DateTimeInterface
+    {
+        return $this->validatedAt;
+    }
+
+    public function setValidatedAt(?\DateTimeInterface $validatedAt): static
+    {
+        $this->validatedAt = $validatedAt;
+        return $this;
+    }
+
+    public function getValidatedBy(): ?User
+    {
+        return $this->validatedBy;
+    }
+
+    public function setValidatedBy(?User $validatedBy): static
+    {
+        $this->validatedBy = $validatedBy;
+        return $this;
+    }
+
+    public function getComputedAt(): ?\DateTimeInterface
+    {
+        return $this->computedAt;
+    }
+
+    public function setComputedAt(?\DateTimeInterface $computedAt): static
+    {
+        $this->computedAt = $computedAt;
+        return $this;
+    }
+
+    public function isComputed(): bool
+    {
+        return $this->computedAt !== null;
+    }
+
+    /**
+     * @return Collection<int, BulletinLine>
+     */
+    public function getLines(): Collection
+    {
+        return $this->lines;
+    }
+
+    public function addLine(BulletinLine $line): static
+    {
+        if (!$this->lines->contains($line)) {
+            $this->lines->add($line);
+            $line->setBulletin($this);
+        }
+        return $this;
+    }
+
+    public function clearLines(): void
+    {
+        $this->lines->clear();
     }
 
     public function getId(): ?int
@@ -118,6 +219,17 @@ class Bulletin
     public function setSchool(?School $school): static
     {
         $this->school = $school;
+        return $this;
+    }
+
+    public function getSchoolYear(): ?SchoolYear
+    {
+        return $this->schoolYear;
+    }
+
+    public function setSchoolYear(?SchoolYear $schoolYear): static
+    {
+        $this->schoolYear = $schoolYear;
         return $this;
     }
 
