@@ -128,6 +128,32 @@ class SubjectType extends AbstractType
                 ],
                 'help' => 'Ordre d\'affichage de la matière sur le bulletin.',
             ])
+            ->add('noteSurBulletin', IntegerType::class, [
+                'label' => 'Note sur le bulletin',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'min' => 1, 'placeholder' => 'Ex: 20'],
+                'help' => 'Barème de la note de cette matière sur le bulletin.',
+            ])
+            ->add('lv', ChoiceType::class, [
+                'label' => 'LV (langue vivante)',
+                'required' => false,
+                'choices' => array_combine(Subject::LV_CHOICES, Subject::LV_CHOICES),
+                'attr' => ['class' => 'form-select'],
+            ])
+            ->add('matiereConduite', ChoiceType::class, [
+                'label' => 'Matière de conduite',
+                'required' => false,
+                'placeholder' => '—',
+                'choices' => array_combine(Subject::CONDUITE_CHOICES, Subject::CONDUITE_CHOICES),
+                'attr' => ['class' => 'form-select'],
+            ])
+            ->add('artMusique', ChoiceType::class, [
+                'label' => 'Art / Musique',
+                'required' => false,
+                'placeholder' => '—',
+                'choices' => array_combine(Subject::ART_MUSIQUE_CHOICES, Subject::ART_MUSIQUE_CHOICES),
+                'attr' => ['class' => 'form-select'],
+            ])
             ->add('color', ColorType::class, [
                 'label' => 'Couleur (emploi du temps)',
                 'required' => false,

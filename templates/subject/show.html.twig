@@ -38,6 +38,10 @@
                         <div class="col-md-6"><div class="info-list">
                             <div class="info-row"><div class="info-label">Coefficient</div><div class="info-value">{{ subject.coefficient ?? 'Non défini' }}</div></div>
                             <div class="info-row"><div class="info-label">Heures/semaine</div><div class="info-value">{{ subject.hoursPerWeek ?? 'Non défini' }}h</div></div>
+                            <div class="info-row"><div class="info-label">LV</div><div class="info-value">{{ subject.lv ?? 'AUCUN' }}</div></div>
+                            <div class="info-row"><div class="info-label">Matière de conduite</div><div class="info-value">{{ subject.matiereConduite ?? 'Non défini' }}</div></div>
+                            <div class="info-row"><div class="info-label">Art / Musique</div><div class="info-value">{{ subject.artMusique ?? 'Non défini' }}</div></div>
+                            <div class="info-row"><div class="info-label">Note sur le bulletin</div><div class="info-value">{{ subject.noteSurBulletin is not null ? '/ ' ~ subject.noteSurBulletin : 'Non défini' }}</div></div>
                             <div class="info-row"><div class="info-label">Couleur</div><div class="info-value">{% if subject.color %}<span class="badge" style="background-color: {{ subject.color }}; color: #fff;">{{ subject.color }}</span>{% else %}<span class="text-muted">Non définie</span>{% endif %}</div></div>
                         </div></div>
                     </div>

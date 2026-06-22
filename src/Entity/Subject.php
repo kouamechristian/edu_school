@@ -11,6 +11,15 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 class Subject
 {
+    /** Langue vivante (LV). */
+    public const LV_CHOICES = ['AUCUN', 'ALLEMAND', 'ESPAGNOLE'];
+
+    /** Matière de conduite (oui / non). */
+    public const CONDUITE_CHOICES = ['OUI', 'NON'];
+
+    /** Art / musique. */
+    public const ART_MUSIQUE_CHOICES = ['MUSIQUE', 'ART PLASTIQUE'];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -56,6 +65,26 @@ class Subject
     #[ORM\Column(length: 7, nullable: true)]
     #[Assert\Regex(pattern: '/^#[0-9A-F]{6}$/i', message: 'Format couleur invalide (ex: #FF5733)')]
     private ?string $color = null;
+
+    /** Langue vivante (LV) : AUCUN / ALLEMAND / ESPAGNOLE. */
+    #[ORM\Column(length: 20, nullable: true, options: ['default' => 'AUCUN'])]
+    #[Assert\Choice(choices: self::LV_CHOICES, message: 'Veuillez choisir une LV valide.')]
+    private ?string $lv = 'AUCUN';
+
+    /** Matière de conduite : OUI / NON. */
+    #[ORM\Column(name: 'matiere_conduite', length: 5, nullable: true)]
+    #[Assert\Choice(choices: self::CONDUITE_CHOICES, message: 'Veuillez choisir OUI ou NON.')]
+    private ?string $matiereConduite = null;
+
+    /** Art / musique : MUSIQUE / ART PLASTIQUE. */
+    #[ORM\Column(name: 'art_musique', length: 20, nullable: true)]
+    #[Assert\Choice(choices: self::ART_MUSIQUE_CHOICES, message: 'Veuillez choisir une valeur valide.')]
+    private ?string $artMusique = null;
+
+    /** Barème de la note sur le bulletin (ex. 20). */
+    #[ORM\Column(name: 'note_sur_bulletin', nullable: true)]
+    #[Assert\Positive(message: 'La note sur le bulletin doit être un nombre positif.')]
+    private ?int $noteSurBulletin = null;
 
     #[ORM\Column]
     private bool $isActive = true;
@@ -202,6 +231,50 @@ class Subject
     public function setColor(?string $color): static
     {
         $this->color = $color;
+        return $this;
+    }
+
+    public function getLv(): ?string
+    {
+        return $this->lv;
+    }
+
+    public function setLv(?string $lv): static
+    {
+        $this->lv = $lv;
+        return $this;
+    }
+
+    public function getMatiereConduite(): ?string
+    {
+        return $this->matiereConduite;
+    }
+
+    public function setMatiereConduite(?string $matiereConduite): static
+    {
+        $this->matiereConduite = $matiereConduite;
+        return $this;
+    }
+
+    public function getArtMusique(): ?string
+    {
+        return $this->artMusique;
+    }
+
+    public function setArtMusique(?string $artMusique): static
+    {
+        $this->artMusique = $artMusique;
+        return $this;
+    }
+
+    public function getNoteSurBulletin(): ?int
+    {
+        return $this->noteSurBulletin;
+    }
+
+    public function setNoteSurBulletin(?int $noteSurBulletin): static
+    {
+        $this->noteSurBulletin = $noteSurBulletin;
         return $this;
     }
 
