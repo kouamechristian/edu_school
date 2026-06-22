@@ -56,8 +56,10 @@ class PreRegistrationDocument
     #[ORM\JoinColumn(nullable: false)]
     private ?PreRegistration $preRegistration = null;
 
+    // Nullable : les pièces téléversées librement par le parent à la préinscription
+    // n'ont pas forcément de type prédéfini.
     #[ORM\ManyToOne(targetEntity: DocumentType::class, inversedBy: 'preRegistrationDocuments')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?DocumentType $documentType = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
