@@ -19,12 +19,24 @@
 
     {% include '_flash.html.twig' %}
 
+    {# Recherche dans les tableaux (matricule, élève, classe) #}
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="regSearch" class="form-control" placeholder="Rechercher un élève (nom, matricule, classe)…" autocomplete="off">
+                <button type="button" class="btn btn-light" id="regSearchClear" title="Effacer"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="small text-muted mt-1" id="regSearchInfo" style="display:none;"></div>
+        </div>
+    </div>
+
     {% if level_groups is empty %}
         {{ empty_state('fa-layer-group', 'Aucun niveau', 'Créez des niveaux et des classes pour gérer les inscriptions.') }}
     {% endif %}
 
     {% for g in level_groups %}
-        <div class="card mb-3">
+        <div class="card mb-3 js-reg-card">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <h6 class="m-0 fw-bold text-primary"><i class="fas fa-layer-group me-2"></i>{{ g.level.name }}</h6>
@@ -101,7 +113,7 @@
 
     {# Inscriptions sans niveau (classe non affectée) #}
     {% if unassigned is not empty %}
-        <div class="card mb-3 border-warning">
+        <div class="card mb-3 border-warning js-reg-card">
             <div class="card-header"><h6 class="m-0 fw-bold text-warning"><i class="fas fa-question-circle me-2"></i>Sans niveau / classe ({{ unassigned|length }})</h6></div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -125,4 +137,46 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+    (function () {
+        var input = document.getElementById('regSearch');
+        var clearBtn = document.getElementById('regSearchClear');
+        var info = document.getElementById('regSearchInfo');
+        if (!input) return;
+
+        function normalize(s) {
+            return (s || '').toString().toLowerCase()
+                .normalize("NFD").replace(/[̀-ͯ]/g, ""); // sans accents
+        }
+
+        function applyFilter() {
+            var q = normalize(input.value.trim());
+            var totalShown = 0;
+
+            document.querySelectorAll('.js-reg-card').forEach(function (card) {
+                var rows = card.querySelectorAll('tbody tr');
+                var shown = 0;
+                rows.forEach(function (tr) {
+                    var match = q === '' || normalize(tr.textContent).indexOf(q) !== -1;
+                    tr.style.display = match ? '' : 'none';
+                    if (match) shown++;
+                });
+                // Masquer la carte d'un niveau si aucune ligne ne correspond (sauf recherche vide).
+                card.style.display = (q !== '' && shown === 0) ? 'none' : '';
+                totalShown += shown;
+            });
+
+            if (q === '') {
+                info.style.display = 'none';
+            } else {
+                info.style.display = '';
+                info.textContent = totalShown + ' résultat(s) pour « ' + input.value.trim() + ' »';
+            }
+        }
+
+        input.addEventListener('input', applyFilter);
+        if (clearBtn) clearBtn.addEventListener('click', function () { input.value = ''; applyFilter(); input.focus(); });
+    })();
+</script>
 {% endblock %}
