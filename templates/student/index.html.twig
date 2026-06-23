@@ -87,6 +87,15 @@
             </div>
         </div>
         <div class="card-body">
+            {# Recherche instantanée dans le tableau affiché #}
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="stuSearch" class="form-control" placeholder="Rechercher dans la page (nom, matricule, établissement)…" autocomplete="off">
+                    <button type="button" class="btn btn-light" id="stuSearchClear" title="Effacer"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="small text-muted mt-1" id="stuSearchInfo" style="display:none;"></div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
                     <thead>
@@ -103,7 +112,7 @@
                     </thead>
                     <tbody>
                         {% for student in students %}
-                        <tr>
+                        <tr class="js-student-row">
                             <td><span class="fw-semibold text-primary">{{ student.matriculeInterne ?: '—' }}</span></td>
                             <td><span class="text-muted">{{ student.matriculeNational ?: '—' }}</span></td>
                             <td class="fw-semibold">{{ student.lastName }} {{ student.firstName }}</td>
@@ -193,4 +202,37 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        var input = document.getElementById('stuSearch');
+        var clearBtn = document.getElementById('stuSearchClear');
+        var info = document.getElementById('stuSearchInfo');
+        if (!input) return;
+
+        function normalize(s) {
+            return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        }
+
+        function applyFilter() {
+            var q = normalize(input.value.trim());
+            var rows = document.querySelectorAll('#dataTable tbody tr.js-student-row');
+            var shown = 0;
+            rows.forEach(function (tr) {
+                var match = q === '' || normalize(tr.textContent).indexOf(q) !== -1;
+                tr.style.display = match ? '' : 'none';
+                if (match) shown++;
+            });
+            if (q === '') {
+                info.style.display = 'none';
+            } else {
+                info.style.display = '';
+                info.textContent = shown + ' résultat(s) sur cette page · pour chercher dans tous les élèves, utilisez le filtre « Recherche » ci-dessus.';
+            }
+        }
+
+        input.addEventListener('input', applyFilter);
+        if (clearBtn) clearBtn.addEventListener('click', function () { input.value = ''; applyFilter(); input.focus(); });
+    })();
+</script>
 {% endblock %}
