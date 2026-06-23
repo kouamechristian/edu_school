@@ -237,9 +237,10 @@ class PaymentController extends AbstractController
                 $entityManager->flush();
             }
 
-            $this->addFlash('success', 'Le paiement a été enregistré avec succès.');
+            $this->addFlash('success', 'Le paiement a été enregistré avec succès. Le reçu s\'ouvre automatiquement.');
 
-            return $this->redirectToRoute('admin_payment_index', [], Response::HTTP_SEE_OTHER);
+            // Le reçu s'ouvre automatiquement (PDF en ligne) une fois le montant imputé.
+            return $this->redirectToRoute('admin_payment_receipt', ['id' => $payment->getId()], Response::HTTP_SEE_OTHER);
         }
 
         if ($form->isSubmitted() && !$form->isValid()) {
@@ -264,10 +265,30 @@ class PaymentController extends AbstractController
                 if (!$fee || !$fee->isActive() || $studentFee->getRemainingAmount() <= 0) {
                     continue;
                 }
+
+                // Échéances du frais (rangées par échéancier) avec le reste par échéance
+                // (imputation en cascade du déjà-payé, les plus anciennes d'abord).
+                $schedules = $fee->getSchedules()->toArray();
+                usort($schedules, static fn ($a, $b) => ($a->getOrderNumber() ?? 0) <=> ($b->getOrderNumber() ?? 0));
+                $paidLeft = (float) $studentFee->getPaidAmount();
+                $scheduleList = [];
+                foreach ($schedules as $i => $schedule) {
+                    $amt = (float) $schedule->getAmount();
+                    $imp = min($paidLeft, $amt);
+                    $paidLeft -= $imp;
+                    $scheduleList[] = [
+                        'order' => $schedule->getOrderNumber() ?? ($i + 1),
+                        'due' => $schedule->getDueDate()?->format('d/m/Y'),
+                        'amount' => $amt,
+                        'remaining' => round($amt - $imp, 2),
+                    ];
+                }
+
                 $list[] = [
                     'id' => $fee->getId(),
                     'name' => $fee->getName(),
                     'remaining' => $studentFee->getRemainingAmount(),
+                    'schedules' => $scheduleList,
                 ];
             }
             $feesByStudent[$choiceStudent->getId()] = $list;

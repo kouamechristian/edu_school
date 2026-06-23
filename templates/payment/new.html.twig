@@ -51,6 +51,32 @@
                     <div class="col-md-4 mb-3">{{ form_row(form.paymentMethod) }}</div>
                 </div>
 
+                {# Imputation par échéancier : aperçu de la répartition du montant saisi #}
+                <div class="row" id="imputation-wrap" style="display:none;">
+                    <div class="col-12 mb-3">
+                        <div class="card card-accent info mb-0">
+                            <div class="card-header py-2"><strong><i class="fas fa-list-ol me-1"></i> Imputation par échéancier</strong></div>
+                            <div class="card-body py-2">
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0" id="imputation-table">
+                                        <thead>
+                                            <tr>
+                                                <th>N°</th><th>Échéance</th>
+                                                <th class="text-end">Montant</th>
+                                                <th class="text-end">Reste</th>
+                                                <th class="text-end">Imputé</th>
+                                                <th class="text-end">Nouveau solde</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                                <div class="small text-muted mt-2" id="imputation-note"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <div class="alert alert-info py-2 mb-0"><i class="fas fa-info-circle me-1"></i>La référence / N° de transaction est générée automatiquement.</div>
@@ -152,7 +178,57 @@
                     if (amountInput && !Number.isNaN(remaining) && remaining > 0) {
                         amountInput.value = Math.round(remaining);
                     }
+                    renderImputation();
                 });
+            }
+            if (amountInput) {
+                amountInput.addEventListener('input', renderImputation);
+            }
+
+            // ── Aperçu de l'imputation par échéancier ──
+            function selectedFeeSchedules() {
+                if (!feeSelect || !el.value || !feeSelect.value) return null;
+                var fees = feesByStudent[el.value] || [];
+                var fee = fees.find(function (f) { return String(f.id) === String(feeSelect.value); });
+                return fee ? (fee.schedules || []) : null;
+            }
+
+            function renderImputation() {
+                var wrap = document.getElementById('imputation-wrap');
+                var tbody = document.querySelector('#imputation-table tbody');
+                var note = document.getElementById('imputation-note');
+                if (!wrap || !tbody) return;
+
+                var schedules = selectedFeeSchedules();
+                if (!schedules || schedules.length === 0) { wrap.style.display = 'none'; return; }
+
+                var amount = parseFloat(amountInput ? amountInput.value : 0) || 0;
+                var left = amount, totalImputed = 0, totalRem = 0;
+                tbody.innerHTML = '';
+
+                schedules.forEach(function (s) {
+                    var rem = Number(s.remaining);
+                    totalRem += rem;
+                    var imp = Math.max(0, Math.min(left, rem));
+                    left -= imp; totalImputed += imp;
+                    var tr = document.createElement('tr');
+                    if (imp > 0) tr.classList.add('table-success');
+                    tr.innerHTML =
+                        '<td>' + s.order + '</td>' +
+                        '<td>' + (s.due || 'À l\'inscription') + '</td>' +
+                        '<td class="text-end">' + formatMoneyXof(s.amount) + '</td>' +
+                        '<td class="text-end">' + formatMoneyXof(rem) + '</td>' +
+                        '<td class="text-end fw-bold text-success">' + (imp > 0 ? formatMoneyXof(imp) : '—') + '</td>' +
+                        '<td class="text-end">' + formatMoneyXof(rem - imp) + '</td>';
+                    tbody.appendChild(tr);
+                });
+
+                wrap.style.display = '';
+                var msg = 'Total imputé : ' + formatMoneyXof(totalImputed) + ' sur ' + formatMoneyXof(amount) + ' saisi(s).';
+                if (left > 0.009) {
+                    msg += ' ⚠ Surplus de ' + formatMoneyXof(left) + ' : le montant dépasse le reste dû de ce frais (' + formatMoneyXof(totalRem) + ').';
+                }
+                note.textContent = msg;
             }
 
             // Le select élève est rendu recherchable par l'enhancer TomSelect global de
@@ -161,10 +237,12 @@
             el.addEventListener('change', function () {
                 loadStudentSummary(el.value);
                 loadStudentFees(el.value);
+                renderImputation();
             });
 
             loadStudentSummary(el.value);
             loadStudentFees(el.value);
+            renderImputation();
         });
     </script>
 {% endblock %}
