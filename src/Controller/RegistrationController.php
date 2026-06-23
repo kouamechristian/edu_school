@@ -275,7 +275,8 @@ class RegistrationController extends AbstractController
     /**
      * Inscription en masse des élèves d'un niveau : on sélectionne plusieurs
      * préinscriptions validées du niveau et le système les affecte automatiquement aux
-     * classes du niveau, en remplissant une classe avant de passer à la suivante.
+     * classes du niveau en équilibrant les effectifs (chaque élève va dans la classe la
+     * moins remplie ayant encore de la place).
      */
     #[Route('/niveau/{id}', name: 'level', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function levelEnroll(
@@ -339,10 +340,15 @@ class RegistrationController extends AbstractController
                 }
             }
 
-            // Affectation automatique : remplir une classe avant de passer à la suivante.
+            // Affectation automatique : équilibrer les effectifs. Chaque élève est placé
+            // dans la classe ayant le plus petit effectif courant (parmi celles qui ont
+            // encore de la place), ce qui répartit les élèves de façon homogène.
             $remaining = [];
+            $count = [];
             foreach ($classes as $c) {
-                $remaining[$c['classroom']->getId()] = $c['remaining']; // null = illimité
+                $cid = $c['classroom']->getId();
+                $remaining[$cid] = $c['remaining']; // null = illimité
+                $count[$cid] = $c['count'];          // effectif courant
             }
 
             $enrolled = 0;
@@ -351,13 +357,18 @@ class RegistrationController extends AbstractController
             $errors = 0;
 
             foreach ($selected as $preReg) {
-                // Première classe (dans l'ordre) ayant encore de la place.
+                // Classe avec le plus petit effectif parmi celles ayant de la place.
                 $target = null;
+                $bestCount = null;
                 foreach ($classes as $c) {
                     $cid = $c['classroom']->getId();
-                    if ($remaining[$cid] === null || $remaining[$cid] > 0) {
+                    $hasSpace = $remaining[$cid] === null || $remaining[$cid] > 0;
+                    if (!$hasSpace) {
+                        continue;
+                    }
+                    if ($target === null || $count[$cid] < $bestCount) {
                         $target = $c['classroom'];
-                        break;
+                        $bestCount = $count[$cid];
                     }
                 }
 
@@ -369,8 +380,10 @@ class RegistrationController extends AbstractController
                 try {
                     $registration = $this->enrollmentService->enrollFromPreRegistration($preReg, $target, $schoolYear);
                     $registration->setIsRepeating($preReg->isRepeating());
-                    if ($remaining[$target->getId()] !== null) {
-                        $remaining[$target->getId()]--;
+                    $tid = $target->getId();
+                    $count[$tid]++;
+                    if ($remaining[$tid] !== null) {
+                        $remaining[$tid]--;
                     }
                     $enrolled++;
                     $placedByClass[$target->getName()] = ($placedByClass[$target->getName()] ?? 0) + 1;
