@@ -16,21 +16,105 @@
 {% block subnav %}{% include 'parent/_child_nav.html.twig' with {active: 'résumé'} %}{% endblock %}
 {% block bottomnav %}{% include 'parent/_child_bottomnav.html.twig' %}{% endblock %}
 
+{% block stylesheets %}
+<style>
+    .pp-steps { display:flex; gap:0; }
+    .pp-step { flex:1; text-align:center; position:relative; padding:0 .25rem; }
+    /* Trait de liaison entre les pastilles */
+    .pp-step::before {
+        content:""; position:absolute; top:20px; left:-50%; width:100%; height:3px;
+        background:#e3e8f0; z-index:0;
+    }
+    .pp-step:first-child::before { display:none; }
+    .pp-step.done::before { background:#10b981; }
+    .pp-step-dot {
+        position:relative; z-index:1; width:42px; height:42px; border-radius:50%;
+        margin:0 auto .5rem; display:flex; align-items:center; justify-content:center;
+        background:#eef2f8; color:#94a3b8; border:2px solid #e3e8f0; font-size:1rem;
+        transition:all .25s ease;
+    }
+    .pp-step.done .pp-step-dot { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border-color:#10b981; box-shadow:0 6px 14px -6px rgba(16,185,129,.7); }
+    .pp-step.active .pp-step-dot { background:#fff; color:#1e3a5f; border-color:#1e3a5f; animation:pp-pulse-dot 1.6s ease-in-out infinite; }
+    @keyframes pp-pulse-dot { 0%,100%{ box-shadow:0 0 0 0 rgba(30,58,95,.35);} 50%{ box-shadow:0 0 0 6px rgba(30,58,95,0);} }
+    .pp-step-label { font-size:.82rem; font-weight:600; color:#1e3a5f; }
+    .pp-step.active .pp-step-label { color:#1e3a5f; }
+    .pp-step:not(.done):not(.active) .pp-step-label { color:#94a3b8; }
+    .pp-step-date { font-size:.72rem; color:#94a3b8; min-height:1em; }
+    @media (max-width:520px){ .pp-step-label { font-size:.72rem; } .pp-step-dot { width:36px; height:36px; } .pp-step::before{ top:17px; } }
+</style>
+{% endblock %}
+
 {% block body %}
 {% set avg = academic.general_average %}
 {% set ring = avg is not null ? (avg / 20 * 100)|round : 0 %}
 {% set ring_color = avg is null ? '#94a3b8' : (avg >= 14 ? '#10b981' : (avg >= 10 ? '#f59e0b' : '#ef4444')) %}
 
-{# Préinscription : démarche en ligne pour l'année suivante (ancien élève) #}
-<section class="pp-card pp-reveal" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:space-between;">
-    <div style="display:flex;align-items:center;gap:.9rem;">
-        <span class="pp-card-title" style="margin:0;"><i class="fas fa-user-graduate"></i> Préinscription</span>
-        <span class="pp-child-sub" style="margin:0;">Préinscrivez {{ child.firstName }} pour une nouvelle année scolaire.</span>
-    </div>
-    <a href="{{ path('parent_child_reenroll', {id: child.id}) }}" class="pp-btn pp-btn-primary" style="padding:.45rem 1rem;">
-        <i class="fas fa-paper-plane"></i> Faire la préinscription
-    </a>
-</section>
+{# Préinscription : bouton si aucune demande en cours, sinon suivi (workflow). #}
+{% set pre = pre_registration %}
+{% if pre is null or pre.status == 'rejected' %}
+    <section class="pp-card pp-reveal" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:.9rem;">
+            <span class="pp-card-title" style="margin:0;"><i class="fas fa-user-graduate"></i> Préinscription</span>
+            <span class="pp-child-sub" style="margin:0;">
+                {% if pre and pre.status == 'rejected' %}
+                    <span class="pp-badge red">Demande rejetée</span>
+                    {% if pre.rejectionReason %} — {{ pre.rejectionReason }}{% endif %}
+                {% else %}
+                    Préinscrivez {{ child.firstName }} pour une nouvelle année scolaire.
+                {% endif %}
+            </span>
+        </div>
+        <a href="{{ path('parent_child_reenroll', {id: child.id}) }}" class="pp-btn pp-btn-primary" style="padding:.45rem 1rem;">
+            <i class="fas fa-paper-plane"></i> {{ pre and pre.status == 'rejected' ? 'Refaire la demande' : 'Faire la préinscription' }}
+        </a>
+    </section>
+{% else %}
+    {% set st = pre.status %}
+    {% set steps = [
+        { key: 'sent',   label: 'Demande envoyée',  icon: 'fa-paper-plane',     done: true,                                            date: pre.createdAt },
+        { key: 'docs',   label: 'Documents reçus',   icon: 'fa-folder-open',     done: st in ['documents_received','validated','enrolled'], date: null },
+        { key: 'valid',  label: 'Validée',           icon: 'fa-clipboard-check', done: st in ['validated','enrolled'],                  date: pre.validatedAt },
+        { key: 'enrol',  label: 'Inscrit(e)',        icon: 'fa-user-check',      done: st == 'enrolled',                                date: pre.enrolledAt }
+    ] %}
+    <section class="pp-card pp-reveal pp-workflow" style="margin-bottom:1.25rem;">
+        {% set badge_color = {
+            'pending': 'amber', 'documents_required': 'sky', 'documents_received': 'navy',
+            'validated': 'green', 'rejected': 'red', 'enrolled': 'green'
+        }[st]|default('navy') %}
+        <div class="pp-card-header" style="margin-bottom:1rem;">
+            <span class="pp-card-title"><i class="fas fa-user-graduate"></i> Suivi de la préinscription</span>
+            <span class="pp-badge {{ badge_color }}">{{ pre.statusLabel }}</span>
+        </div>
+        <div class="pp-child-sub" style="margin-bottom:1rem;">
+            {% if pre.requestedLevel %}Niveau demandé : <strong>{{ pre.requestedLevel.name }}</strong>{% endif %}
+            {% if pre.schoolYear %} · Année : <strong>{{ pre.schoolYear.name }}</strong>{% endif %}
+        </div>
+
+        <div class="pp-steps">
+            {% for s in steps %}
+                {% set active = not s.done and (loop.first or steps[loop.index0 - 1].done) %}
+                <div class="pp-step {{ s.done ? 'done' : (active ? 'active' : '') }}">
+                    <div class="pp-step-dot"><i class="fas {{ s.done ? 'fa-check' : s.icon }}"></i></div>
+                    <div class="pp-step-label">{{ s.label }}</div>
+                    <div class="pp-step-date">{{ s.date ? s.date|date('d/m/Y') : '' }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if st == 'validated' %}
+            <div style="margin-top:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;justify-content:space-between;">
+                <span class="pp-child-sub"><i class="fas fa-circle-info"></i> Préinscription validée : réglez les frais de scolarité en ligne, ou rendez-vous à l'établissement.</span>
+                <a href="{{ path('parent_child_finance', {id: child.id}) }}" class="pp-btn pp-btn-primary" style="padding:.45rem 1rem;">
+                    <i class="fas fa-credit-card"></i> Régler les frais
+                </a>
+            </div>
+        {% elseif st == 'enrolled' %}
+            <div style="margin-top:1rem;"><span class="pp-badge green"><i class="fas fa-check"></i> Inscription finalisée{% if child.classroom %} — classe {{ child.classroom.name }}{% endif %}</span></div>
+        {% else %}
+            <div class="pp-child-sub" style="margin-top:1rem;"><i class="fas fa-hourglass-half"></i> Votre demande est en cours de traitement par l'établissement. Vous serez notifié(e) dès sa validation.</div>
+        {% endif %}
+    </section>
+{% endif %}
 
 <div class="pp-grid cols-2">
     {# Résultats #}

@@ -238,4 +238,20 @@ class PreRegistrationRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Dernière préinscription d'un ANCIEN élève (lien `existingStudent`). Pour un
+     * nouvel élève, la préinscription d'origine est portée par Student.preRegistration ;
+     * le contrôleur la combine avec ce résultat. Sert au suivi (workflow) côté parent.
+     */
+    public function findLatestForStudent(int $studentId): ?PreRegistration
+    {
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.existingStudent = :id')
+            ->setParameter('id', $studentId)
+            ->orderBy('p.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

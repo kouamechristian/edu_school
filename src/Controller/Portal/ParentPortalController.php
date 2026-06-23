@@ -14,6 +14,7 @@ use App\Repository\CourseRepository;
 use App\Repository\NotificationRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\PeriodRepository;
+use App\Repository\PreRegistrationRepository;
 use App\Repository\TimeSlotRepository;
 use App\Repository\StudentFeeRepository;
 use App\Repository\StudentRepository;
@@ -148,6 +149,7 @@ class ParentPortalController extends AbstractController
         Student $child,
         CourseRepository $courseRepository,
         TimeSlotRepository $timeSlotRepository,
+        PreRegistrationRepository $preRegistrationRepository,
     ): Response {
         $this->denyAccessUnlessGranted(ChildVoter::VIEW, $child);
 
@@ -156,6 +158,14 @@ class ParentPortalController extends AbstractController
         $classroom = $child->getClassroom();
         $schedule = $classroom ? $courseRepository->findScheduleByClassroom($classroom->getId()) : [];
         $timeSlots = $classroom ? $timeSlotRepository->findBySchool($classroom->getSchool()?->getId()) : [];
+
+        // Préinscription de suivi : ancien élève (existingStudent) ou nouvel élève
+        // (préinscription d'origine portée par Student.preRegistration) — la plus récente.
+        $preRegistration = $preRegistrationRepository->findLatestForStudent($child->getId());
+        $own = $child->getPreRegistration();
+        if ($own !== null && ($preRegistration === null || $own->getCreatedAt() > $preRegistration->getCreatedAt())) {
+            $preRegistration = $own;
+        }
 
         return $this->render('parent/child_show.html.twig', [
             'child' => $child,
@@ -166,6 +176,7 @@ class ParentPortalController extends AbstractController
             'classroom' => $classroom,
             'schedule' => $schedule,
             'time_slots' => $timeSlots,
+            'pre_registration' => $preRegistration,
         ]);
     }
 
