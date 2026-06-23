@@ -25,7 +25,17 @@ class FeeAssignmentService
 
     public function assignFeeToStudent(Fee $fee, Student $student, ?Registration $registration = null): ?StudentFee
     {
-        if ($this->studentFeeRepository->existsForStudentAndFee($student->getId(), $fee->getId())) {
+        // Frais déjà affecté à l'élève (ex. lors de la validation de la préinscription,
+        // sans inscription). On ne le duplique pas, MAIS s'il n'est pas encore rattaché à
+        // une inscription, on le relie à celle fournie : sinon les frais « disparaîtraient »
+        // de l'inscription (Registration::getTotalTuition ne compte que ses propres frais).
+        $existing = $this->studentFeeRepository->findOneForStudentAndFee($student->getId(), $fee->getId());
+        if ($existing !== null) {
+            if ($registration !== null && $existing->getRegistration() === null) {
+                $existing->setRegistration($registration);
+                $registration->addStudentFee($existing);
+            }
+
             return null;
         }
 

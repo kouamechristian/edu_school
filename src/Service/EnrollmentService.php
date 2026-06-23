@@ -94,8 +94,10 @@ class EnrollmentService
         $this->entityManager->flush();
 
         // Affectation automatique des frais de scolarité du niveau à la registration.
-        if ($registration !== null
-            && $this->feeAssignmentService->assignScolariteFeesForRegistration($registration) > 0) {
+        // (assignScolariteFeesForRegistration crée les frais manquants ET rattache à
+        // l'inscription les frais déjà affectés à la validation de la préinscription.)
+        if ($registration !== null) {
+            $this->feeAssignmentService->assignScolariteFeesForRegistration($registration);
             $this->entityManager->flush();
         }
 
