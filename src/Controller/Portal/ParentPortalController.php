@@ -589,8 +589,13 @@ class ParentPortalController extends AbstractController
             $schedules = $fee->getSchedules()->toArray();
             usort($schedules, static fn ($a, $b) => ($a->getOrderNumber() ?? 0) <=> ($b->getOrderNumber() ?? 0));
 
-            // Imputation du montant payé sur les échéances, en cascade.
+            // Imputation du montant payé sur les échéances, en cascade. Le bouton
+            // « Payer » n'est actif que sur la PREMIÈRE échéance non soldée (la prochaine
+            // due), car l'imputation d'un paiement se fait de la plus ancienne à la plus
+            // récente : on règle donc les échéances dans l'ordre.
             $paidLeft = (float) $studentFee->getPaidAmount();
+            $payActive = $fee->isActive();
+            $nextPayableSet = false;
             $rows = [];
 
             if ($schedules !== []) {
@@ -598,28 +603,37 @@ class ParentPortalController extends AbstractController
                     $amount = (float) $schedule->getAmount();
                     $imputed = min($paidLeft, $amount);
                     $paidLeft -= $imputed;
+                    $remaining = round($amount - $imputed, 2);
+                    $payable = $payActive && !$nextPayableSet && $remaining > 0;
+                    if ($payable) {
+                        $nextPayableSet = true;
+                    }
                     $rows[] = [
                         'order' => $schedule->getOrderNumber() ?? ($i + 1),
                         'due' => $schedule->getDueDate(),
                         'amount' => $amount,
                         'paid' => round($imputed, 2),
-                        'remaining' => round($amount - $imputed, 2),
+                        'remaining' => $remaining,
+                        'payable' => $payable,
                     ];
                 }
             } else {
                 // Frais sans échéancier : une échéance unique.
                 $amount = (float) $studentFee->getAmount();
                 $imputed = min($paidLeft, $amount);
+                $remaining = round($amount - $imputed, 2);
                 $rows[] = [
                     'order' => 1,
                     'due' => null,
                     'amount' => $amount,
                     'paid' => round($imputed, 2),
-                    'remaining' => round($amount - $imputed, 2),
+                    'remaining' => $remaining,
+                    'payable' => $payActive && $remaining > 0,
                 ];
             }
 
             $detail[] = [
+                'student_fee_id' => $studentFee->getId(),
                 'name' => (string) $fee->getName(),
                 'category' => $fee->getCategoryLabel(),
                 'total' => (float) $studentFee->getAmount(),

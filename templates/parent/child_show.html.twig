@@ -121,7 +121,7 @@
                             <span class="pp-child-sub">Total {{ f.total|number_format(0, ',', ' ') }} F · Payé {{ f.paid|number_format(0, ',', ' ') }} F · <strong>Reste {{ f.remaining|number_format(0, ',', ' ') }} F</strong></span>
                         </div>
                         <table class="pp-fee-table">
-                            <thead><tr><th>N°</th><th>Échéance</th><th class="r">Montant</th><th class="r">Réglé</th><th class="r">Reste</th></tr></thead>
+                            <thead><tr><th>N°</th><th>Échéance</th><th class="r">Montant</th><th class="r">Réglé</th><th class="r">Reste</th><th class="r">Action</th></tr></thead>
                             <tbody>
                                 {% for s in f.schedules %}
                                 <tr>
@@ -130,6 +130,22 @@
                                     <td class="r">{{ s.amount|number_format(0, ',', ' ') }} F</td>
                                     <td class="r">{{ s.paid|number_format(0, ',', ' ') }} F</td>
                                     <td class="r">{% if s.remaining > 0 %}<span class="pp-badge red">{{ s.remaining|number_format(0, ',', ' ') }} F</span>{% else %}<span class="pp-badge green">Payé</span>{% endif %}</td>
+                                    <td class="r">
+                                        {% if s.payable %}
+                                            <form method="post" action="{{ path('parent_child_pay', {id: child.id}) }}" style="display:inline;">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('parent_pay' ~ child.id) }}">
+                                                <input type="hidden" name="student_fee_id" value="{{ f.student_fee_id }}">
+                                                <input type="hidden" name="amount" value="{{ s.remaining }}">
+                                                <button type="submit" class="pp-btn pp-btn-primary" style="padding:.25rem .7rem;font-size:.78rem;">
+                                                    <i class="fas fa-credit-card"></i> Payer
+                                                </button>
+                                            </form>
+                                        {% elseif s.remaining > 0 %}
+                                            <span class="pp-child-sub" style="font-size:.75rem;">à venir</span>
+                                        {% else %}
+                                            <i class="fas fa-check" style="color:#10b981;"></i>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
