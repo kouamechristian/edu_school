@@ -150,6 +150,7 @@ class ParentPortalController extends AbstractController
         CourseRepository $courseRepository,
         TimeSlotRepository $timeSlotRepository,
         PreRegistrationRepository $preRegistrationRepository,
+        StudentFeeRepository $studentFeeRepository,
     ): Response {
         $this->denyAccessUnlessGranted(ChildVoter::VIEW, $child);
 
@@ -167,6 +168,11 @@ class ParentPortalController extends AbstractController
             $preRegistration = $own;
         }
 
+        // Détail des frais par échéancier : affiché à la validation (frais affectés).
+        $feeDetail = ($preRegistration !== null && in_array($preRegistration->getStatus(), ['validated', 'enrolled'], true))
+            ? $this->buildFeeScheduleDetail($child, $studentFeeRepository)
+            : [];
+
         return $this->render('parent/child_show.html.twig', [
             'child' => $child,
             'period' => $period,
@@ -177,6 +183,7 @@ class ParentPortalController extends AbstractController
             'schedule' => $schedule,
             'time_slots' => $timeSlots,
             'pre_registration' => $preRegistration,
+            'fee_detail' => $feeDetail,
         ]);
     }
 
@@ -558,6 +565,71 @@ class ParentPortalController extends AbstractController
         }
 
         return $count;
+    }
+
+    /**
+     * Détail des frais de l'élève rangés par échéancier : pour chaque frais, ses
+     * échéances (ordre, date, montant) avec l'imputation des paiements en cascade
+     * (les plus anciennes d'abord) → déjà réglé / reste à payer par échéance.
+     *
+     * @return list<array{name: string, category: string, total: float, paid: float,
+     *     remaining: float, schedules: list<array{order: int, due: ?\DateTimeInterface,
+     *     amount: float, paid: float, remaining: float}>}>
+     */
+    private function buildFeeScheduleDetail(Student $child, StudentFeeRepository $studentFeeRepository): array
+    {
+        $detail = [];
+
+        foreach ($studentFeeRepository->findByStudent($child->getId()) as $studentFee) {
+            $fee = $studentFee->getFee();
+            if (!$fee) {
+                continue;
+            }
+
+            $schedules = $fee->getSchedules()->toArray();
+            usort($schedules, static fn ($a, $b) => ($a->getOrderNumber() ?? 0) <=> ($b->getOrderNumber() ?? 0));
+
+            // Imputation du montant payé sur les échéances, en cascade.
+            $paidLeft = (float) $studentFee->getPaidAmount();
+            $rows = [];
+
+            if ($schedules !== []) {
+                foreach ($schedules as $i => $schedule) {
+                    $amount = (float) $schedule->getAmount();
+                    $imputed = min($paidLeft, $amount);
+                    $paidLeft -= $imputed;
+                    $rows[] = [
+                        'order' => $schedule->getOrderNumber() ?? ($i + 1),
+                        'due' => $schedule->getDueDate(),
+                        'amount' => $amount,
+                        'paid' => round($imputed, 2),
+                        'remaining' => round($amount - $imputed, 2),
+                    ];
+                }
+            } else {
+                // Frais sans échéancier : une échéance unique.
+                $amount = (float) $studentFee->getAmount();
+                $imputed = min($paidLeft, $amount);
+                $rows[] = [
+                    'order' => 1,
+                    'due' => null,
+                    'amount' => $amount,
+                    'paid' => round($imputed, 2),
+                    'remaining' => round($amount - $imputed, 2),
+                ];
+            }
+
+            $detail[] = [
+                'name' => (string) $fee->getName(),
+                'category' => $fee->getCategoryLabel(),
+                'total' => (float) $studentFee->getAmount(),
+                'paid' => (float) $studentFee->getPaidAmount(),
+                'remaining' => $studentFee->getRemainingAmount(),
+                'schedules' => $rows,
+            ];
+        }
+
+        return $detail;
     }
 
     private function getCurrentParent(): \App\Entity\User

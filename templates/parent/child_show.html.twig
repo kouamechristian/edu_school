@@ -41,6 +41,15 @@
     .pp-step:not(.done):not(.active) .pp-step-label { color:#94a3b8; }
     .pp-step-date { font-size:.72rem; color:#94a3b8; min-height:1em; }
     @media (max-width:520px){ .pp-step-label { font-size:.72rem; } .pp-step-dot { width:36px; height:36px; } .pp-step::before{ top:17px; } }
+
+    /* Détail des frais par échéancier */
+    .pp-fee-block { border:1px solid #eef2f7; border-radius:14px; padding:.85rem 1rem; margin-bottom:.75rem; background:#fbfdff; }
+    .pp-fee-head { display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:.5rem; }
+    .pp-fee-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    .pp-fee-table th { text-align:left; font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; color:#94a3b8; padding:.35rem .5rem; border-bottom:1px solid #eef2f7; }
+    .pp-fee-table td { padding:.4rem .5rem; border-bottom:1px solid #f4f7fb; color:#1e3a5f; }
+    .pp-fee-table tr:last-child td { border-bottom:none; }
+    .pp-fee-table .r { text-align:right; }
 </style>
 {% endblock %}
 
@@ -101,9 +110,38 @@
             {% endfor %}
         </div>
 
+        {# Détail des frais à payer, rangés par échéancier (affiché dès la validation). #}
+        {% if fee_detail is not empty %}
+            <div style="margin-top:1.25rem;">
+                <div class="pp-card-title" style="font-size:.95rem;margin-bottom:.6rem;"><i class="fas fa-file-invoice-dollar"></i> Frais à payer — détail par échéancier</div>
+                {% for f in fee_detail %}
+                    <div class="pp-fee-block">
+                        <div class="pp-fee-head">
+                            <span><strong>{{ f.name }}</strong> <span class="pp-badge navy">{{ f.category }}</span></span>
+                            <span class="pp-child-sub">Total {{ f.total|number_format(0, ',', ' ') }} F · Payé {{ f.paid|number_format(0, ',', ' ') }} F · <strong>Reste {{ f.remaining|number_format(0, ',', ' ') }} F</strong></span>
+                        </div>
+                        <table class="pp-fee-table">
+                            <thead><tr><th>N°</th><th>Échéance</th><th class="r">Montant</th><th class="r">Réglé</th><th class="r">Reste</th></tr></thead>
+                            <tbody>
+                                {% for s in f.schedules %}
+                                <tr>
+                                    <td>{{ s.order }}</td>
+                                    <td>{{ s.due ? s.due|date('d/m/Y') : 'À l’inscription' }}</td>
+                                    <td class="r">{{ s.amount|number_format(0, ',', ' ') }} F</td>
+                                    <td class="r">{{ s.paid|number_format(0, ',', ' ') }} F</td>
+                                    <td class="r">{% if s.remaining > 0 %}<span class="pp-badge red">{{ s.remaining|number_format(0, ',', ' ') }} F</span>{% else %}<span class="pp-badge green">Payé</span>{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         {% if st == 'validated' %}
             <div style="margin-top:1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;justify-content:space-between;">
-                <span class="pp-child-sub"><i class="fas fa-circle-info"></i> Préinscription validée : réglez les frais de scolarité en ligne, ou rendez-vous à l'établissement.</span>
+                <span class="pp-child-sub"><i class="fas fa-circle-info"></i> Réglez les frais en ligne, ou rendez-vous à l'établissement.</span>
                 <a href="{{ path('parent_child_finance', {id: child.id}) }}" class="pp-btn pp-btn-primary" style="padding:.45rem 1rem;">
                     <i class="fas fa-credit-card"></i> Régler les frais
                 </a>
