@@ -171,14 +171,6 @@ class SubjectType extends AbstractType
                     'placeholder' => 'Programme, objectifs...',
                 ],
             ])
-            ->add('isActive', ChoiceType::class, [
-                'label' => 'Statut',
-                'choices' => [
-                    'Active' => true,
-                    'Inactive' => false,
-                ],
-                'attr' => ['class' => 'form-select'],
-            ])
         ;
     }
 

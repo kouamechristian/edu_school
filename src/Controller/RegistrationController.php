@@ -4,17 +4,18 @@ namespace App\Controller;
 
 use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\Classroom;
+use App\Entity\Level;
 use App\Entity\PreRegistration;
 use App\Entity\Registration;
 use App\Form\RegistrationEnrollType;
 use App\Form\RegistrationType;
 use App\Repository\ClassroomRepository;
+use App\Repository\LevelRepository;
 use App\Repository\PreRegistrationRepository;
 use App\Repository\RegistrationRepository;
 use App\Service\EnrollmentService;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
-use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,9 +43,19 @@ class RegistrationController extends AbstractController
     ) {
     }
 
+    /**
+     * Index des inscriptions groupées par niveau : pour chaque niveau, ses classes
+     * (avec occupation/capacité), ses inscriptions et le nombre d'élèves en attente
+     * d'inscription (préinscriptions validées du niveau). Un bouton par niveau ouvre
+     * l'inscription en masse.
+     */
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(RegistrationRepository $registrationRepository, PaginatorInterface $paginator, Request $request): Response
-    {
+    public function index(
+        RegistrationRepository $registrationRepository,
+        ClassroomRepository $classroomRepository,
+        PreRegistrationRepository $preRegistrationRepository,
+        LevelRepository $levelRepository
+    ): Response {
         $school = $this->schoolContextService->getCurrentSchool();
         $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
 
@@ -53,11 +64,66 @@ class RegistrationController extends AbstractController
             return $this->redirectToRoute('admin_student_index');
         }
 
+        $levels = $levelRepository->findBySchool($school->getId());
         $registrations = $registrationRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
-        $pagination = $paginator->paginate($registrations, $request->query->getInt('page', 1), 50);
+        $classrooms = $classroomRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
+        $enrolledByClassroom = $registrationRepository->countActiveByClassroom($school->getId(), $schoolYear?->getId());
+        $pending = $preRegistrationRepository->findReadyForEnrollment($school->getId(), $schoolYear?->getId());
+
+        // Inscriptions et préinscriptions en attente, regroupées par niveau.
+        $regsByLevel = [];
+        foreach ($registrations as $reg) {
+            $levelId = $reg->getClassroom()?->getLevel()?->getId() ?? 0;
+            $regsByLevel[$levelId][] = $reg;
+        }
+        $pendingByLevel = [];
+        foreach ($pending as $preReg) {
+            $levelId = $preReg->getRequestedLevel()?->getId() ?? 0;
+            $pendingByLevel[$levelId] = ($pendingByLevel[$levelId] ?? 0) + 1;
+        }
+
+        // Détail des classes par niveau (occupation / capacité / places restantes).
+        $classesByLevel = [];
+        foreach ($classrooms as $classroom) {
+            $levelId = $classroom->getLevel()?->getId() ?? 0;
+            $count = $enrolledByClassroom[$classroom->getId()] ?? 0;
+            $capacity = $classroom->getCapacity();
+            $classesByLevel[$levelId][] = [
+                'classroom' => $classroom,
+                'count' => $count,
+                'capacity' => $capacity,
+                'remaining' => $capacity !== null ? max(0, $capacity - $count) : null,
+            ];
+        }
+
+        // Construction de la vue par niveau.
+        $levelGroups = [];
+        foreach ($levels as $level) {
+            $lid = $level->getId();
+            $classes = $classesByLevel[$lid] ?? [];
+            $seats = 0;
+            $unlimited = false;
+            foreach ($classes as $c) {
+                if ($c['remaining'] === null) {
+                    $unlimited = true;
+                } else {
+                    $seats += $c['remaining'];
+                }
+            }
+            $levelGroups[] = [
+                'level' => $level,
+                'registrations' => $regsByLevel[$lid] ?? [],
+                'classes' => $classes,
+                'pending' => $pendingByLevel[$lid] ?? 0,
+                'seats' => $seats,
+                'unlimited' => $unlimited,
+            ];
+        }
 
         return $this->render('registration/index.html.twig', [
-            'registrations' => $pagination,
+            'level_groups' => $levelGroups,
+            'unassigned' => $regsByLevel[0] ?? [],
+            'pending_no_level' => $pendingByLevel[0] ?? 0,
             'current_school' => $school,
             'current_school_year' => $schoolYear,
         ]);
@@ -202,6 +268,160 @@ class RegistrationController extends AbstractController
             'form' => $form,
             'preRegistrations' => $preRegistrations,
             'enroll_data' => $enrollData,
+            'current_school_year' => $schoolYear,
+        ]);
+    }
+
+    /**
+     * Inscription en masse des élèves d'un niveau : on sélectionne plusieurs
+     * préinscriptions validées du niveau et le système les affecte automatiquement aux
+     * classes du niveau, en remplissant une classe avant de passer à la suivante.
+     */
+    #[Route('/niveau/{id}', name: 'level', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    public function levelEnroll(
+        Level $level,
+        Request $request,
+        PreRegistrationRepository $preRegistrationRepository,
+        ClassroomRepository $classroomRepository,
+        RegistrationRepository $registrationRepository
+    ): Response {
+        $school = $this->schoolContextService->getCurrentSchool();
+        $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
+
+        if (!$school || $level->getSchool()?->getId() !== $school->getId()) {
+            $this->addFlash('error', 'Niveau introuvable pour l\'établissement courant.');
+            return $this->redirectToRoute('admin_registration_index');
+        }
+
+        // Préinscriptions validées de CE niveau, en attente d'inscription.
+        $pending = array_values(array_filter(
+            $preRegistrationRepository->findReadyForEnrollment($school->getId(), $schoolYear?->getId()),
+            static fn (PreRegistration $p) => $p->getRequestedLevel()?->getId() === $level->getId()
+        ));
+
+        // Classes du niveau avec places restantes (ordre : numéro/nom).
+        $enrolledByClassroom = $registrationRepository->countActiveByClassroom($school->getId(), $schoolYear?->getId());
+        $classes = [];
+        foreach ($classroomRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId()) as $classroom) {
+            if ($classroom->getLevel()?->getId() !== $level->getId()) {
+                continue;
+            }
+            $capacity = $classroom->getCapacity();
+            $classes[] = [
+                'classroom' => $classroom,
+                'count' => $enrolledByClassroom[$classroom->getId()] ?? 0,
+                'capacity' => $capacity,
+                'remaining' => $capacity !== null ? max(0, $capacity - ($enrolledByClassroom[$classroom->getId()] ?? 0)) : null,
+            ];
+        }
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('level_enroll' . $level->getId(), (string) $request->request->get('_token'))) {
+                $this->addFlash('error', 'Jeton de sécurité invalide, veuillez réessayer.');
+                return $this->redirectToRoute('admin_registration_level', ['id' => $level->getId()]);
+            }
+
+            $selectedIds = array_map('intval', (array) $request->request->all('pre_registrations'));
+            if ($selectedIds === []) {
+                $this->addFlash('warning', 'Veuillez sélectionner au moins un élève à inscrire.');
+                return $this->redirectToRoute('admin_registration_level', ['id' => $level->getId()]);
+            }
+
+            // Préinscriptions sélectionnées (dans l'ordre de la liste affichée).
+            $byId = [];
+            foreach ($pending as $p) {
+                $byId[$p->getId()] = $p;
+            }
+            $selected = [];
+            foreach ($selectedIds as $id) {
+                if (isset($byId[$id])) {
+                    $selected[] = $byId[$id];
+                }
+            }
+
+            // Affectation automatique : remplir une classe avant de passer à la suivante.
+            $remaining = [];
+            foreach ($classes as $c) {
+                $remaining[$c['classroom']->getId()] = $c['remaining']; // null = illimité
+            }
+
+            $enrolled = 0;
+            $placedByClass = [];
+            $unplaced = [];
+            $errors = 0;
+
+            foreach ($selected as $preReg) {
+                // Première classe (dans l'ordre) ayant encore de la place.
+                $target = null;
+                foreach ($classes as $c) {
+                    $cid = $c['classroom']->getId();
+                    if ($remaining[$cid] === null || $remaining[$cid] > 0) {
+                        $target = $c['classroom'];
+                        break;
+                    }
+                }
+
+                if ($target === null) {
+                    $unplaced[] = $preReg->getFullName();
+                    continue;
+                }
+
+                try {
+                    $registration = $this->enrollmentService->enrollFromPreRegistration($preReg, $target, $schoolYear);
+                    $registration->setIsRepeating($preReg->isRepeating());
+                    if ($remaining[$target->getId()] !== null) {
+                        $remaining[$target->getId()]--;
+                    }
+                    $enrolled++;
+                    $placedByClass[$target->getName()] = ($placedByClass[$target->getName()] ?? 0) + 1;
+                } catch (\RuntimeException $e) {
+                    $errors++;
+                }
+            }
+
+            $this->entityManager->flush();
+
+            if ($enrolled > 0) {
+                $detail = [];
+                foreach ($placedByClass as $name => $n) {
+                    $detail[] = sprintf('%s : %d', $name, $n);
+                }
+                $this->addFlash('success', sprintf(
+                    '%d élève(s) inscrit(s) automatiquement (%s).',
+                    $enrolled,
+                    implode(' · ', $detail)
+                ));
+            }
+            if ($unplaced !== []) {
+                $this->addFlash('warning', sprintf(
+                    'Plus de place dans les classes du niveau : %d élève(s) non inscrit(s) (%s).',
+                    count($unplaced),
+                    implode(', ', $unplaced)
+                ));
+            }
+            if ($errors > 0) {
+                $this->addFlash('error', sprintf('%d inscription(s) ont échoué (élève déjà inscrit ?).', $errors));
+            }
+
+            return $this->redirectToRoute('admin_registration_level', ['id' => $level->getId()], Response::HTTP_SEE_OTHER);
+        }
+
+        $totalSeats = 0;
+        $unlimited = false;
+        foreach ($classes as $c) {
+            if ($c['remaining'] === null) {
+                $unlimited = true;
+            } else {
+                $totalSeats += $c['remaining'];
+            }
+        }
+
+        return $this->render('registration/level.html.twig', [
+            'level' => $level,
+            'pending' => $pending,
+            'classes' => $classes,
+            'total_seats' => $totalSeats,
+            'unlimited' => $unlimited,
             'current_school_year' => $schoolYear,
         ]);
     }
