@@ -68,7 +68,11 @@ class RegistrationController extends AbstractController
         $registrations = $registrationRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
         $classrooms = $classroomRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
         $enrolledByClassroom = $registrationRepository->countActiveByClassroom($school->getId(), $schoolYear?->getId());
-        $pending = $preRegistrationRepository->findReadyForEnrollment($school->getId(), $schoolYear?->getId());
+        // Élèves en attente d'inscription, en excluant ceux déjà inscrits pour l'année.
+        $pending = array_values(array_filter(
+            $preRegistrationRepository->findReadyForEnrollment($school->getId(), $schoolYear?->getId()),
+            fn (PreRegistration $p) => !$this->isAlreadyRegistered($p, $schoolYear?->getId(), $registrationRepository)
+        ));
 
         // Inscriptions et préinscriptions en attente, regroupées par niveau.
         $regsByLevel = [];
@@ -294,10 +298,13 @@ class RegistrationController extends AbstractController
             return $this->redirectToRoute('admin_registration_index');
         }
 
-        // Préinscriptions validées de CE niveau, en attente d'inscription.
+        // Préinscriptions validées de CE niveau, en attente d'inscription, en excluant
+        // les élèves déjà inscrits pour l'année (pas de seconde classe).
+        $yearId = $schoolYear?->getId();
         $pending = array_values(array_filter(
-            $preRegistrationRepository->findReadyForEnrollment($school->getId(), $schoolYear?->getId()),
-            static fn (PreRegistration $p) => $p->getRequestedLevel()?->getId() === $level->getId()
+            $preRegistrationRepository->findReadyForEnrollment($school->getId(), $yearId),
+            fn (PreRegistration $p) => $p->getRequestedLevel()?->getId() === $level->getId()
+                && !$this->isAlreadyRegistered($p, $yearId, $registrationRepository)
         ));
 
         // Classes du niveau avec places restantes (ordre : numéro/nom).
@@ -355,8 +362,16 @@ class RegistrationController extends AbstractController
             $placedByClass = [];
             $unplaced = [];
             $errors = 0;
+            $seenStudentIds = []; // dédoublonnage : un élève n'est inscrit qu'une fois
 
             foreach ($selected as $preReg) {
+                // Un même élève (ancien élève) sélectionné via plusieurs préinscriptions
+                // n'est inscrit qu'une seule fois (jamais dans deux classes).
+                $existingStudentId = $preReg->getExistingStudent()?->getId();
+                if ($existingStudentId !== null && isset($seenStudentIds[$existingStudentId])) {
+                    continue;
+                }
+
                 // Classe avec le plus petit effectif parmi celles ayant de la place.
                 $target = null;
                 $bestCount = null;
@@ -387,6 +402,9 @@ class RegistrationController extends AbstractController
                     }
                     $enrolled++;
                     $placedByClass[$target->getName()] = ($placedByClass[$target->getName()] ?? 0) + 1;
+                    if ($existingStudentId !== null) {
+                        $seenStudentIds[$existingStudentId] = true;
+                    }
                 } catch (\RuntimeException $e) {
                     $errors++;
                 }
@@ -437,6 +455,19 @@ class RegistrationController extends AbstractController
             'unlimited' => $unlimited,
             'current_school_year' => $schoolYear,
         ]);
+    }
+
+    /**
+     * Vrai si la préinscription concerne un élève (ancien élève) déjà inscrit pour
+     * l'année : on évite ainsi de l'inscrire dans une seconde classe.
+     */
+    private function isAlreadyRegistered(PreRegistration $preReg, ?int $yearId, RegistrationRepository $registrationRepository): bool
+    {
+        $student = $preReg->getExistingStudent();
+
+        return $student !== null
+            && $student->getId() !== null
+            && $registrationRepository->findOneByStudentAndYear($student->getId(), $yearId) !== null;
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
