@@ -111,14 +111,23 @@
         <div class="card table-card">
             <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des paiements</h6></div>
             <div class="card-body">
+                {# Recherche instantanée dans le tableau affiché #}
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" id="paySearch" class="form-control" placeholder="Rechercher dans la page (N°, élève, frais, méthode…)…" autocomplete="off">
+                        <button type="button" class="btn btn-light" id="paySearchClear" title="Effacer"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="small text-muted mt-1" id="paySearchInfo" style="display:none;"></div>
+                </div>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0" id="paymentsTable">
                         <thead>
                             <tr><th>N° Paiement</th><th>Élève</th><th>Frais</th><th class="text-end">Montant</th><th>Date</th><th>Méthode</th><th>Statut</th><th class="text-end">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for payment in payments %}
-                                <tr>
+                                <tr class="js-payment-row">
                                     <td>
                                         <span class="badge badge-soft secondary">{{ payment.paymentNumber }}</span>
                                         {% if payment.reference %}<br><small class="text-muted">{{ payment.reference }}</small>{% endif %}
@@ -190,5 +199,37 @@ function applyFilters() {
 document.getElementById('searchInput')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') applyFilters();
 });
+
+// ── Recherche instantanée dans le tableau affiché ──
+(function () {
+    var input = document.getElementById('paySearch');
+    var clearBtn = document.getElementById('paySearchClear');
+    var info = document.getElementById('paySearchInfo');
+    if (!input) return;
+
+    function normalize(s) {
+        return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+
+    function applyInstant() {
+        var q = normalize(input.value.trim());
+        var rows = document.querySelectorAll('#paymentsTable tbody tr.js-payment-row');
+        var shown = 0;
+        rows.forEach(function (tr) {
+            var match = q === '' || normalize(tr.textContent).indexOf(q) !== -1;
+            tr.style.display = match ? '' : 'none';
+            if (match) shown++;
+        });
+        if (q === '') {
+            info.style.display = 'none';
+        } else {
+            info.style.display = '';
+            info.textContent = shown + ' résultat(s) sur cette page · pour chercher dans tous les paiements, utilisez le filtre « Recherche » ci-dessus.';
+        }
+    }
+
+    input.addEventListener('input', applyInstant);
+    if (clearBtn) clearBtn.addEventListener('click', function () { input.value = ''; applyInstant(); input.focus(); });
+})();
 </script>
 {% endblock %}
