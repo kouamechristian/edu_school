@@ -37,6 +37,12 @@ class ParentPortalService
      *  - le lien explicite issu de l'auto-association (User.children) ;
      *  - le lien historique par e-mail (Student.parentEmail ↔ User.email).
      *
+     * On retourne TOUJOURS tous les enfants rattachés, indépendamment de l'année
+     * sélectionnée : le sélecteur d'année n'affine que les données affichées (frais,
+     * période…), il ne doit jamais faire « disparaître » un enfant — par exemple un
+     * enfant tout juste rattaché et pas encore inscrit pour l'année en cours.
+     *
+     * @param int|null $schoolYearId conservé pour compatibilité d'appel ; non filtrant.
      * @return Student[]
      */
     public function getChildren(User $parent, ?int $schoolYearId = null): array
@@ -53,14 +59,6 @@ class ParentPortalService
         // Lien historique par e-mail.
         foreach ($this->studentRepository->findByParentEmail((string) $parent->getEmail()) as $child) {
             $children[$child->getId()] = $child;
-        }
-
-        // Filtre éventuel par année scolaire (système de bascule de l'espace parent).
-        if ($schoolYearId !== null) {
-            $children = array_filter(
-                $children,
-                static fn (Student $c) => $c->getSchoolYear()?->getId() === $schoolYearId
-            );
         }
 
         $children = array_values($children);
