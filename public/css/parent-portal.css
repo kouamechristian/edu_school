@@ -457,9 +457,14 @@ a { text-decoration: none; }
 .pp-body ::-webkit-scrollbar-thumb:hover { background: #aab6c8; }
 
 /* ── Responsive ───────────────────────────────────────────────────── */
+/* Utilitaire : tout tableau enveloppé défile horizontalement sur mobile. */
+.pp-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
 @media (max-width: 992px) {
     .pp-grid.cols-3, .pp-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+    .pp-container, .pp-navbar-inner { max-width: 100%; }
 }
+
 @media (max-width: 640px) {
     .pp-grid.cols-2, .pp-grid.cols-3, .pp-grid.cols-4 { grid-template-columns: 1fr; }
     .pp-brand small { display: none; }
@@ -468,6 +473,44 @@ a { text-decoration: none; }
     .pp-subnav { display: none; } /* remplacé par la bottom-nav sur mobile */
     .pp-hero { padding: 1.5rem 1.4rem; }
     .pp-hero h1 { font-size: 1.3rem; }
+
+    /* Réserve la place de la barre de navigation fixe du bas. */
+    .pp-container { padding-bottom: 5.5rem; }
+
+    /* Tableaux : défilement horizontal au lieu de déborder la page. */
+    .pp-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+    .pp-table th, .pp-table td { padding: 0.6rem 0.7rem; font-size: 0.85rem; }
+
+    /* Tuiles de stats : 2 colonnes maxi (même si le gabarit en force 3 ou 4). */
+    .pp-stats { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 480px) {
+    .pp-container { padding: 1.25rem 0.85rem 5.5rem; }
+
+    /* Barre du haut compacte pour tenir sur les petits écrans. */
+    .pp-navbar-inner { padding: 0.55rem 0.8rem; gap: 0.5rem; }
+    .pp-nav-actions { gap: 0.35rem; }
+    .pp-nav-btn { padding: 0.42rem 0.6rem; }
+    .pp-brand { font-size: 0.95rem; }
+    .pp-brand .pp-brand-chip { width: 34px; height: 34px; }
+
+    /* Menus déroulants ancrés en haut à droite : jamais hors écran. */
+    .pp-nav-actions .pp-dropdown-menu {
+        position: fixed; top: 58px; right: 0.6rem; left: auto;
+        min-width: 0; width: min(280px, calc(100vw - 1.2rem));
+    }
+
+    .pp-hero { padding: 1.25rem 1.1rem; }
+    .pp-hero h1 { font-size: 1.18rem; }
+    .pp-hero p { font-size: 0.9rem; }
+    .pp-card { padding: 1.05rem 1rem; }
+    .pp-card-header { flex-wrap: wrap; gap: 0.5rem; }
+    .pp-section-title { font-size: 0.98rem; }
+
+    /* Toasts pleine largeur, sans déborder. */
+    .pp-toasts { left: 0.6rem; right: 0.6rem; top: 0.6rem; }
+    .pp-toast { min-width: 0; max-width: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
