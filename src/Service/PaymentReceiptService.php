@@ -19,21 +19,11 @@ class PaymentReceiptService
     }
 
     /**
-     * Génère le PDF et l'enregistre sur disque.
-     *
-     * @return array{relative_path: string, absolute_path: string}
+     * Génère le reçu PDF à la volée et renvoie son contenu binaire (aucune écriture
+     * sur disque : le reçu est simplement affiché dans le navigateur).
      */
-    public function generateAndStore(Payment $payment): array
+    public function render(Payment $payment): string
     {
-        $filename = sprintf('recu_%s.pdf', $payment->getPaymentNumber() ?: ('payment_' . (string) $payment->getId()));
-        $relativePath = 'uploads/receipts/' . $filename;
-        $absolutePath = rtrim($this->projectDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
-
-        $dir = \dirname($absolutePath);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0775, true);
-        }
-
         $student = $payment->getStudent();
         $school = $student?->getSchool();
         $paidAmount = (float) $payment->getAmount();
@@ -61,12 +51,7 @@ class PaymentReceiptService
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        file_put_contents($absolutePath, $dompdf->output());
-
-        return [
-            'relative_path' => $relativePath,
-            'absolute_path' => $absolutePath,
-        ];
+        return (string) $dompdf->output();
     }
 
     /**

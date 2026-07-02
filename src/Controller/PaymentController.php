@@ -19,8 +19,6 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -158,8 +156,7 @@ class PaymentController extends AbstractController
         CashRegisterRepository $cashRegisterRepository,
         StudentFeeRepository $studentFeeRepository,
         FeeAssignmentService $feeAssignmentService,
-        StudentRepository $studentRepository,
-        PaymentReceiptService $paymentReceiptService
+        StudentRepository $studentRepository
     ): Response
     {
         $currentSchool = $contextService->getCurrentSchool();
@@ -230,12 +227,7 @@ class PaymentController extends AbstractController
             $entityManager->persist($payment);
             $entityManager->flush();
 
-            // Générer automatiquement le reçu PDF (si encaissement)
-            if ($payment->getStatus() === 'payé' && !$payment->getReceiptPath()) {
-                $paths = $paymentReceiptService->generateAndStore($payment);
-                $payment->setReceiptPath($paths['relative_path']);
-                $entityManager->flush();
-            }
+            // Le reçu n'est plus stocké : il est généré à la volée à l'ouverture.
 
             $this->addFlash('success', 'Le paiement a été enregistré avec succès. Le reçu s\'ouvre dans un nouvel onglet.');
 
@@ -371,42 +363,20 @@ class PaymentController extends AbstractController
     #[Route('/{id}/receipt', name: 'receipt', methods: ['GET'])]
     public function receipt(
         Payment $payment,
-        PaymentReceiptService $paymentReceiptService,
-        EntityManagerInterface $entityManager
+        PaymentReceiptService $paymentReceiptService
     ): Response {
         if ($payment->getStatus() !== 'payé') {
             $this->addFlash('warning', 'Le reçu est disponible uniquement pour les paiements encaissés.');
             return $this->redirectToRoute('admin_payment_show', ['id' => $payment->getId()], Response::HTTP_SEE_OTHER);
         }
 
-        // Si le reçu n'existe pas encore, le générer
-        if (!$payment->getReceiptPath()) {
-            $paths = $paymentReceiptService->generateAndStore($payment);
-            $payment->setReceiptPath($paths['relative_path']);
-            $entityManager->flush();
-        }
+        // Reçu généré à la volée et affiché dans le navigateur (aucune sauvegarde disque).
+        $filename = sprintf('recu_%s.pdf', $payment->getPaymentNumber() ?: ('payment_' . $payment->getId()));
 
-        $relative = (string) $payment->getReceiptPath();
-        $absolute = rtrim($this->getParameter('kernel.project_dir'), DIRECTORY_SEPARATOR)
-            . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR
-            . str_replace('/', DIRECTORY_SEPARATOR, $relative);
-
-        if (!is_file($absolute)) {
-            // régénérer si le fichier a été supprimé
-            $paths = $paymentReceiptService->generateAndStore($payment);
-            $payment->setReceiptPath($paths['relative_path']);
-            $entityManager->flush();
-            $absolute = $paths['absolute_path'];
-        }
-
-        $response = new BinaryFileResponse($absolute);
-        $response->setContentDisposition(
-            ResponseHeaderBag::DISPOSITION_INLINE,
-            basename($absolute)
-        );
-        $response->headers->set('Content-Type', 'application/pdf');
-
-        return $response;
+        return new Response($paymentReceiptService->render($payment), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
+        ]);
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
