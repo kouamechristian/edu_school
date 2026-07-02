@@ -9,7 +9,8 @@
 {% block page_subtitle %}
     {% if child.school %}{{ child.school.name }} · {% endif %}
     {{ child.classroom ? child.classroom.name : 'Classe non affectée' }}
-    {% if child.matriculeInterne %} · Matricule {{ child.matriculeInterne }}{% endif %}
+    {% set matricule = child.matriculeNational ?: child.matriculeInterne %}
+    {% if matricule %} · Matricule {{ matricule }}{% endif %}
     {% if period %} · {{ period.name }}{% endif %}
 {% endblock %}
 

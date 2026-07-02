@@ -5,6 +5,14 @@ framework:
     http_method_override: false
     handle_all_throwables: true
 
+    # Versioning d'assets : le package « versioned » ajoute ?v… aux fichiers concernés
+    # (ex. le CSS de l'espace parent) pour forcer le rechargement après une mise à jour.
+    # Incrémenter la version à chaque modification du fichier concerné.
+    assets:
+        packages:
+            versioned:
+                version: 'v2'
+
     # Enables session support. Note that the session will ONLY be started if you read or write from it.
     # Remove or comment this section to explicitly disable session support.
     session:
