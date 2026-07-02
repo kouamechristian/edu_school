@@ -80,6 +80,7 @@ class SchoolGroupController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, SchoolGroup $schoolGroup, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$schoolGroup->getId(), $request->request->get('_token'))) {

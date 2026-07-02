@@ -25,6 +25,14 @@ class FeeAssignmentService
 
     public function assignFeeToStudent(Fee $fee, Student $student, ?Registration $registration = null): ?StudentFee
     {
+        // À défaut d'inscription explicite, rattacher le frais à l'inscription courante
+        // de l'élève : sinon un frais affecté à la main (ex. « article ») reste avec
+        // registration = null et n'est pas compté dans Registration::getTotalTuition()
+        // (le « montant total » de la page de paiement).
+        if ($registration === null) {
+            $registration = $student->getLatestRegistration();
+        }
+
         // Frais déjà affecté à l'élève (ex. lors de la validation de la préinscription,
         // sans inscription). On ne le duplique pas, MAIS s'il n'est pas encore rattaché à
         // une inscription, on le relie à celle fournie : sinon les frais « disparaîtraient »

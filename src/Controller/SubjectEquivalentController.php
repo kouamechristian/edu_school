@@ -107,6 +107,7 @@ class SubjectEquivalentController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, SubjectEquivalent $equivalent): Response
     {
         if ($this->isCsrfTokenValid('delete' . $equivalent->getId(), $request->request->get('_token'))) {

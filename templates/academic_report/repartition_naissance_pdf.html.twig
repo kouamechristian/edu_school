@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 28px 32px; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+        @page { margin: 20px 22px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
         .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
         .header td { vertical-align: middle; }
         .header .logo { width: 80px; }
@@ -18,10 +18,13 @@
         .title-row .right { text-align: right; }
         .title-row b { font-weight: bold; }
         table.list { width: 100%; border-collapse: collapse; }
-        table.list th, table.list td { border: 1px solid #000; padding: 5px 6px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; }
         table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
         table.list td.center { text-align: center; }
-        table.list tr.grand td { background: #dfe6ee; font-weight: bold; }
+        table.list td.estab { text-align: center; font-weight: bold; vertical-align: middle; }
+        table.list td.genre { text-align: center; font-weight: bold; }
+        table.list td.total { text-align: center; font-weight: bold; background: #dfe6ee; }
+        table.list th.total { background: #dfe6ee; }
         .footer { width: 100%; margin-top: 24px; font-size: 11px; }
         .footer td { vertical-align: top; }
         .footer .sign { text-align: right; text-decoration: underline; }
@@ -51,31 +54,23 @@
     <table class="list">
         <thead>
             <tr>
-                <th style="width:46%">Année de naissance</th>
-                <th>Garçons</th>
-                <th>Filles</th>
-                <th>Total</th>
+                <th>ETABLISSEMENT</th>
+                <th>GENRE</th>
+                {% for y in years %}<th>{{ y }}</th>{% endfor %}
+                <th class="total">TOTAL<br>GENERAL</th>
             </tr>
         </thead>
         <tbody>
-            {% for row in by_year %}
+            {% for row in rows %}
                 <tr>
-                    <td class="center">{{ row.year }}</td>
-                    <td class="center">{{ row.boys }}</td>
-                    <td class="center">{{ row.girls }}</td>
-                    <td class="center">{{ row.total }}</td>
+                    {% if loop.first %}
+                        <td class="estab" rowspan="{{ rows|length }}">{{ school ? school.name|upper : '' }}</td>
+                    {% endif %}
+                    <td class="genre">{{ row.label }}</td>
+                    {% for cell in row.cells %}<td class="center">{{ cell }}</td>{% endfor %}
+                    <td class="total">{{ row.total }}</td>
                 </tr>
-            {% else %}
-                <tr><td colspan="4" class="center">Aucun effectif disponible</td></tr>
             {% endfor %}
-            {% if by_year is not empty %}
-                <tr class="grand">
-                    <td class="center">TOTAL GÉNÉRAL</td>
-                    <td class="center">{{ totals.boys }}</td>
-                    <td class="center">{{ totals.girls }}</td>
-                    <td class="center">{{ totals.total }}</td>
-                </tr>
-            {% endif %}
         </tbody>
     </table>
 

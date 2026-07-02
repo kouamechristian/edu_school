@@ -131,17 +131,14 @@
                                     <td class="r">{{ s.paid|number_format(0, ',', ' ') }} F</td>
                                     <td class="r">{% if s.remaining > 0 %}<span class="pp-badge red">{{ s.remaining|number_format(0, ',', ' ') }} F</span>{% else %}<span class="pp-badge green">Payé</span>{% endif %}</td>
                                     <td class="r">
-                                        {% if s.payable %}
-                                            <form method="post" action="{{ path('parent_child_pay', {id: child.id}) }}" style="display:inline;">
-                                                <input type="hidden" name="_token" value="{{ csrf_token('parent_pay' ~ child.id) }}">
-                                                <input type="hidden" name="student_fee_id" value="{{ f.student_fee_id }}">
-                                                <input type="hidden" name="amount" value="{{ s.remaining }}">
-                                                <button type="submit" class="pp-btn pp-btn-primary" style="padding:.25rem .7rem;font-size:.78rem;">
-                                                    <i class="fas fa-credit-card"></i> Payer
-                                                </button>
-                                            </form>
-                                        {% elseif s.remaining > 0 %}
-                                            <span class="pp-child-sub" style="font-size:.75rem;">à venir</span>
+                                        {% if s.remaining > 0 %}
+                                            {% if s.payable %}
+                                                <a href="{{ path('parent_child_finance', {id: child.id}) }}" class="pp-btn pp-btn-primary" style="padding:.25rem .7rem;font-size:.78rem;">
+                                                    <i class="fas fa-mobile-screen-button"></i> Payer
+                                                </a>
+                                            {% else %}
+                                                <span class="pp-child-sub" style="font-size:.75rem;">à venir</span>
+                                            {% endif %}
                                         {% else %}
                                             <i class="fas fa-check" style="color:#10b981;"></i>
                                         {% endif %}

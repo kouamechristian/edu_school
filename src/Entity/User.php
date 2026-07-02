@@ -477,6 +477,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         'ROLE_DIRECTEUR' => 'Directeur',
         'ROLE_INSCRIPTION' => 'Agent d\'inscription',
         'ROLE_CAISSE' => 'Caissier',
+        'ROLE_COMPTABLE' => 'Comptable',
         'ROLE_RECOUVREMENT' => 'Agent de recouvrement',
         'ROLE_RH' => 'Ressources Humaines',
         'ROLE_ENSEIGNANT' => 'Enseignant',

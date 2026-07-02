@@ -66,10 +66,12 @@
                                                     <button type="submit" class="btn btn-outline-success" title="Valider"><i class="fas fa-check"></i></button>
                                                 </form>
                                             {% endif %}
+                                            {% if is_granted('ROLE_ADMIN') %}
                                             <form method="post" action="{{ path('admin_dropout_delete', {'id': d.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer cet abandon ?');">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ d.id) }}">
                                                 <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                             </form>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>

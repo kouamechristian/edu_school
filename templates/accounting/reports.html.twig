@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rapports financiers{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Rapports financiers',
+        subtitle: current_school.name,
+        icon: 'fa-chart-pie',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Comptabilité', path: path('admin_accounting_dashboard') },
+            { label: 'Rapports' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_accounting_reports_pdf', app.request.query.all) }}" target="_blank" rel="noopener" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+            <a href="{{ path('admin_accounting_reports_xlsx', app.request.query.all) }}" class="btn btn-outline-success"><i class="fas fa-file-excel me-1"></i> Excel</a>
+            <a href="{{ path('admin_accounting_dashboard') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {# ── Période ── #}
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small">Du</label>
+                    <input type="date" name="from" value="{{ from ? from|date('Y-m-d') }}" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Au</label>
+                    <input type="date" name="to" value="{{ to ? to|date('Y-m-d') }}" class="form-control">
+                </div>
+                <div class="col-md-4 d-grid">
+                    <button class="btn btn-primary"><i class="fas fa-filter me-1"></i> Appliquer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Compte de résultat ── #}
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-scale-balanced me-2"></i>Compte de résultat
+            {% if from and to %}<small class="text-muted">({{ from|date('d/m/Y') }} → {{ to|date('d/m/Y') }})</small>{% endif %}</h6></div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <h6 class="text-success border-bottom pb-2">Recettes</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            {% for r in recettes %}
+                                <tr><td>{% if r.code %}<small class="text-muted">{{ r.code }}</small> {% endif %}{{ r.name }}</td><td class="text-end">{{ r.total|number_format(0, ',', ' ') }} F</td></tr>
+                            {% else %}
+                                <tr><td colspan="2" class="text-muted text-center">Aucune recette.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot><tr class="table-success fw-bold"><td>Total recettes</td><td class="text-end">{{ total_recette|number_format(0, ',', ' ') }} F</td></tr></tfoot>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-danger border-bottom pb-2">Dépenses</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            {% for d in depenses %}
+                                <tr><td>{% if d.code %}<small class="text-muted">{{ d.code }}</small> {% endif %}{{ d.name }}</td><td class="text-end">{{ d.total|number_format(0, ',', ' ') }} F</td></tr>
+                            {% else %}
+                                <tr><td colspan="2" class="text-muted text-center">Aucune dépense.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot><tr class="table-danger fw-bold"><td>Total dépenses</td><td class="text-end">{{ total_depense|number_format(0, ',', ' ') }} F</td></tr></tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="alert {{ net_result >= 0 ? 'alert-primary' : 'alert-danger' }} mb-0 d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Résultat net (recettes − dépenses)</span>
+                <span class="h5 mb-0 fw-bold">{{ net_result|number_format(0, ',', ' ') }} F</span>
+            </div>
+        </div>
+    </div>
+
+    {# ── Trésorerie ── #}
+    <div class="card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-info"><i class="fas fa-wallet me-2"></i>Trésorerie (livre de caisse)</h6></div>
+        <div class="card-body">
+            <table class="table table-sm mb-0">
+                <tbody>
+                    <tr><td>Recettes encaissées</td><td class="text-end text-success">+ {{ total_recette|number_format(0, ',', ' ') }} F</td></tr>
+                    <tr><td>Dépenses réglées</td><td class="text-end text-danger">− {{ total_depense|number_format(0, ',', ' ') }} F</td></tr>
+                    <tr><td>Versements en banque</td><td class="text-end text-info">− {{ total_versement|number_format(0, ',', ' ') }} F</td></tr>
+                </tbody>
+                <tfoot><tr class="fw-bold border-top"><td>Solde de trésorerie (espèces en caisse)</td><td class="text-end">{{ cash_balance|number_format(0, ',', ' ') }} F</td></tr></tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

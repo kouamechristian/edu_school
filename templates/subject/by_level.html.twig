@@ -55,10 +55,12 @@
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ subject.id) }}">
                                             <button type="submit" class="btn btn-outline-secondary" title="{{ subject.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ subject.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
+                                        {% if is_granted('ROLE_ADMIN') %}
                                         <form method="post" action="{{ path('admin_subject_delete', {'id': subject.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette matière ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ subject.id) }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

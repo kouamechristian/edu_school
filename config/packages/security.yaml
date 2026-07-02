@@ -21,10 +21,16 @@ security:
         #    Rôle opérationnel autonome ; hérité par ROLE_CAISSE (donc par ROLE_ADMIN). ──
         ROLE_RECOUVREMENT: ROLE_USER
 
+        # ── ROLE_COMPTABLE : accès au module Comptabilité (journal, grand livre,
+        #    plan comptable, rapports, rapprochement, clôtures). Rôle autonome,
+        #    hérité par ROLE_CAISSE (donc par ROLE_ADMIN). ──
+        ROLE_COMPTABLE: ROLE_USER
+
         # ── ROLE_CAISSE couvre la Gestion financière (caisse, paiements, factures,
-        #    frais, bourses, plans, transactions), le Recouvrement (via ROLE_RECOUVREMENT)
-        #    ET la Gestion des élèves (via ROLE_INSCRIPTION). Hérité par ROLE_ADMIN. ──
-        ROLE_CAISSE: [ROLE_INSCRIPTION]
+        #    frais, bourses, plans, transactions), la Comptabilité (via ROLE_COMPTABLE),
+        #    le Recouvrement (via ROLE_RECOUVREMENT) ET la Gestion des élèves
+        #    (via ROLE_INSCRIPTION). Hérité par ROLE_ADMIN. ──
+        ROLE_CAISSE: [ROLE_INSCRIPTION, ROLE_COMPTABLE]
 
         # ── ROLE_RH : Gestion des Ressources Humaines (employés et contrats).
         #    Rôle opérationnel autonome, hérité par ROLE_ADMIN (cf. ci-dessous). ──
@@ -87,8 +93,6 @@ security:
          # Espace parent — pages publiques : connexion dédiée et auto-inscription.
          - { path: ^/parent/connexion$, roles: PUBLIC_ACCESS }
          - { path: ^/parent/inscription$, roles: PUBLIC_ACCESS }
-         # Webhooks externes (passerelle de paiement) : accès public, sécurisés par signature.
-         - { path: ^/webhook, roles: PUBLIC_ACCESS }
          # Portail Parent : réservé aux parents (et super-admins par héritage).
          - { path: ^/parent, roles: ROLE_PARENT }
          - { path: ^/, roles: ROLE_USER }

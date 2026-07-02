@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 20px 22px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 8px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 8px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 70px; }
+        .header .logo img { max-height: 58px; max-width: 66px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 13px; }
+        .header .school .ministry { font-size: 9px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 12px; margin: 4px 0; }
+        .period { text-align: center; font-size: 9px; margin-bottom: 6px; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 2px 4px; font-size: 7.5px; }
+        table.list th { background: #f2f2f2; font-weight: bold; text-align: center; }
+        td.num { text-align: right; }
+        td.center { text-align: center; }
+        tr.tot td { font-weight: bold; background: #f7f7f7; }
+        .rec { color: #15803d; }
+        .dep { color: #b91c1c; }
+        .ver { color: #0369a1; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="ministry">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <div class="title-main">JOURNAL COMPTABLE</div>
+    <div class="period">
+        {% if from and to %}Période du {{ from|date('d/m/Y') }} au {{ to|date('d/m/Y') }}{% else %}Toutes périodes{% endif %}
+        — édité le {{ generated_at|date('d/m/Y H:i') }}
+    </div>
+
+    <table class="list">
+        <thead>
+            <tr>
+                <th style="width:11%">Référence</th>
+                <th style="width:8%">Date</th>
+                <th>Libellé</th>
+                <th style="width:11%">Compte</th>
+                <th style="width:10%" class="rec">Recette</th>
+                <th style="width:10%" class="dep">Dépense</th>
+                <th style="width:10%" class="ver">Versement</th>
+                <th style="width:8%">Méthode</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in entries %}
+                <tr>
+                    <td>{{ e.reference }}</td>
+                    <td class="center">{{ e.entryDate|date('d/m/Y') }}</td>
+                    <td>{{ e.label }}</td>
+                    <td>{{ e.account ? e.account.code : '—' }}</td>
+                    <td class="num rec">{{ e.type == 'recette' ? (e.amount|number_format(0, ',', ' ')) : '' }}</td>
+                    <td class="num dep">{{ e.type == 'depense' ? (e.amount|number_format(0, ',', ' ')) : '' }}</td>
+                    <td class="num ver">{{ e.type == 'versement' ? (e.amount|number_format(0, ',', ' ')) : '' }}</td>
+                    <td class="center">{{ e.paymentMethod ?: '—' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="8" class="center">Aucune écriture.</td></tr>
+            {% endfor %}
+            <tr class="tot">
+                <td colspan="4" class="num">TOTAUX</td>
+                <td class="num rec">{{ sums.recette|number_format(0, ',', ' ') }}</td>
+                <td class="num dep">{{ sums.depense|number_format(0, ',', ' ') }}</td>
+                <td class="num ver">{{ sums.versement|number_format(0, ',', ' ') }}</td>
+                <td></td>
+            </tr>
+            <tr class="tot">
+                <td colspan="4" class="num">RÉSULTAT (recettes − dépenses)</td>
+                <td colspan="4" class="num">{{ (sums.recette - sums.depense)|number_format(0, ',', ' ') }} F CFA</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

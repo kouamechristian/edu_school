@@ -50,6 +50,24 @@
                 </div>
             </div>
 
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <h6 class="text-muted border-bottom pb-2 mb-3">Situation personnelle</h6>
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Situation familiale</div><div class="info-value">{{ contract.maritalStatus ? contract.maritalStatusLabel : '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Nombre d'enfants</div><div class="info-value">{{ contract.numberOfChildren is not null ? contract.numberOfChildren : '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Enfants majeurs</div><div class="info-value">{{ contract.adultChildren is not null ? contract.adultChildren : '—' }}</div></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted border-bottom pb-2 mb-3">Administratif</h6>
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Est déclaré</div><div class="info-value">{% if contract.isDeclared is not null %}<span class="badge badge-soft {{ contract.isDeclared ? 'success' : 'danger' }}">{{ contract.isDeclared ? 'Oui' : 'Non' }}</span>{% else %}—{% endif %}</div></div>
+                        <div class="info-row"><div class="info-label">Régime</div><div class="info-value">{{ contract.regime ?: '—' }}</div></div>
+                    </div>
+                </div>
+            </div>
+
             {% if contract.notes %}
                 <div class="mt-4">
                     <h6 class="text-muted border-bottom pb-2 mb-3">Notes / Clauses</h6>

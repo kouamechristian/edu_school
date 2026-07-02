@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Paie — Paramètres{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Paramètres de paie',
+        subtitle: current_school.name,
+        icon: 'fa-gear',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Paie', path: path('admin_payroll_index') },
+            { label: 'Paramètres' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_payroll_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="alert alert-light border small"><i class="fas fa-info-circle me-1"></i> Valeurs par défaut indicatives (type Côte d'Ivoire). Ajustez-les selon votre réglementation ; elles ne sont pas figées.</div>
+
+    {{ form_start(form) }}
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header"><h6 class="m-0 fw-bold text-primary">Cotisations</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.cnpsEmployeeRate) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.cnpsEmployerRate) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.cnpsCeiling) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.workAccidentRate) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.familyBenefitRate) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.maxParts) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.cmuEmployee) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.cmuEmployer) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><h6 class="m-0 fw-bold text-primary">Barème ITS (mensuel)</h6></div>
+                    <div class="card-body">
+                        <label class="form-label small">Une tranche par ligne : <code>de ; à ; taux(%)</code> — laissez « à » vide pour la dernière tranche.</label>
+                        <textarea name="its_brackets" rows="8" class="form-control" style="font-family:monospace">{% for b in settings.itsBrackets %}{{ b.from }};{{ b.to is null ? '' : b.to }};{{ b.rate }}
+{% endfor %}</textarea>
+                        <div class="form-text">L'ITS est calculé par la méthode du quotient familial (parts selon situation familiale et enfants).</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Enregistrer les paramètres</button>
+        </div>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

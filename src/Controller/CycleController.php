@@ -110,6 +110,7 @@ class CycleController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Cycle $cycle, EntityManagerInterface $entityManager, SchoolContextService $contextService): Response
     {
         $this->denyAccessUnlessSameSchool($cycle, $contextService);

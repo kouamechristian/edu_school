@@ -121,6 +121,7 @@ class RoomController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'admin_room_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Room $room, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$room->getId(), $request->getPayload()->getString('_token'))) {

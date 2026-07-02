@@ -76,7 +76,10 @@
                             <thead>
                                 <tr>
                                     <th>Mle interne</th><th>Élève</th><th>Classe</th>
-                                    <th class="text-end">Reste dû</th>
+                                    <th class="text-end">Montant total</th>
+                                    <th class="text-end">Payé</th>
+                                    <th class="text-end">Annulé</th>
+                                    <th class="text-end">Restant</th>
                                     <th class="text-center">Statut</th>
                                     <th class="text-end" width="140">Actions</th>
                                 </tr>
@@ -87,7 +90,10 @@
                                     <td><span class="fw-semibold text-primary">{{ r.student.matriculeInterne ?: '—' }}</span></td>
                                     <td class="fw-semibold">{{ r.student.lastName }} {{ r.student.firstName }}</td>
                                     <td>{{ r.classroom ? r.classroom.name : '—' }}</td>
-                                    <td class="text-end">{{ r.remainingTuition|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end">{{ r.totalTuition|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end text-success">{{ r.totalPaid|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end text-danger">{{ r.totalCancelled|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end fw-semibold">{{ r.remainingTuition|number_format(0, ',', ' ') }}</td>
                                     <td class="text-center"><span class="badge bg-{{ r.student.getStatusColor() }}">{{ r.student.getStatusLabel() }}</span></td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
@@ -96,7 +102,9 @@
                                             {% if is_granted('ROLE_ADMIN') %}
                                             <form method="post" action="{{ path('admin_registration_delete', {'id': r.id}) }}" onsubmit="return confirm('Supprimer définitivement cette inscription ?');" class="d-inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ r.id) }}">
-                                                <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                                {#
+                                                 <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                                #}
                                             </form>
                                             {% endif %}
                                         </div>

@@ -127,7 +127,7 @@
                         </thead>
                         <tbody>
                             {% for payment in payments %}
-                                <tr class="js-payment-row">
+                                <tr class="js-payment-row {{ payment.status == 'annulé' ? 'table-danger' : '' }}">
                                     <td>
                                         <span class="badge badge-soft secondary">{{ payment.paymentNumber }}</span>
                                         {% if payment.reference %}<br><small class="text-muted">{{ payment.reference }}</small>{% endif %}
@@ -152,15 +152,23 @@
                                                     <input type="hidden" name="_token" value="{{ csrf_token('confirm' ~ payment.id) }}">
                                                     <button type="submit" class="btn btn-outline-success" title="Confirmer"><i class="fas fa-check"></i></button>
                                                 </form>
-                                                <form method="post" action="{{ path('admin_payment_cancel', {'id': payment.id}) }}" class="d-inline">
+                                                <form method="post" action="{{ path('admin_payment_cancel', {'id': payment.id}) }}" class="d-inline"
+                                                      data-confirm="Voulez-vous vraiment annuler le paiement <strong>{{ payment.paymentNumber }}</strong> de <strong>{{ payment.amount|number_format(0, ',', ' ') }} FCFA</strong> de l'élève <strong>{{ payment.student.fullName }}</strong> ?"
+                                                      data-confirm-title="Annuler le paiement"
+                                                      data-confirm-btn="Oui, annuler"
+                                                      data-confirm-icon="warning">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ payment.id) }}">
-                                                    <button type="submit" class="btn btn-outline-danger" title="Annuler" onclick="return confirm('Êtes-vous sûr de vouloir annuler ce paiement ?')"><i class="fas fa-times"></i></button>
+                                                    <button type="submit" class="btn btn-outline-danger" title="Annuler"><i class="fas fa-times"></i></button>
                                                 </form>
                                             {% endif %}
-                                           {% if is_granted('ROLE_ADMIN') %}   
-                                            <form method="post" action="{{ path('admin_payment_delete', {'id': payment.id}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?')">
-                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ payment.id) }}">
-                                                <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                            {% if payment.status == 'payé' %}
+                                            <form method="post" action="{{ path('admin_payment_cancel', {'id': payment.id}) }}" class="d-inline"
+                                                  data-confirm="Voulez-vous vraiment annuler le paiement <strong>{{ payment.paymentNumber }}</strong> de <strong>{{ payment.amount|number_format(0, ',', ' ') }} FCFA</strong> de l'élève <strong>{{ payment.student.fullName }}</strong> ?<br><small class='text-muted'>Le montant sera retiré du frais de l'élève.</small>"
+                                                  data-confirm-title="Annuler le paiement"
+                                                  data-confirm-btn="Oui, annuler"
+                                                  data-confirm-icon="warning">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ payment.id) }}">
+                                                <button type="submit" class="btn btn-outline-danger" title="Annuler le paiement"><i class="fas fa-ban"></i></button>
                                             </form>
                                             {% endif %}
                                         </div>

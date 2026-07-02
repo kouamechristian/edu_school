@@ -159,6 +159,7 @@ class SubjectController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Subject $subject, EntityManagerInterface $entityManager): Response
     {
         $levelId = $subject->getLevel()?->getId();

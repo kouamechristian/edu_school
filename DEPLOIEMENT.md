@@ -27,8 +27,8 @@ APP_DEBUG=0
 DATABASE_URL="mysql://c0eduschool:EduSchoolDb2026@127.0.0.1:3306/c0eduschool?serverVersion=8.0.0&charset=utf8mb4"
 ```
 
-> Si tu utilises GeniusPay ou l'IA, renseigne les clés correspondantes
-> (`GENIUSPAY_*`, `ANTHROPIC_API_KEY`) directement dans `.env`.
+> Si tu utilises l'IA, renseigne la clé correspondante
+> (`ANTHROPIC_API_KEY`) directement dans `.env`.
 
 ## 4. Installation des dépendances (mode prod)
 ```bash

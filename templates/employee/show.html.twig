@@ -16,6 +16,7 @@
     } %}
         {% block actions %}
             <a href="{{ path('admin_contract_new', {'employee': employee.id}) }}" class="btn btn-success"><i class="fas fa-file-signature me-1"></i> Nouveau contrat</a>
+            {% if is_granted('ROLE_RH') %}<a href="{{ path('admin_payroll_employee_history', {'id': employee.id}) }}" class="btn btn-outline-primary"><i class="fas fa-clock-rotate-left me-1"></i> Historique de paie</a>{% endif %}
             <a href="{{ path('admin_employee_edit', {'id': employee.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
             <a href="{{ path('admin_employee_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
         {% endblock %}

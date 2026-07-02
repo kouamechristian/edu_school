@@ -1,0 +1,167 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscrits{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {# ── En-tête ── #}
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Inscrits',
+        subtitle: 'Tous les élèves inscrits pour l\'année' ~ (current_school_year ? ' ' ~ current_school_year.name : ''),
+        icon: 'fa-user-graduate',
+        color: 'primary',
+        breadcrumb: [ { label: 'Élèves' }, { label: 'Inscrits' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_registration_enrolled_export') }}" class="btn btn-outline-success"><i class="fas fa-file-excel me-1"></i> Exporter Excel</a>
+            <a href="{{ path('admin_registration_index') }}" class="btn btn-success"><i class="fas fa-graduation-cap me-1"></i> Affectation en classe</a>
+        {% endblock %}
+    {% endembed %}
+
+    {# ── Statistiques ── #}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="stat-card primary h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Inscrits</div><div class="stat-value">{{ total_count }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card info h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Montant total</div><div class="stat-value fs-5">{{ totals.tuition|number_format(0, ',', ' ') }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-coins"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card success h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Payé</div><div class="stat-value fs-5">{{ totals.paid|number_format(0, ',', ' ') }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card warning h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Restant</div><div class="stat-value fs-5">{{ totals.remaining|number_format(0, ',', ' ') }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Liste des inscrits ── #}
+    <div class="card table-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des inscrits{{ current_school_year ? ' — ' ~ current_school_year.name : '' }}</h6>
+        </div>
+        <div class="card-body">
+            {# Recherche instantanée dans le tableau affiché #}
+            <div class="mb-3 no-print">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="enrSearch" class="form-control" placeholder="Rechercher (nom, matricule, classe)…" autocomplete="off">
+                    <button type="button" class="btn btn-light" id="enrSearchClear" title="Effacer"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="small text-muted mt-1" id="enrSearchInfo" style="display:none;"></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="enrTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Mle interne</th>
+                            <th>Mle national</th>
+                            <th>Élève</th>
+                            <th>Classe</th>
+                            <th class="text-end">Montant total</th>
+                            <th class="text-end">Payé</th>
+                            <th class="text-end">Annulé</th>
+                            <th class="text-end">Restant</th>
+                            <th class="text-center">Statut</th>
+                            <th class="text-end no-print" width="100">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in registrations %}
+                        <tr class="js-enrolled-row">
+                            <td><span class="fw-semibold text-primary">{{ r.student.matriculeInterne ?: '—' }}</span></td>
+                             <td><span class="fw-semibold text-primary">{{ r.student.matriculeNational ?: '—' }}</span></td>
+                            <td class="fw-semibold">{{ r.student.lastName }} {{ r.student.firstName }}</td>
+                            <td>{{ r.classroom ? r.classroom.name : '—' }}</td>
+                            <td class="text-end">{{ r.totalTuition|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end text-success">{{ r.totalPaid|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end text-danger">{{ r.totalCancelled|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end fw-semibold">{{ r.remainingTuition|number_format(0, ',', ' ') }}</td>
+                            <td class="text-center"><span class="badge bg-{{ r.student.getStatusColor() }}">{{ r.student.getStatusLabel() }}</span></td>
+                            <td class="text-end no-print">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ path('admin_student_show', {'id': r.student.id}) }}" class="btn btn-outline-info" title="Voir l'élève"><i class="fas fa-eye"></i></a>
+                                    <a href="{{ path('admin_registration_edit', {'id': r.id}) }}" class="btn btn-outline-primary" title="Modifier l'inscription"><i class="fas fa-edit"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9">
+                                {% from 'components/macros.html.twig' import empty_state %}
+                                {{ empty_state('fa-user-slash', 'Aucun inscrit', 'Aucun élève n\'est inscrit pour l\'année scolaire courante.') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if total_count > 0 %}
+                    <tfoot>
+                        <tr class="fw-bold border-top">
+                            <td colspan="3" class="text-end">Totaux (tous les inscrits)</td>
+                            <td class="text-end">{{ totals.tuition|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end text-success">{{ totals.paid|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end text-danger">{{ totals.cancelled|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end">{{ totals.remaining|number_format(0, ',', ' ') }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+            {% include '_pagination.html.twig' with { pagination: registrations } %}
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var input = document.getElementById('enrSearch');
+        var clearBtn = document.getElementById('enrSearchClear');
+        var info = document.getElementById('enrSearchInfo');
+        if (!input) return;
+
+        function normalize(s) {
+            return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        }
+
+        function applyFilter() {
+            var q = normalize(input.value.trim());
+            var rows = document.querySelectorAll('#enrTable tbody tr.js-enrolled-row');
+            var shown = 0;
+            rows.forEach(function (tr) {
+                var match = q === '' || normalize(tr.textContent).indexOf(q) !== -1;
+                tr.style.display = match ? '' : 'none';
+                if (match) shown++;
+            });
+            if (q === '') {
+                info.style.display = 'none';
+            } else {
+                info.style.display = '';
+                info.textContent = shown + ' résultat(s) sur cette page.';
+            }
+        }
+
+        input.addEventListener('input', applyFilter);
+        if (clearBtn) clearBtn.addEventListener('click', function () { input.value = ''; applyFilter(); input.focus(); });
+    })();
+</script>
+{% endblock %}

@@ -3,9 +3,9 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 24px 28px; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #000; }
-        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 12px; }
+        @page { margin: 20px 22px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 8px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 8px; }
         .header td { vertical-align: middle; }
         .header .logo { width: 76px; }
         .header .logo img { max-height: 62px; max-width: 70px; }
@@ -13,79 +13,95 @@
         .header .school .name { font-weight: bold; font-size: 13px; }
         .header .school .ministry { font-size: 10px; }
         .header .school .tel { font-size: 9px; }
-        .title-row { width: 100%; margin-bottom: 8px; }
-        .title-row td { font-size: 12px; }
-        .title-row .right { text-align: right; }
-        .title-row b { font-weight: bold; }
-        .class-title { background: #1e3a5f; color: #fff; font-weight: bold; font-size: 10px; padding: 3px 8px; margin: 8px 0 2px; }
-        table.list { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-        table.list th, table.list td { border: 1px solid #000; padding: 3px 5px; font-size: 9px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 2px; }
+        .class-name { font-weight: bold; font-size: 10px; margin: 4px 0 6px; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 2px 3px; font-size: 7.5px; }
         table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
         table.list td.center { text-align: center; }
-        table.list td.rank { text-align: center; width: 34px; }
-        .adm { color: #0a7d2c; font-weight: bold; }
-        .red { color: #b00; font-weight: bold; }
-        .footer { width: 100%; margin-top: 14px; font-size: 10px; }
-        .footer td { vertical-align: top; }
-        .footer .sign { text-align: right; text-decoration: underline; }
-        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 140px; }
+        table.list td.estab { text-align: center; font-weight: bold; vertical-align: middle; }
+        .class-block { page-break-after: always; }
+        .class-block:last-child { page-break-after: auto; }
     </style>
 </head>
 <body>
-    <table class="header">
-        <tr>
-            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
-            <td class="school">
-                <div class="name">{{ school ? school.name|upper : '' }}</div>
-                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
-                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
-            </td>
-            <td class="logo"></td>
-        </tr>
-    </table>
+    {% for class in classes %}
+        <div class="class-block">
+            <table class="header">
+                <tr>
+                    <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+                    <td class="school">
+                        <div class="name">{{ school ? school.name|upper : '' }}</div>
+                        <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                        <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+                    </td>
+                    <td class="logo"></td>
+                </tr>
+            </table>
 
-    <table class="title-row">
-        <tr>
-            <td><b>LISTE NOMINATIVE DES ÉLÈVES ET RÉSULTATS</b></td>
-            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
-        </tr>
-    </table>
+            <div class="title-main">Récapitulatif des résultats des élèves par niveau et par classe {{ school_year ? school_year.name : '' }}</div>
+            <div class="class-name">Classe de : {{ class.label }}</div>
 
-    {% for group in by_level %}
-        {% for class in group.classes %}
-            <div class="class-title">{{ group.label }} — {{ class.label }} ({{ class.graded }}/{{ class.count }} notés)</div>
             <table class="list">
                 <thead>
                     <tr>
-                        <th>Rang</th>
-                        <th>Nom &amp; Prénoms</th>
-                        <th style="width:18%">Moyenne /20</th>
-                        <th style="width:18%">Décision</th>
+                        <th style="width:3%">N°</th>
+                        <th style="width:11%">ETABLISSEMENT</th>
+                        <th style="width:3%">N°</th>
+                        <th style="width:9%">MATRICULE</th>
+                        <th>NOM ET PRENOMS</th>
+                        <th style="width:8%">AGE<br>(Né(e) le)</th>
+                        <th style="width:5%">Genre</th>
+                        <th style="width:4%">Nat</th>
+                        <th style="width:5%">Red</th>
+                        <th style="width:7%">Statut<br>Aff/NAff</th>
+                        <th style="width:5%">N°&nbsp;déc.<br>Aff</th>
+                        <th style="width:4%">LV2</th>
+                        <th style="width:6%">M/20</th>
+                        <th style="width:6%">Rang</th>
+                        <th style="width:6%">Classe</th>
+                        <th style="width:9%">OBSERVATIONS</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for e in class.entries %}
+                    {% for r in class.rows %}
                         <tr>
-                            <td class="rank">{{ e.rank ?? '—' }}</td>
-                            <td>{{ e.student.lastName|upper }} {{ e.student.firstName }}</td>
-                            <td class="center">{{ e.average is not null ? e.average|number_format(2, ',', ' ') : '—' }}</td>
-                            <td class="center {{ e.average is null ? '' : (e.average >= 10 ? 'adm' : 'red') }}">{{ e.decision }}</td>
+                            {% if loop.first %}
+                                <td rowspan="{{ class.total }}" class="center">1</td>
+                                <td rowspan="{{ class.total }}" class="estab">{{ school ? school.name|upper : '' }}</td>
+                            {% endif %}
+                            <td class="center">{{ r.seq }}</td>
+                            <td>{{ r.matric }}</td>
+                            <td>{{ r.nom }} {{ r.prenoms }}</td>
+                            <td class="center">{{ r.ne ? r.ne|date('d/m/Y') : '' }}</td>
+                            <td class="center">{{ r.genre }}</td>
+                            <td class="center">{{ r.nat }}</td>
+                            <td class="center">{{ r.red }}</td>
+                            <td class="center">{{ r.qualite }}</td>
+                            <td class="center"></td>
+                            <td class="center">{{ r.lv2 ?? '' }}</td>
+                            <td class="center">{{ r.moy is not null ? r.moy|number_format(2, ',', ' ') : 'NC' }}</td>
+                            <td class="center">{{ r.rank }}</td>
+                            <td class="center">{{ r.classe }}</td>
+                            <td></td>
                         </tr>
-                    {% else %}
-                        <tr><td colspan="4" class="center">Aucun élève</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
-        {% endfor %}
+        </div>
     {% else %}
+        <table class="header">
+            <tr>
+                <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+                <td class="school">
+                    <div class="name">{{ school ? school.name|upper : '' }}</div>
+                    <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                    <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+                </td>
+                <td class="logo"></td>
+            </tr>
+        </table>
         <p>Aucune donnée disponible.</p>
     {% endfor %}
-
-    <table class="footer">
-        <tr>
-            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
-            <td class="sign">Signature</td>
-        </tr>
-    </table>
 </body>
 </html>

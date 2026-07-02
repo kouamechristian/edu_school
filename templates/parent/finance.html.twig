@@ -29,13 +29,17 @@
     <div class="pp-child-sub" style="margin-top:.5rem;">{{ pct }}% de la scolarité réglée</div>
 </section>
 
-{# ── Payer la scolarité ─────────────────────────────────────── #}
+{# ── Payer la scolarité (Mobile Money) ──────────────────────── #}
 {% set unpaid_fees = (registration ? registration.studentFees : child.studentFees)|filter(sf => sf.remainingAmount > 0 and sf.fee.isActive) %}
 {% if unpaid_fees|length > 0 %}
 <section class="pp-card pp-reveal" style="margin-top:1.1rem;">
-    <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-credit-card"></i> Payer la scolarité</div>
+    <style>
+        .pp-op-btn{border:none;border-radius:12px;padding:.85rem .5rem;color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem;transition:transform .12s ease,box-shadow .12s ease;}
+        .pp-op-btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(30,58,95,.18);}
+    </style>
+    <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-mobile-screen-button"></i> Payer la scolarité</div>
 
-    <form method="post" action="{{ path('parent_child_pay', {id: child.id}) }}">
+    <form method="post" action="{{ path('parent_child_pay', {id: child.id}) }}" id="pp-pay-form">
         <input type="hidden" name="_token" value="{{ csrf_token('parent_pay' ~ child.id) }}">
 
         <div style="margin-bottom:1rem;">
@@ -56,15 +60,26 @@
                    style="width:100%;border:1px solid #e3e8f0;border-radius:12px;padding:.7rem 1rem;font-size:1rem;color:#1e3a5f;background:#fff;">
         </div>
 
-        <p class="pp-child-sub" style="margin-top:.8rem;">
-            <i class="fas fa-shield-halved"></i> Vous serez redirigé vers la page de paiement sécurisée
-            <strong>GeniusPay</strong> (Mobile Money, carte, virement). Le solde est mis à jour
-            automatiquement après confirmation du paiement.
-        </p>
-
-        <button type="submit" class="pp-btn pp-btn-primary pp-btn-block" style="margin-top:.4rem;">
+        {# Étape 1 — bouton qui révèle le choix de l'opérateur #}
+        <button type="button" id="pp-pay-online" class="pp-btn pp-btn-primary pp-btn-block" style="margin-top:.4rem;">
             <i class="fas fa-lock"></i> Payer en ligne
         </button>
+
+        {# Étape 2 — choix de l'opérateur Mobile Money (masqué au départ) #}
+        <div id="pp-operators" style="display:none;margin-top:1rem;">
+            <p class="pp-child-sub" style="margin-bottom:.6rem;font-weight:600;">Choisissez votre opérateur Mobile Money :</p>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;">
+                <button type="submit" name="operator" value="orange" class="pp-op-btn" style="background:#ff7900;"><i class="fas fa-mobile-screen-button"></i> Orange Money</button>
+                <button type="submit" name="operator" value="mtn" class="pp-op-btn" style="background:#ffcc00;color:#1e3a5f;"><i class="fas fa-mobile-screen-button"></i> MTN MoMo</button>
+                <button type="submit" name="operator" value="moov" class="pp-op-btn" style="background:#0a6cff;"><i class="fas fa-mobile-screen-button"></i> Moov Money</button>
+                <button type="submit" name="operator" value="wave" class="pp-op-btn" style="background:#1dc6ff;color:#1e3a5f;"><i class="fas fa-mobile-screen-button"></i> Wave</button>
+            </div>
+        </div>
+
+        <p class="pp-child-sub" style="margin-top:.8rem;">
+            <i class="fas fa-shield-halved"></i> Paiement sécurisé par Mobile Money (Orange, MTN, Moov, Wave).
+            Le solde est mis à jour automatiquement après confirmation du paiement.
+        </p>
     </form>
 </section>
 {% endif %}
@@ -108,9 +123,9 @@
     (function () {
         var feeSelect = document.getElementById('pp-fee');
         var amount = document.getElementById('pp-amount');
-        if (!feeSelect || !amount) return;
 
         function syncAmount() {
+            if (!feeSelect || !amount) return;
             var opt = feeSelect.options[feeSelect.selectedIndex];
             var remaining = opt ? parseInt(opt.getAttribute('data-remaining'), 10) : 0;
             if (remaining > 0) {
@@ -118,8 +133,20 @@
                 amount.max = remaining;
             }
         }
-        feeSelect.addEventListener('change', syncAmount);
-        syncAmount();
+        if (feeSelect) {
+            feeSelect.addEventListener('change', syncAmount);
+            syncAmount();
+        }
+
+        // Étape 1 → Étape 2 : révèle le choix de l'opérateur Mobile Money.
+        var payBtn = document.getElementById('pp-pay-online');
+        var operators = document.getElementById('pp-operators');
+        if (payBtn && operators) {
+            payBtn.addEventListener('click', function () {
+                operators.style.display = 'block';
+                payBtn.style.display = 'none';
+            });
+        }
     })();
 </script>
 {% endblock %}

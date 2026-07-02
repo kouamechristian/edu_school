@@ -244,6 +244,7 @@ class AbsenceController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'admin_absence_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         Request $request,
         Absence $absence

@@ -7,8 +7,10 @@ use App\Entity\BulletinLine;
 use App\Entity\Period;
 use App\Entity\Student;
 use App\Entity\User;
+use App\Controller\Concern\HandlesEntityDeletion;
 use App\Form\BulletinFormType;
 use App\Repository\BulletinRepository;
+use App\Repository\ClassroomRepository;
 use App\Repository\PeriodRepository;
 use App\Repository\StudentRepository;
 use App\Service\GradeCalculationService;
@@ -26,6 +28,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ENSEIGNANT')]
 class BulletinController extends AbstractController
 {
+    use HandlesEntityDeletion;
+
     public function __construct(
         private GradeCalculationService $gradeCalculationService
     ) {
@@ -59,7 +63,8 @@ class BulletinController extends AbstractController
     public function new(
         Request $request,
         EntityManagerInterface $entityManager,
-        SchoolContextService $contextService
+        SchoolContextService $contextService,
+        BulletinRepository $bulletinRepository
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
         $currentYear = $contextService->getCurrentSchoolYear();
@@ -75,6 +80,41 @@ class BulletinController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Unicité : un seul bulletin par niveau et par période (brouillon ou
+            // validé). On redirige vers le bulletin existant plutôt que d'en créer
+            // un doublon ; si celui-ci est validé, la saisie est en plus clôturée.
+            $level = $bulletin->getLevel();
+            $period = $bulletin->getPeriod();
+            if ($level && $period) {
+                $existing = $bulletinRepository->findOneFor(
+                    $currentSchool->getId(),
+                    $currentYear->getId(),
+                    $level->getId(),
+                    $period->getId()
+                );
+                if ($existing) {
+                    if ($existing->isValidated()) {
+                        $this->addFlash('error', sprintf(
+                            'Un bulletin déjà validé existe pour le niveau « %s » et la période « %s ». '
+                            . 'Impossible de créer un nouveau bulletin pour ce niveau à cette période.',
+                            $level->getName(),
+                            $period->getName()
+                        ));
+
+                        return $this->redirectToRoute('admin_bulletin_index');
+                    }
+
+                    $this->addFlash('warning', sprintf(
+                        'Un bulletin existe déjà pour le niveau « %s » et la période « %s ». '
+                        . 'En voici le contenu (un seul bulletin par niveau et par période).',
+                        $level->getName(),
+                        $period->getName()
+                    ));
+
+                    return $this->redirectToRoute('admin_bulletin_show', ['id' => $existing->getId()]);
+                }
+            }
+
             $bulletin->setSchool($currentSchool);
             $bulletin->setSchoolYear($currentYear);
             if ($this->getUser() instanceof User) {
@@ -101,7 +141,8 @@ class BulletinController extends AbstractController
     #[Route('/{id}', name: 'admin_bulletin_show', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function show(
         Bulletin $bulletin,
-        StudentRepository $studentRepository
+        StudentRepository $studentRepository,
+        ClassroomRepository $classroomRepository
     ): Response {
         $base = max(1, (int) $bulletin->getMoyenneSur());
 
@@ -116,17 +157,20 @@ class BulletinController extends AbstractController
                     'average' => $line->getAverage() !== null ? (float) $line->getAverage() : null,
                     'rank' => $line->getRank(),
                     'mention' => $line->getMention(),
+                    'annual_average' => $line->getAnnualAverage() !== null ? (float) $line->getAnnualAverage() : null,
+                    'annual_rank' => $line->getAnnualRank(),
                     'has_grades' => $line->getAverage() !== null,
                 ];
             }
-            // Notés (par rang croissant) d'abord, non notés à la fin.
-            usort($rows, fn ($a, $b) => ($a['rank'] ?? PHP_INT_MAX) <=> ($b['rank'] ?? PHP_INT_MAX));
+            // Notés (par rang croissant) d'abord, non notés à la fin ; on retombe sur le
+            // rang annuel si la moyenne de période n'a pas été calculée.
+            usort($rows, fn ($a, $b) => ($a['rank'] ?? $a['annual_rank'] ?? PHP_INT_MAX) <=> ($b['rank'] ?? $b['annual_rank'] ?? PHP_INT_MAX));
         } else {
             // Pas encore calculé : on liste simplement les élèves du niveau.
             $level = $bulletin->getLevel();
             $school = $bulletin->getSchool();
             $students = ($level && $school)
-                ? $studentRepository->findActiveBySchoolAndLevel($school->getId(), $level->getId())
+                ? $studentRepository->findActiveBySchoolAndLevel($school->getId(), $level->getId(), $bulletin->getSchoolYear()?->getId())
                 : [];
             $rows = array_map(fn ($s) => [
                 'student' => $s,
@@ -134,14 +178,27 @@ class BulletinController extends AbstractController
                 'average' => null,
                 'rank' => null,
                 'mention' => null,
+                'annual_average' => null,
+                'annual_rank' => null,
                 'has_grades' => false,
             ], $students);
+        }
+
+        // Classes du niveau (année du bulletin) pour le choix avant impression.
+        $classrooms = [];
+        if ($bulletin->getLevel()) {
+            $yearId = $bulletin->getSchoolYear()?->getId();
+            $classrooms = array_filter(
+                $classroomRepository->findByLevel($bulletin->getLevel()->getId()),
+                static fn ($c) => $yearId === null || $c->getSchoolYear()?->getId() === $yearId
+            );
         }
 
         return $this->render('bulletin/show.html.twig', [
             'bulletin' => $bulletin,
             'rows' => $rows,
             'base' => $base,
+            'classrooms' => $classrooms,
         ]);
     }
 
@@ -181,7 +238,7 @@ class BulletinController extends AbstractController
         $bulletin->clearLines();
         $entityManager->flush();
 
-        $students = $studentRepository->findActiveBySchoolAndLevel($school->getId(), $level->getId());
+        $students = $studentRepository->findActiveBySchoolAndLevel($school->getId(), $level->getId(), $bulletin->getSchoolYear()?->getId());
 
         // Moyennes /20 puis rang (compétition) parmi les élèves notés.
         $avg20 = [];
@@ -207,7 +264,120 @@ class BulletinController extends AbstractController
         $bulletin->setComputedAt(new \DateTime());
         $entityManager->flush();
 
-        $this->addFlash('success', sprintf('Moyennes calculées pour %d élève(s).', count($students)));
+        if ($students === []) {
+            $this->addFlash('warning', sprintf(
+                'Aucun élève inscrit dans une classe du niveau « %s » pour l\'année sélectionnée.',
+                $level->getName()
+            ));
+        } elseif ($graded === []) {
+            $this->addFlash('warning', sprintf(
+                'Aucune moyenne calculée : aucun des %d élève(s) du niveau n\'a de note validée pour la période « %s ». '
+                . 'Vérifiez que des évaluations ont bien été saisies ET validées pour cette période.',
+                count($students),
+                $period->getName()
+            ));
+        } else {
+            $this->addFlash('success', sprintf(
+                'Moyennes calculées : %d élève(s) noté(s) sur %d du niveau.',
+                count($graded),
+                count($students)
+            ));
+        }
+
+        return $this->redirectToRoute('admin_bulletin_show', ['id' => $bulletin->getId()]);
+    }
+
+    /**
+     * Calcule la moyenne annuelle (toutes les périodes de l'année) de chaque élève du
+     * niveau et la fige dans les lignes du bulletin, sans écraser la moyenne de période.
+     */
+    #[Route('/{id}/calculer-annuelle', name: 'admin_bulletin_compute_annual', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function computeAnnual(
+        Request $request,
+        Bulletin $bulletin,
+        StudentRepository $studentRepository,
+        \App\Repository\GradeRepository $gradeRepository,
+        EntityManagerInterface $entityManager
+    ): Response {
+        if (!$this->isCsrfTokenValid('computeannual' . $bulletin->getId(), (string) $request->request->get('_token'))) {
+            return $this->redirectToRoute('admin_bulletin_show', ['id' => $bulletin->getId()]);
+        }
+
+        if ($bulletin->isValidated()) {
+            $this->addFlash('warning', 'Ce bulletin est validé : le recalcul est désactivé.');
+
+            return $this->redirectToRoute('admin_bulletin_show', ['id' => $bulletin->getId()]);
+        }
+
+        $level = $bulletin->getLevel();
+        $school = $bulletin->getSchool();
+        $base = max(1, (int) $bulletin->getMoyenneSur());
+        $yearId = $bulletin->getSchoolYear()?->getId();
+
+        if (!$level || !$school) {
+            $this->addFlash('error', 'Bulletin incomplet (niveau manquant).');
+
+            return $this->redirectToRoute('admin_bulletin_show', ['id' => $bulletin->getId()]);
+        }
+
+        $students = $studentRepository->findActiveBySchoolAndLevel($school->getId(), $level->getId(), $yearId);
+
+        // Lignes existantes indexées par élève (pour ne pas écraser la moyenne de période).
+        $linesByStudent = [];
+        foreach ($bulletin->getLines() as $line) {
+            if ($line->getStudent()) {
+                $linesByStudent[$line->getStudent()->getId()] = $line;
+            }
+        }
+
+        // Moyennes annuelles /20 (évaluations validées) puis rang « compétition ».
+        $avg20 = [];
+        foreach ($students as $s) {
+            $avg20[$s->getId()] = $gradeRepository->calculateAnnualGeneralAverageByStudent($s->getId(), $yearId, true);
+        }
+        $graded = array_filter($avg20, fn ($v) => $v !== null);
+        arsort($graded);
+
+        foreach ($students as $s) {
+            $a = $avg20[$s->getId()];
+            $line = $linesByStudent[$s->getId()] ?? null;
+            if ($line === null) {
+                $line = new BulletinLine();
+                $line->setStudent($s);
+                $bulletin->addLine($line);
+                $entityManager->persist($line);
+            }
+            if ($a !== null) {
+                $line->setAnnualAverage((string) round($a * $base / 20, 2));
+                $line->setAnnualRank($this->competitionRank($graded, $a));
+            } else {
+                $line->setAnnualAverage(null);
+                $line->setAnnualRank(null);
+            }
+        }
+
+        if (!$bulletin->isComputed()) {
+            $bulletin->setComputedAt(new \DateTime());
+        }
+        $entityManager->flush();
+
+        if ($students === []) {
+            $this->addFlash('warning', sprintf(
+                'Aucun élève inscrit dans une classe du niveau « %s » pour l\'année sélectionnée.',
+                $level->getName()
+            ));
+        } elseif ($graded === []) {
+            $this->addFlash('warning', sprintf(
+                'Aucune moyenne annuelle calculée : aucun des %d élève(s) du niveau n\'a de note validée sur l\'année.',
+                count($students)
+            ));
+        } else {
+            $this->addFlash('success', sprintf(
+                'Moyennes annuelles calculées : %d élève(s) noté(s) sur %d du niveau.',
+                count($graded),
+                count($students)
+            ));
+        }
 
         return $this->redirectToRoute('admin_bulletin_show', ['id' => $bulletin->getId()]);
     }
@@ -248,6 +418,7 @@ class BulletinController extends AbstractController
      */
     #[Route('/{id}/imprimer', name: 'admin_bulletin_print_all', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function printAll(
+        Request $request,
         Bulletin $bulletin,
         StudentRepository $studentRepository
     ): Response {
@@ -263,7 +434,22 @@ class BulletinController extends AbstractController
         if ($bulletin->isComputed()) {
             $students = array_map(fn (BulletinLine $l) => $l->getStudent(), $bulletin->getLines()->toArray());
         } else {
-            $students = $studentRepository->findActiveBySchoolAndLevel($school->getId(), $level->getId());
+            $students = $studentRepository->findActiveBySchoolAndLevel($school->getId(), $level->getId(), $bulletin->getSchoolYear()?->getId());
+        }
+
+        // Filtrage sur la classe choisie (le cas échéant) : on garde les élèves dont
+        // la classe d'inscription pour l'année (repli sur la classe legacy) correspond.
+        $classroomId = $request->query->getInt('classroom');
+        if ($classroomId) {
+            $year = $period->getSchoolYear();
+            $students = array_filter($students, static function ($s) use ($classroomId, $year) {
+                if (!$s) {
+                    return false;
+                }
+                $registration = $year ? $s->getRegistrationForYear($year) : $s->getLatestRegistration();
+                $cid = ($registration?->getClassroom() ?? $s->getClassroom())?->getId();
+                return $cid === $classroomId;
+            });
         }
 
         $pages = [];
@@ -275,7 +461,9 @@ class BulletinController extends AbstractController
             $registration = $year ? $student->getRegistrationForYear($year) : $student->getLatestRegistration();
             $classroomId = ($registration?->getClassroom() ?? $student->getClassroom())?->getId() ?? 0;
             $sheet = $this->gradeCalculationService->generateBulletinSheet($student, $period, $classroomId);
-            $pages[] = $this->renderView('bulletin/sheet_pdf.html.twig', array_merge($sheet, [
+            // On rend le CORPS du bulletin (fragment), sans <html>/<head>, pour
+            // pouvoir concaténer plusieurs élèves dans un seul document bien formé.
+            $pages[] = $this->renderView('bulletin/_sheet_body.html.twig', array_merge($sheet, [
                 'photo_data' => $this->imageDataUri($student->getPhoto()),
                 'city' => $school->getAddress() ?: '',
                 'director_role' => 'Directeur des études',
@@ -288,7 +476,12 @@ class BulletinController extends AbstractController
             return $this->redirectToRoute('admin_bulletin_show', ['id' => $bulletin->getId()]);
         }
 
-        $html = '<html><head><meta charset="utf-8"><style>.pp-break{page-break-after:always;}</style></head><body>'
+        // Document unique et valide : styles du bulletin inclus UNE seule fois dans
+        // le <head> (sinon Dompdf perd le CSS des <head> imbriqués → bulletin non
+        // stylé et décentré). Chaque élève est séparé par un saut de page.
+        $html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">'
+            . $this->renderView('bulletin/_sheet_styles.html.twig')
+            . '<style>.pp-break{page-break-after:always;}</style></head><body>'
             . implode('<div class="pp-break"></div>', $pages)
             . '</body></html>';
 
@@ -305,6 +498,57 @@ class BulletinController extends AbstractController
         return new Response($dompdf->output(), Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('inline; filename="BULLETINS_%s.pdf"', $level->getName()),
+        ]);
+    }
+
+    /**
+     * Bordereau d'évaluation (« fiche de notes ») du niveau, une page par classe.
+     * ?notes=1 → pré-rempli avec les notes ; sinon grille vierge à remplir.
+     */
+    #[Route('/{id}/fiche-notes', name: 'admin_bulletin_bordereau', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function bordereau(Request $request, Bulletin $bulletin): Response
+    {
+        $level = $bulletin->getLevel();
+        $period = $bulletin->getPeriod();
+        $school = $bulletin->getSchool();
+
+        if (!$level || !$period || !$school) {
+            throw $this->createNotFoundException();
+        }
+
+        $withNotes = $request->query->getBoolean('notes');
+        $showCoef = $request->query->getBoolean('coef');
+        $data = $this->gradeCalculationService->generateBordereaux($period, $level, $school);
+
+        $html = $this->renderView('bulletin/bordereau_pdf.html.twig', array_merge($data, [
+            'with_notes' => $withNotes,
+            'show_coef' => $showCoef,
+            'logo_data' => $this->imageDataUri($school->getLogo()),
+        ]));
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        if ($showCoef) {
+            $filename = sprintf('BORDEREAU_EVALUATION_%s.pdf', strtoupper((string) $level->getName()));
+        } else {
+            $filename = sprintf(
+                'FICHE_DE_NOTES_%s%s.pdf',
+                $withNotes ? '' : 'VIDE_',
+                strtoupper((string) $level->getName())
+            );
+        }
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
         ]);
     }
 
@@ -329,15 +573,14 @@ class BulletinController extends AbstractController
      * Suppression d'un bulletin.
      */
     #[Route('/{id}', name: 'admin_bulletin_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         Request $request,
         Bulletin $bulletin,
         EntityManagerInterface $entityManager
     ): Response {
         if ($this->isCsrfTokenValid('delete' . $bulletin->getId(), (string) $request->request->get('_token'))) {
-            $entityManager->remove($bulletin);
-            $entityManager->flush();
-            $this->addFlash('success', 'Bulletin supprimé.');
+            $this->deleteEntity($entityManager, $bulletin, 'Bulletin supprimé.');
         }
 
         return $this->redirectToRoute('admin_bulletin_index');

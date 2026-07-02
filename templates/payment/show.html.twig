@@ -49,4 +49,11 @@
         </div>
     </div>
 </div>
+
+{% if app.request.query.get('receipt') and payment.status == 'payé' %}
+    <script>
+        // Ouvre le reçu dans un nouvel onglet après l'enregistrement du paiement.
+        window.open('{{ path('admin_payment_receipt', {'id': payment.id}) }}', '_blank');
+    </script>
+{% endif %}
 {% endblock %}

@@ -127,6 +127,7 @@ class ContractController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'admin_contract_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Contract $contract, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete' . $contract->getId(), $request->getPayload()->getString('_token'))) {

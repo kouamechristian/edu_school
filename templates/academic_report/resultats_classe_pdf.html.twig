@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 20px 22px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 10px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 66px; max-width: 72px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 11px; text-decoration: underline; margin-bottom: 10px; }
+        .level-head { font-weight: bold; font-size: 10px; margin: 10px 0 4px; }
+        table.list { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; font-size: 8px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.center { text-align: center; }
+        table.list tr.total td { background: #dfe6ee; font-weight: bold; }
+        .footer { width: 100%; margin-top: 16px; font-size: 10px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <div class="title-main">{{ report_title|default('RÉSULTATS SCOLAIRES PAR NIVEAU ET PAR CLASSE') }} {{ scope_title|default('ANNUELS') }} {{ school_year ? school_year.name : '' }}</div>
+
+    {% macro head() %}
+        <thead>
+            <tr>
+                <th rowspan="2" style="width:8%">CLASSE</th>
+                <th rowspan="2">EFF.</th>
+                <th colspan="3">EFF. CLASSÉ</th>
+                <th rowspan="2">EFF. NON<br>CLASSÉ</th>
+                <th colspan="4">ELEVE AYANT MOY &gt;= 10</th>
+                <th colspan="4">ELEVE AYANT 8,5 &lt;= MOY &lt; 10</th>
+                <th colspan="4">ELEVE AYANT MOY &lt; 8,5</th>
+                <th rowspan="2">MOY.<br>ETS</th>
+            </tr>
+            <tr>
+                <th>G</th><th>F</th><th>T</th>
+                <th>G</th><th>F</th><th>T</th><th>%</th>
+                <th>G</th><th>F</th><th>T</th><th>%</th>
+                <th>G</th><th>F</th><th>T</th><th>%</th>
+            </tr>
+        </thead>
+    {% endmacro %}
+
+    {% macro row(r, klass) %}
+        <tr{% if klass %} class="{{ klass }}"{% endif %}>
+            <td>{{ r.label }}</td>
+            <td class="center">{{ r.eff }}</td>
+            <td class="center">{{ r.cg }}</td><td class="center">{{ r.cf }}</td><td class="center">{{ r.ct }}</td>
+            <td class="center">{{ r.non_classe }}</td>
+            <td class="center">{{ r.b10g }}</td><td class="center">{{ r.b10f }}</td><td class="center">{{ r.b10t }}</td><td class="center">{{ r.b10p|number_format(2, ',', ' ') }}</td>
+            <td class="center">{{ r.b85g }}</td><td class="center">{{ r.b85f }}</td><td class="center">{{ r.b85t }}</td><td class="center">{{ r.b85p|number_format(2, ',', ' ') }}</td>
+            <td class="center">{{ r.blowg }}</td><td class="center">{{ r.blowf }}</td><td class="center">{{ r.blowt }}</td><td class="center">{{ r.blowp|number_format(2, ',', ' ') }}</td>
+            <td class="center">{{ r.moy_ets is not null ? r.moy_ets|number_format(2, ',', ' ') : '—' }}</td>
+        </tr>
+    {% endmacro %}
+
+    {% import _self as t %}
+    {% for level in levels %}
+        <div class="level-head">Nbre de Classes : {{ level.classes_count }} — {{ level.label }}</div>
+        <table class="list">
+            {{ t.head() }}
+            <tbody>
+                {% for r in level.rows %}
+                    {{ t.row(r, '') }}
+                {% endfor %}
+                {{ t.row(level.total, 'total') }}
+            </tbody>
+        </table>
+    {% else %}
+        <table class="list">
+            {{ t.head() }}
+            <tbody><tr><td colspan="19" class="center">Aucune donnée disponible</td></tr></tbody>
+        </table>
+    {% endfor %}
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>

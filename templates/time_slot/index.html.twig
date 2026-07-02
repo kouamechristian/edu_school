@@ -48,10 +48,12 @@
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ timeSlot.id) }}">
                                             <button type="submit" class="btn btn-outline-secondary" title="{{ timeSlot.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ timeSlot.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
+                                        {% if is_granted('ROLE_ADMIN') %}
                                         <form method="post" action="{{ path('admin_time_slot_delete', {'id': timeSlot.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette plage horaire ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ timeSlot.id) }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

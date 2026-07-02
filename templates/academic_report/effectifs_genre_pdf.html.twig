@@ -3,26 +3,28 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 28px 32px; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
-        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
+        @page { margin: 22px 24px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 10px; }
         .header td { vertical-align: middle; }
         .header .logo { width: 80px; }
-        .header .logo img { max-height: 70px; max-width: 75px; }
+        .header .logo img { max-height: 66px; max-width: 72px; }
         .header .school { text-align: center; }
         .header .school .name { font-weight: bold; font-size: 14px; }
         .header .school .ministry { font-size: 11px; }
         .header .school .tel { font-size: 10px; }
         .title-row { width: 100%; margin-bottom: 8px; }
-        .title-row td { font-size: 13px; }
+        .title-row td { font-size: 12px; }
         .title-row .right { text-align: right; }
         .title-row b { font-weight: bold; }
         table.list { width: 100%; border-collapse: collapse; }
-        table.list th, table.list td { border: 1px solid #000; padding: 5px 6px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; }
         table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
-        table.list td.center { text-align: center; }
+        table.list td.c { text-align: center; }
+        table.list td.lvl { text-align: left; white-space: nowrap; }
+        table.list tr.subtotal td { background: #eef2f6; font-weight: bold; }
         table.list tr.grand td { background: #dfe6ee; font-weight: bold; }
-        .footer { width: 100%; margin-top: 24px; font-size: 11px; }
+        .footer { width: 100%; margin-top: 20px; font-size: 10px; }
         .footer td { vertical-align: top; }
         .footer .sign { text-align: right; text-decoration: underline; }
         .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
@@ -51,29 +53,54 @@
     <table class="list">
         <thead>
             <tr>
-                <th style="width:46%">Niveau</th>
-                <th>Garçons</th>
-                <th>Filles</th>
-                <th>Total</th>
+                <th rowspan="3" style="width:14%">NIVEAU</th>
+                <th rowspan="3">NOMBRE<br>DE CLASSES</th>
+                <th colspan="6">NON REDOUBLANT</th>
+                <th colspan="6">REDOUBLANT</th>
+                <th colspan="3" rowspan="2">TOTAL GENERAL</th>
+            </tr>
+            <tr>
+                <th colspan="3">IVOIRIENS</th>
+                <th colspan="3">ETRANGERS</th>
+                <th colspan="3">IVOIRIENS</th>
+                <th colspan="3">ETRANGERS</th>
+            </tr>
+            <tr>
+                <th>G</th><th>F</th><th>T</th>
+                <th>G</th><th>F</th><th>T</th>
+                <th>G</th><th>F</th><th>T</th>
+                <th>G</th><th>F</th><th>T</th>
+                <th>G</th><th>F</th><th>T</th>
             </tr>
         </thead>
         <tbody>
-            {% for group in by_level %}
-                <tr>
-                    <td>{{ group.label }}</td>
-                    <td class="center">{{ group.boys }}</td>
-                    <td class="center">{{ group.girls }}</td>
-                    <td class="center">{{ group.total }}</td>
+            {% macro cells(row) %}
+                <td class="c">{{ row.classes }}</td>
+                <td class="c">{{ row.nrn_g }}</td><td class="c">{{ row.nrn_f }}</td><td class="c">{{ row.nrn_t }}</td>
+                <td class="c">{{ row.nre_g }}</td><td class="c">{{ row.nre_f }}</td><td class="c">{{ row.nre_t }}</td>
+                <td class="c">{{ row.rn_g }}</td><td class="c">{{ row.rn_f }}</td><td class="c">{{ row.rn_t }}</td>
+                <td class="c">{{ row.re_g }}</td><td class="c">{{ row.re_f }}</td><td class="c">{{ row.re_t }}</td>
+                <td class="c">{{ row.tg }}</td><td class="c">{{ row.tf }}</td><td class="c">{{ row.tt }}</td>
+            {% endmacro %}
+            {% import _self as tbl %}
+            {% for section in sections %}
+                {% for row in section.rows %}
+                    <tr>
+                        <td class="lvl">{{ row.label }}</td>
+                        {{ tbl.cells(row) }}
+                    </tr>
+                {% endfor %}
+                <tr class="subtotal">
+                    <td class="lvl">{{ section.subtotal.label }}</td>
+                    {{ tbl.cells(section.subtotal) }}
                 </tr>
             {% else %}
-                <tr><td colspan="4" class="center">Aucun effectif disponible</td></tr>
+                <tr><td colspan="17" class="c">Aucun effectif disponible</td></tr>
             {% endfor %}
-            {% if by_level is not empty %}
+            {% if sections is not empty %}
                 <tr class="grand">
-                    <td>TOTAL GÉNÉRAL</td>
-                    <td class="center">{{ totals.boys }}</td>
-                    <td class="center">{{ totals.girls }}</td>
-                    <td class="center">{{ totals.total }}</td>
+                    <td class="lvl">{{ grand.label }}</td>
+                    {{ tbl.cells(grand) }}
                 </tr>
             {% endif %}
         </tbody>

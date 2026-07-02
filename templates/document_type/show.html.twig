@@ -62,10 +62,12 @@
                 <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-bolt me-2"></i>Actions</h6></div>
                 <div class="card-body d-grid gap-2">
                     <a href="{{ path('admin_document_type_edit', {'id': document_type.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
+                    {% if is_granted('ROLE_ADMIN') %}
                     <form method="post" action="{{ path('admin_document_type_delete', {'id': document_type.id}) }}" onsubmit="return confirm('Supprimer ce type de document ? Cette action est définitive.')">
                         <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ document_type.id) }}">
                         <button type="submit" class="btn btn-danger w-100"><i class="fas fa-trash me-1"></i> Supprimer</button>
                     </form>
+                    {% endif %}
                 </div>
             </div>
         </div>

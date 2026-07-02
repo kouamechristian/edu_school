@@ -1,0 +1,36 @@
+{% extends 'parent/base.html.twig' %}
+
+{% block title %}Paiement en ligne · {{ child.fullName }}{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> /
+        <a href="{{ path('parent_child_show', {id: child.id}) }}">{{ child.fullName }}</a> /
+        <a href="{{ path('parent_child_finance', {id: child.id}) }}">Finances</a> / Paiement</div>
+{% endblock %}
+{% block page_title %}Paiement en ligne{% endblock %}
+{% block page_subtitle %}{{ operator }} — {{ amount|number_format(0, ',', ' ') }} F CFA{% endblock %}
+
+{% block body %}
+<section class="pp-card pp-reveal" style="text-align:center;max-width:520px;margin:1.5rem auto;">
+    <div style="font-size:3.2rem;color:#f59e0b;margin-bottom:.6rem;"><i class="fas fa-person-digging"></i></div>
+    <h2 style="color:#1e3a5f;margin:0 0 .4rem;font-size:1.4rem;">Système en travaux</h2>
+    <p class="pp-child-sub" style="margin-bottom:1.2rem;">
+        Le paiement en ligne via <strong>{{ operator }}</strong> est en cours de mise en place.
+        Cette fonctionnalité sera bientôt disponible.
+    </p>
+
+    <div style="background:#f8fafc;border-radius:12px;padding:1rem;margin-bottom:1.3rem;text-align:left;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:.45rem;"><span class="pp-child-sub">Frais</span><strong>{{ student_fee.fee.name }}</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:.45rem;"><span class="pp-child-sub">Opérateur</span><strong>{{ operator }}</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span class="pp-child-sub">Montant</span><strong>{{ amount|number_format(0, ',', ' ') }} F CFA</strong></div>
+    </div>
+
+    <p class="pp-child-sub" style="margin-bottom:1.3rem;">
+        <i class="fas fa-circle-info"></i> En attendant, vous pouvez régler à la caisse de l'établissement.
+    </p>
+
+    <a href="{{ path('parent_child_finance', {id: child.id}) }}" class="pp-btn pp-btn-ghost">
+        <i class="fas fa-arrow-left"></i> Retour aux finances
+    </a>
+</section>
+{% endblock %}

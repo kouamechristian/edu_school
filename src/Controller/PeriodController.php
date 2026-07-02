@@ -118,6 +118,7 @@ class PeriodController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'admin_period_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         Request $request,
         Period $period,

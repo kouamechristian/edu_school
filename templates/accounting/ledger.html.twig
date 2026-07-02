@@ -1,0 +1,101 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Grand livre{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Grand livre par compte',
+        subtitle: current_school.name,
+        icon: 'fa-book-open',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Comptabilité', path: path('admin_accounting_dashboard') },
+            { label: 'Grand livre' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_accounting_ledger_pdf', app.request.query.all) }}" target="_blank" rel="noopener" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+            <a href="{{ path('admin_accounting_ledger_xlsx', app.request.query.all) }}" class="btn btn-outline-success"><i class="fas fa-file-excel me-1"></i> Excel</a>
+            <a href="{{ path('admin_accounting_dashboard') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {# ── Filtres ── #}
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small">Du</label>
+                    <input type="date" name="from" value="{{ filters.from }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Au</label>
+                    <input type="date" name="to" value="{{ filters.to }}" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Compte</label>
+                    <select name="account" class="form-select">
+                        <option value="">Tous les comptes</option>
+                        {% for a in accounts %}
+                            <option value="{{ a.id }}" {{ filters.account == a.id ? 'selected' }}>{{ a.code }} — {{ a.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% for group in groups %}
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold {{ group.account and group.account.recette ? 'text-success' : (group.account ? 'text-danger' : 'text-info') }}">
+                    <i class="fas fa-folder me-2"></i>
+                    {% if group.account %}<span class="badge badge-soft secondary">{{ group.account.code }}</span> {{ group.account.name }}{% else %}Non ventilé (versements){% endif %}
+                </h6>
+                <span class="badge bg-secondary">Total : {{ group.total|number_format(0, ',', ' ') }} F</span>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:12%">Référence</th>
+                            <th style="width:10%">Date</th>
+                            <th>Libellé</th>
+                            <th class="text-end" style="width:13%">Débit</th>
+                            <th class="text-end" style="width:13%">Crédit</th>
+                            <th class="text-end" style="width:14%">Solde progressif</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in group.rows %}
+                            <tr>
+                                <td><span class="badge badge-soft secondary">{{ r.entry.reference }}</span></td>
+                                <td class="text-muted">{{ r.entry.entryDate|date('d/m/Y') }}</td>
+                                <td>{{ r.entry.label }}</td>
+                                <td class="text-end text-danger">{{ r.entry.type != 'recette' ? (r.entry.amount|number_format(0, ',', ' ')) : '' }}</td>
+                                <td class="text-end text-success">{{ r.entry.type == 'recette' ? (r.entry.amount|number_format(0, ',', ' ')) : '' }}</td>
+                                <td class="text-end fw-semibold">{{ r.cumul|number_format(0, ',', ' ') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light fw-bold">
+                            <td colspan="5" class="text-end">Total du compte</td>
+                            <td class="text-end">{{ group.total|number_format(0, ',', ' ') }} F</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card"><div class="card-body">{{ empty_state('fa-book-open', 'Grand livre vide', 'Aucune écriture ne correspond à ces critères.') }}</div></div>
+    {% endfor %}
+</div>
+{% endblock %}

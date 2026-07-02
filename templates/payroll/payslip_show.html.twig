@@ -1,0 +1,134 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Bulletin {{ payslip.reference }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Bulletin de paie',
+        subtitle: payslip.employee.fullName ~ '  ·  ' ~ payslip.period.label,
+        icon: 'fa-receipt',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Paie', path: path('admin_payroll_index') },
+            { label: payslip.period.label, path: path('admin_payroll_period_show', {'id': payslip.period.id}) },
+            { label: payslip.reference }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_payroll_payslip_pdf', {'id': payslip.id}) }}" target="_blank" rel="noopener" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+            <a href="{{ path('admin_payroll_period_show', {'id': payslip.period.id}) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-receipt me-2"></i>{{ payslip.reference }}</h6>
+                    <span class="text-muted small">Parts : {{ payslip.parts }}</span>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm align-middle">
+                        <thead><tr><th>Rubrique</th><th class="text-end">Base</th><th class="text-end">Taux</th><th class="text-end">Gain</th><th class="text-end">Retenue</th></tr></thead>
+                        <tbody>
+                            {% for l in payslip.lines %}
+                                <tr>
+                                    <td>{{ l.label }}</td>
+                                    <td class="text-end text-muted">{{ l.base ? (l.base|number_format(0, ',', ' ')) : '' }}</td>
+                                    <td class="text-end text-muted">{{ l.rate ? (l.rate|number_format(2, ',', ' ') ~ ' %') : '' }}</td>
+                                    <td class="text-end text-success">{{ l.gain ? (l.amount|number_format(0, ',', ' ')) : '' }}</td>
+                                    <td class="text-end text-danger">{{ not l.gain ? (l.amount|number_format(0, ',', ' ')) : '' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold"><td colspan="3">Totaux</td><td class="text-end text-success">{{ payslip.grossTotal|number_format(0, ',', ' ') }}</td><td class="text-end text-danger">{{ payslip.totalDeductions|number_format(0, ',', ' ') }}</td></tr>
+                        </tfoot>
+                    </table>
+                    <div class="alert alert-success d-flex justify-content-between mb-0">
+                        <span class="fw-bold">NET À PAYER</span>
+                        <span class="h5 mb-0 fw-bold">{{ payslip.netPay|number_format(0, ',', ' ') }} F CFA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary">Employé</h6></div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">Nom</div><div class="info-value">{{ payslip.employee.fullName }}</div></div>
+                        <div class="info-row"><div class="info-label">Poste</div><div class="info-value">{{ payslip.contract ? payslip.contract.jobTitle : (payslip.employee.position ?: '—') }}</div></div>
+                        <div class="info-row"><div class="info-label">Type</div><div class="info-value">{{ payslip.employee.employeeTypeLabel }}</div></div>
+                        <div class="info-row"><div class="info-label">Salaire de base</div><div class="info-value">{{ payslip.baseSalary|number_format(0, ',', ' ') }} F</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-muted">Charges patronales</h6></div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between"><span>Total employeur</span><span class="fw-bold">{{ payslip.employerTotal|number_format(0, ',', ' ') }} F</span></div>
+                    <div class="small text-muted mt-1">Coût total employeur : {{ (payslip.grossTotal + payslip.employerTotal)|number_format(0, ',', ' ') }} F</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Ajustements manuels (période en brouillon uniquement) ── #}
+    {% if payslip.period.draft %}
+        <div class="card mt-3">
+            <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-sliders me-2"></i>Ajustements manuels (prime / retenue ponctuelle)</h6></div>
+            <div class="card-body">
+                {% set manual_lines = payslip.lines|filter(l => l.code == 'MANUAL') %}
+                {% if manual_lines|length > 0 %}
+                    <table class="table table-sm align-middle mb-3">
+                        <thead><tr><th>Libellé</th><th>Type</th><th class="text-end">Montant</th><th class="text-end">Action</th></tr></thead>
+                        <tbody>
+                            {% for l in manual_lines %}
+                                <tr>
+                                    <td>{{ l.label }}</td>
+                                    <td><span class="badge badge-soft {{ l.gain ? 'success' : 'danger' }}">{{ l.gain ? 'Gain' : 'Retenue' }}</span></td>
+                                    <td class="text-end">{{ l.amount|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end">
+                                        <form method="post" action="{{ path('admin_payroll_payslip_line_delete', {'payslipId': payslip.id, 'lineId': l.id}) }}" class="d-inline"
+                                              data-confirm="Supprimer la ligne « {{ l.label }} » ?" data-confirm-title="Confirmer" data-confirm-btn="Oui, supprimer">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delline' ~ l.id) }}">
+                                            <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+
+                <form method="post" action="{{ path('admin_payroll_payslip_line_add', {'id': payslip.id}) }}" class="row g-2 align-items-end">
+                    <input type="hidden" name="_token" value="{{ csrf_token('addline' ~ payslip.id) }}">
+                    <div class="col-md-3">
+                        <label class="form-label small">Type</label>
+                        <select name="kind" class="form-select">
+                            <option value="gain">Gain (prime)</option>
+                            <option value="deduction">Retenue</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small">Libellé</label>
+                        <input type="text" name="label" class="form-control" placeholder="Ex: Prime exceptionnelle" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Montant (F)</label>
+                        <input type="number" step="1" min="1" name="amount" class="form-control" required>
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button class="btn btn-primary"><i class="fas fa-plus me-1"></i> Ajouter</button>
+                    </div>
+                </form>
+                <div class="form-text mt-2"><i class="fas fa-info-circle me-1"></i> Les ajustements manuels modifient le brut/net du bulletin mais pas le calcul CNPS/ITS. Ils sont perdus si vous regénérez la période.</div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

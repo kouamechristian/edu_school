@@ -1,0 +1,186 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Rapprochement caisse / banque{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Rapprochement caisse / banque',
+        subtitle: current_school.name,
+        icon: 'fa-scale-balanced',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Comptabilité', path: path('admin_accounting_dashboard') },
+            { label: 'Rapprochement' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_accounting_reconciliation_pdf', app.request.query.all) }}" target="_blank" rel="noopener" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+            <a href="{{ path('admin_accounting_dashboard') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <form method="get" class="card mb-3">
+        <div class="card-body row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small">Date du relevé bancaire</label>
+                <input type="date" name="statement_date" value="{{ statement_date_str }}" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">Solde du relevé bancaire (F)</label>
+                <input type="number" step="0.01" name="statement_balance" value="{{ statement_balance }}" class="form-control" placeholder="Solde figurant sur le relevé">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Espèces comptées (F)</label>
+                <input type="number" step="0.01" name="cash_counted" value="{{ cash_counted }}" class="form-control" placeholder="Optionnel">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-primary"><i class="fas fa-calculator me-1"></i> Calculer</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="text-muted small mb-3">
+        <i class="fas fa-info-circle me-1"></i>
+        Mouvements pris en compte : {% if period_from %}du <strong>{{ period_from|date('d/m/Y') }}</strong>{% else %}depuis l'origine{% endif %}
+        au <strong>{{ statement_date|date('d/m/Y') }}</strong> (depuis la dernière clôture).
+    </div>
+
+    <div class="row g-3">
+        {# ── Banque ── #}
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="m-0 fw-bold text-info"><i class="fas fa-building-columns me-2"></i>Banque</h6></div>
+                <div class="card-body">
+                    <table class="table table-sm mb-3">
+                        <tbody>
+                            <tr><td>Versements en banque</td><td class="text-end text-success">+ {{ summary.versement|number_format(0, ',', ' ') }}</td></tr>
+                            <tr><td>Encaissements par banque <span class="text-muted">(virement, chèque, carte, mobile)</span></td><td class="text-end text-success">+ {{ summary.bank_in|number_format(0, ',', ' ') }}</td></tr>
+                            <tr><td>Dépenses réglées par banque</td><td class="text-end text-danger">− {{ summary.bank_out|number_format(0, ',', ' ') }}</td></tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold border-top"><td>Solde banque théorique</td><td class="text-end">{{ summary.bank_theoretical|number_format(0, ',', ' ') }} F</td></tr>
+                        </tfoot>
+                    </table>
+                    {% if statement_balance is not null %}
+                        <div class="d-flex justify-content-between"><span>Solde du relevé bancaire</span><span class="fw-bold">{{ statement_balance|number_format(0, ',', ' ') }} F</span></div>
+                        <div class="alert {{ bank_difference|abs < 0.01 ? 'alert-success' : 'alert-danger' }} d-flex justify-content-between mt-2 mb-0">
+                            <span class="fw-bold"><i class="fas {{ bank_difference|abs < 0.01 ? 'fa-check' : 'fa-triangle-exclamation' }} me-1"></i>Écart</span>
+                            <span class="fw-bold">{{ bank_difference|number_format(0, ',', ' ') }} F</span>
+                        </div>
+                    {% else %}
+                        <p class="text-muted small mb-0">Saisissez le solde du relevé pour calculer l'écart.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# ── Caisse ── #}
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="m-0 fw-bold text-warning"><i class="fas fa-cash-register me-2"></i>Caisse (espèces)</h6></div>
+                <div class="card-body">
+                    <table class="table table-sm mb-3">
+                        <tbody>
+                            <tr><td>Encaissements espèces</td><td class="text-end text-success">+ {{ summary.cash_in|number_format(0, ',', ' ') }}</td></tr>
+                            <tr><td>Dépenses espèces</td><td class="text-end text-danger">− {{ summary.cash_out|number_format(0, ',', ' ') }}</td></tr>
+                            <tr><td>Versements en banque</td><td class="text-end text-danger">− {{ summary.versement|number_format(0, ',', ' ') }}</td></tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold border-top"><td>Espèces théoriques en caisse</td><td class="text-end">{{ summary.cash_theoretical|number_format(0, ',', ' ') }} F</td></tr>
+                        </tfoot>
+                    </table>
+                    {% if cash_counted is not null %}
+                        <div class="d-flex justify-content-between"><span>Espèces comptées</span><span class="fw-bold">{{ cash_counted|number_format(0, ',', ' ') }} F</span></div>
+                        <div class="alert {{ cash_difference|abs < 0.01 ? 'alert-success' : 'alert-warning' }} d-flex justify-content-between mt-2 mb-0">
+                            <span class="fw-bold"><i class="fas {{ cash_difference|abs < 0.01 ? 'fa-check' : 'fa-triangle-exclamation' }} me-1"></i>Écart de caisse</span>
+                            <span class="fw-bold">{{ cash_difference|number_format(0, ',', ' ') }} F</span>
+                        </div>
+                    {% else %}
+                        <p class="text-muted small mb-0">Saisissez les espèces comptées pour contrôler la caisse (facultatif).</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Enregistrer le rapprochement ── #}
+    <div class="card mt-3">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-floppy-disk me-2"></i>Valider le rapprochement</h6></div>
+        <div class="card-body">
+            <form method="post" action="{{ path('admin_accounting_reconciliation_new') }}"
+                  data-confirm="Enregistrer ce rapprochement au {{ statement_date|date('d/m/Y') }} ?" data-confirm-title="Confirmer" data-confirm-btn="Oui, enregistrer" data-confirm-icon="question">
+                <input type="hidden" name="_token" value="{{ csrf_token('reconcile') }}">
+                <input type="hidden" name="statement_date" value="{{ statement_date_str }}">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small">Solde du relevé (F)</label>
+                        <input type="number" step="0.01" name="statement_balance" value="{{ statement_balance }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Espèces comptées (F)</label>
+                        <input type="number" step="0.01" name="cash_counted" value="{{ cash_counted }}" class="form-control" placeholder="Optionnel">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Notes</label>
+                        <input type="text" name="notes" class="form-control" placeholder="Observation…">
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button class="btn btn-success"><i class="fas fa-check me-1"></i> Enregistrer</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Historique ── #}
+    <div class="card mt-3">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-clock-rotate-left me-2"></i>Historique des rapprochements</h6></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date relevé</th>
+                            <th class="text-end">Banque théorique</th>
+                            <th class="text-end">Solde relevé</th>
+                            <th class="text-end">Écart banque</th>
+                            <th class="text-end">Écart caisse</th>
+                            <th>Par</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in history %}
+                            <tr>
+                                <td class="fw-semibold">{{ r.statementDate|date('d/m/Y') }}{% if r.notes %}<br><small class="text-muted">{{ r.notes }}</small>{% endif %}</td>
+                                <td class="text-end">{{ r.bankTheoretical|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ r.statementBalance|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end fw-bold {{ r.bankBalanced ? 'text-success' : 'text-danger' }}">{{ r.bankDifference|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ r.cashDifference is not null ? (r.cashDifference|number_format(0, ',', ' ')) : '—' }}</td>
+                                <td class="small">{{ r.reconciledBy ? r.reconciledBy.fullName : '—' }}<br><span class="text-muted">{{ r.createdAt|date('d/m/Y H:i') }}</span></td>
+                                <td class="text-end">
+                                    {% if is_granted('ROLE_ADMIN') %}
+                                        <form method="post" action="{{ path('admin_accounting_reconciliation_delete', {'id': r.id}) }}" class="d-inline"
+                                              data-confirm="Supprimer ce rapprochement ?" data-confirm-title="Confirmer la suppression" data-confirm-btn="Oui, supprimer">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_reconcile' ~ r.id) }}">
+                                            <button class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    {% else %}
+                                        {% if r.bankBalanced %}<span class="badge badge-soft success"><i class="fas fa-check"></i></span>{% else %}<span class="badge badge-soft danger"><i class="fas fa-triangle-exclamation"></i></span>{% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="7">{{ empty_state('fa-scale-balanced', 'Aucun rapprochement', 'Aucun rapprochement caisse/banque enregistré.') }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

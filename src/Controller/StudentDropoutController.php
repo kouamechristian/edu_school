@@ -104,6 +104,7 @@ class StudentDropoutController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, StudentDropout $dropout, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$dropout->getId(), $request->request->get('_token'))) {

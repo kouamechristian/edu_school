@@ -5,7 +5,6 @@ namespace App\Controller\Portal;
 use App\Controller\Concern\HandlesFileUpload;
 use App\Entity\Level;
 use App\Entity\Notification;
-use App\Entity\Payment;
 use App\Entity\PreRegistration;
 use App\Entity\PreRegistrationDocument;
 use App\Entity\Student;
@@ -23,8 +22,6 @@ use App\Security\Voter\ChildVoter;
 use App\Service\MatriculeGenerator;
 use App\Service\ParentContextService;
 use App\Service\ParentPortalService;
-use App\Service\Payment\PaymentGatewayException;
-use App\Service\Payment\PaymentInitiator;
 use App\Service\PreRegistrationFactory;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -338,6 +335,75 @@ class ParentPortalController extends AbstractController
     }
 
     /**
+     * Opérateurs Mobile Money proposés au parent pour le paiement en ligne.
+     *
+     * @var array<string, string>
+     */
+    private const MOBILE_MONEY_OPERATORS = [
+        'orange' => 'Orange Money',
+        'mtn' => 'MTN MoMo',
+        'moov' => 'Moov Money',
+        'wave' => 'Wave',
+    ];
+
+    /**
+     * Paiement en ligne de la scolarité (espace parent) — Mobile Money.
+     *
+     * Le parent choisit son opérateur (Orange, MTN, Moov, Wave…) puis valide. La
+     * passerelle Mobile Money n'étant pas encore raccordée, on affiche un écran
+     * « système en travaux ». C'est ICI que sera branchée l'API de paiement le moment
+     * venu : initiation de la transaction côté opérateur puis redirection du parent.
+     */
+    #[Route('/enfant/{id}/payer', name: 'parent_child_pay', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function payFee(
+        Student $child,
+        Request $request,
+        StudentFeeRepository $studentFeeRepository,
+    ): Response {
+        $this->denyAccessUnlessGranted(ChildVoter::VIEW, $child);
+
+        $redirect = $this->redirectToRoute('parent_child_finance', ['id' => $child->getId()]);
+
+        if (!$this->isCsrfTokenValid('parent_pay' . $child->getId(), (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide, veuillez réessayer.');
+
+            return $redirect;
+        }
+
+        $studentFee = $studentFeeRepository->find((int) $request->request->get('student_fee_id'));
+        if (!$studentFee || $studentFee->getStudent()?->getId() !== $child->getId() || !$studentFee->getFee()?->isActive()) {
+            $this->addFlash('error', 'Frais invalide pour cet élève.');
+
+            return $redirect;
+        }
+
+        $amount = (float) $request->request->get('amount', 0);
+        if ($amount <= 0 || $amount > $studentFee->getRemainingAmount() + 0.009) {
+            $this->addFlash('error', 'Le montant doit être supérieur à 0 et ne pas dépasser le reste dû.');
+
+            return $redirect;
+        }
+
+        $operatorKey = (string) $request->request->get('operator');
+        if (!isset(self::MOBILE_MONEY_OPERATORS[$operatorKey])) {
+            $this->addFlash('error', 'Veuillez choisir un opérateur Mobile Money.');
+
+            return $redirect;
+        }
+
+        // TODO: brancher ici l'API Mobile Money de l'opérateur (création de la
+        // transaction + redirection vers sa page de paiement). En attendant, écran
+        // « système en travaux ».
+        return $this->render('parent/payment_maintenance.html.twig', [
+            'child' => $child,
+            'student_fee' => $studentFee,
+            'amount' => $amount,
+            'operator' => self::MOBILE_MONEY_OPERATORS[$operatorKey],
+            'operator_key' => $operatorKey,
+        ]);
+    }
+
+    /**
      * Emploi du temps de la classe de l'enfant (lecture seule).
      */
     #[Route('/enfant/{id}/emploi-du-temps', name: 'parent_child_schedule', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -362,88 +428,6 @@ class ParentPortalController extends AbstractController
             'classroom' => $classroom,
             'schedule' => $schedule,
             'time_slots' => $timeSlots,
-        ]);
-    }
-
-    /**
-     * Paiement en ligne de la scolarité (espace parent → passerelle GeniusPay).
-     *
-     * On valide la demande, on crée un paiement « en attente » via PaymentInitiator,
-     * puis on redirige le parent vers la page de checkout de la passerelle. Le solde
-     * n'est imputé qu'au retour du webhook confirmant le paiement.
-     */
-    #[Route('/enfant/{id}/payer', name: 'parent_child_pay', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function payFee(
-        Student $child,
-        Request $request,
-        StudentFeeRepository $studentFeeRepository,
-        PaymentInitiator $paymentInitiator,
-    ): Response {
-        $this->denyAccessUnlessGranted(ChildVoter::VIEW, $child);
-
-        $redirect = $this->redirectToRoute('parent_child_finance', ['id' => $child->getId()]);
-
-        if (!$this->isCsrfTokenValid('parent_pay' . $child->getId(), (string) $request->request->get('_token'))) {
-            $this->addFlash('error', 'Jeton de sécurité invalide, veuillez réessayer.');
-
-            return $redirect;
-        }
-
-        $amount = (float) $request->request->get('amount', 0);
-
-        $studentFee = $studentFeeRepository->find((int) $request->request->get('student_fee_id'));
-        if (!$studentFee || $studentFee->getStudent()?->getId() !== $child->getId() || !$studentFee->getFee()?->isActive()) {
-            $this->addFlash('error', 'Frais invalide pour cet élève.');
-
-            return $redirect;
-        }
-
-        try {
-            $payment = $paymentInitiator->initiate($studentFee, $amount, $this->getCurrentParent());
-        } catch (\InvalidArgumentException $e) {
-            $this->addFlash('error', $e->getMessage());
-
-            return $redirect;
-        } catch (PaymentGatewayException $e) {
-            $this->addFlash('error', $e->getMessage() ?: 'Le paiement en ligne est momentanément indisponible. Veuillez réessayer plus tard.');
-
-            return $redirect;
-        }
-
-        // Redirection vers la page de paiement sécurisée de GeniusPay.
-        if ($payment->getCheckoutUrl()) {
-            return $this->redirect($payment->getCheckoutUrl());
-        }
-
-        $this->addFlash('warning', 'Paiement initié, mais l\'URL de paiement est indisponible. Réessayez.');
-
-        return $redirect;
-    }
-
-    /**
-     * Page de retour après le checkout GeniusPay.
-     *
-     * Affiche l'état du paiement (le statut définitif est posé par le webhook ;
-     * ici on montre l'état courant, éventuellement encore « en attente »).
-     */
-    #[Route('/paiement/{id}/retour', name: 'parent_payment_return', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function paymentReturn(
-        \App\Entity\Payment $payment,
-        \App\Service\Payment\PaymentStatusSynchronizer $statusSynchronizer,
-    ): Response {
-        $child = $payment->getStudent();
-        if (!$child) {
-            throw $this->createNotFoundException();
-        }
-        $this->denyAccessUnlessGranted(ChildVoter::VIEW, $child);
-
-        // Vérification du statut auprès de la passerelle (complément au webhook) :
-        // confirme le paiement dès le retour, même sans URL publique en local.
-        $statusSynchronizer->synchronize($payment);
-
-        return $this->render('parent/payment_return.html.twig', [
-            'payment' => $payment,
-            'child' => $child,
         ]);
     }
 

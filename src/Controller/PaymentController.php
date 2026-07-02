@@ -237,10 +237,10 @@ class PaymentController extends AbstractController
                 $entityManager->flush();
             }
 
-            $this->addFlash('success', 'Le paiement a été enregistré avec succès. Le reçu s\'ouvre automatiquement.');
+            $this->addFlash('success', 'Le paiement a été enregistré avec succès. Le reçu s\'ouvre dans un nouvel onglet.');
 
-            // Le reçu s'ouvre automatiquement (PDF en ligne) une fois le montant imputé.
-            return $this->redirectToRoute('admin_payment_receipt', ['id' => $payment->getId()], Response::HTTP_SEE_OTHER);
+            // On revient sur la fiche du paiement ; le reçu (PDF) s'ouvre dans un nouvel onglet (JS).
+            return $this->redirectToRoute('admin_payment_show', ['id' => $payment->getId(), 'receipt' => 1], Response::HTTP_SEE_OTHER);
         }
 
         if ($form->isSubmitted() && !$form->isValid()) {
@@ -360,7 +360,7 @@ class PaymentController extends AbstractController
         return new JsonResponse(['fees' => $fees]);
     }
 
-    #[Route('/{id}', name: 'show', methods: ['GET'])]
+    #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show(Payment $payment): Response
     {
         return $this->render('payment/show.html.twig', [
@@ -464,6 +464,7 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         Request $request,
         Payment $payment,
@@ -552,6 +553,18 @@ class PaymentController extends AbstractController
     public function cancel(Request $request, Payment $payment, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('cancel'.$payment->getId(), $request->request->get('_token'))) {
+            if ($payment->getStatus() === 'annulé') {
+                $this->addFlash('info', 'Ce paiement est déjà annulé.');
+
+                return $this->redirectToRoute('admin_payment_show', ['id' => $payment->getId()], Response::HTTP_SEE_OTHER);
+            }
+
+            // Si le paiement avait été encaissé, on retire le montant imputé au frais de l'élève.
+            if ($payment->getStatus() === 'payé' && ($studentFee = $payment->getStudentFee()) !== null) {
+                $newPaid = max(0.0, ((float) $studentFee->getPaidAmount()) - (float) $payment->getAmount());
+                $studentFee->setPaidAmount((string) number_format($newPaid, 2, '.', ''));
+            }
+
             $payment->setStatus('annulé');
             $entityManager->flush();
 
@@ -568,6 +581,18 @@ class PaymentController extends AbstractController
 
         return $this->render('payment/pending.html.twig', [
             'payments' => $pendingPayments,
+        ]);
+    }
+
+    #[Route('/cancelled', name: 'cancelled', methods: ['GET'])]
+    public function cancelled(Request $request, PaymentRepository $paymentRepository, \Knp\Component\Pager\PaginatorInterface $paginator): Response
+    {
+        $cancelledPayments = $paymentRepository->findByStatus('annulé');
+        $payments = $paginator->paginate($cancelledPayments, $request->query->getInt('page', 1), 50);
+
+        return $this->render('payment/cancelled.html.twig', [
+            'payments' => $payments,
+            'total' => count($cancelledPayments),
         ]);
     }
 

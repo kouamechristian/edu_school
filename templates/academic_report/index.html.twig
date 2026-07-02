@@ -42,6 +42,58 @@
                                         <a href="{{ path(report.route) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-danger">
                                             <i class="fas fa-file-pdf me-1"></i> Générer PDF
                                         </a>
+                                    {% elseif report.status == 'year_range' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rangeModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'age_range' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#ageModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'top_period' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#topPeriodModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'stats_period' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#statsModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'period_only' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#periodModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'period_excel' %}
+                                        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#periodModal_{{ report.route }}">
+                                            <i class="fas fa-file-excel me-1"></i> Exporter Excel
+                                        </button>
+                                    {% elseif report.status == 'class_period' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#classPeriodModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'quality_period' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#qualityPeriodModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'level_period' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#levelPeriodModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'livret' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#livretModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'sup_period' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#supPeriodModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'level_only' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#levelOnlyModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
+                                    {% elseif report.status == 'level_all' %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#levelAllModal_{{ report.route }}">
+                                            <i class="fas fa-file-pdf me-1"></i> Générer PDF
+                                        </button>
                                     {% elseif report.status == 'select' %}
                                         <a href="{{ path(report.route, report.route_args) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-list me-1"></i> Choisir une classe
@@ -57,5 +109,482 @@
             </div>
         </div>
     </div>
+
+    {# Fenêtres modales « plage d'années » (rapports à intervalle d'années de naissance). #}
+    {% for report in reports|filter(r => r.status == 'year_range') %}
+        {% set current_year = 'now'|date('Y') %}
+        <div class="modal fade" id="rangeModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted small">Choisissez la plage d'années de naissance à afficher en colonnes.</p>
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label" for="annee_debut_{{ report.route }}">Année de départ</label>
+                                    <input type="number" class="form-control" id="annee_debut_{{ report.route }}" name="annee_debut" min="1900" max="{{ current_year + 5 }}" value="{{ current_year - 25 }}" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" for="annee_fin_{{ report.route }}">Année de fin</label>
+                                    <input type="number" class="form-control" id="annee_fin_{{ report.route }}" name="annee_fin" min="1900" max="{{ current_year + 5 }}" value="{{ current_year }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Fenêtres modales « plage d'âges » (rapports à intervalle d'âges). #}
+    {% for report in reports|filter(r => r.status == 'age_range') %}
+        <div class="modal fade" id="ageModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted small">Choisissez l'âge minimum et l'âge maximum. Les élèves en dehors de la plage sont regroupés dans « Moins de… » et « Plus de… ».</p>
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label" for="age_min_{{ report.route }}">Âge minimum</label>
+                                    <input type="number" class="form-control" id="age_min_{{ report.route }}" name="age_min" min="0" max="120" value="16" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" for="age_max_{{ report.route }}">Âge maximum</label>
+                                    <input type="number" class="form-control" id="age_max_{{ report.route }}" name="age_max" min="0" max="120" value="19" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Fenêtres modales « N premiers par période » (majors de classe). #}
+    {% for report in reports|filter(r => r.status == 'top_period') %}
+        <div class="modal fade" id="topPeriodModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if periods|length > 0 %}
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <label class="form-label" for="top_{{ report.route }}">N premiers</label>
+                                        <input type="number" class="form-control" id="top_{{ report.route }}" name="top" min="1" max="50" value="3" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label" for="periode_{{ report.route }}">Période scolaire</label>
+                                        <select class="form-select" id="periode_{{ report.route }}" name="periode" required>
+                                            {% for period in periods %}
+                                                <option value="{{ period.id }}">{{ period.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <p class="text-danger mb-0"><i class="fas fa-triangle-exclamation me-1"></i> Aucune période scolaire n'est définie pour l'année en cours.</p>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger" {{ periods|length == 0 ? 'disabled' : '' }}><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Fenêtres modales « période + portée du résultat » (statistiques par classe). #}
+    {% for report in reports|filter(r => r.status == 'stats_period') %}
+        <div class="modal fade" id="statsModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label" for="resultat_{{ report.route }}">Résultat</label>
+                                    <select class="form-select" id="resultat_{{ report.route }}" name="resultat" data-scope-select>
+                                        {% if periods|length > 0 %}<option value="trimestriel">Trimestriel</option>{% endif %}
+                                        <option value="annuel">Annuel</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" for="periode_stats_{{ report.route }}">Période scolaire</label>
+                                    <select class="form-select" id="periode_stats_{{ report.route }}" name="periode" data-scope-period {{ periods|length == 0 ? 'disabled' : '' }}>
+                                        {% for period in periods %}
+                                            <option value="{{ period.id }}">{{ period.name }}</option>
+                                        {% else %}
+                                            <option value="">Aucune période définie</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Fenêtres modales « période seule » (PDF de situation par genre, ou export Excel). #}
+    {% for report in reports|filter(r => r.status == 'period_only' or r.status == 'period_excel') %}
+        {% set is_excel = report.status == 'period_excel' %}
+        <div class="modal fade" id="periodModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}"{% if not is_excel %} target="_blank"{% endif %} rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas {{ is_excel ? 'fa-file-excel text-success' : 'fa-file-pdf text-danger' }} me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if periods|length > 0 %}
+                                <label class="form-label" for="periode_only_{{ report.route }}">Période scolaire</label>
+                                <select class="form-select" id="periode_only_{{ report.route }}" name="periode" required>
+                                    {% for period in periods %}
+                                        <option value="{{ period.id }}">{{ period.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <p class="text-danger mb-0"><i class="fas fa-triangle-exclamation me-1"></i> Aucune période scolaire n'est définie pour l'année en cours.</p>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            {% if is_excel %}
+                                <button type="submit" class="btn btn-success" {{ periods|length == 0 ? 'disabled' : '' }}><i class="fas fa-file-excel me-1"></i> Exporter Excel</button>
+                            {% else %}
+                                <button type="submit" class="btn btn-danger" {{ periods|length == 0 ? 'disabled' : '' }}><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Fenêtres modales « qualité + période » (liste nominative par niveau et classe). #}
+    {% for report in reports|filter(r => r.status == 'quality_period') %}
+        <div class="modal fade" id="qualityPeriodModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if periods|length > 0 %}
+                                <div class="mb-3">
+                                    <label class="form-label" for="qualite_{{ report.route }}">Qualité</label>
+                                    <select class="form-select" id="qualite_{{ report.route }}" name="qualite">
+                                        <option value="">Tous</option>
+                                        <option value="affecte">Affectés</option>
+                                        <option value="non_affecte">Non-affectés</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="periode_qual_{{ report.route }}">Période scolaire</label>
+                                    <select class="form-select" id="periode_qual_{{ report.route }}" name="periode" required>
+                                        {% for period in periods %}
+                                            <option value="{{ period.id }}">{{ period.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% else %}
+                                <p class="text-danger mb-0"><i class="fas fa-triangle-exclamation me-1"></i> Aucune période scolaire n'est définie pour l'année en cours.</p>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger" {{ periods|length == 0 ? 'disabled' : '' }}><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Fenêtres modales « classe + période » (liste des classes par ordre de mérite). #}
+    {% for report in reports|filter(r => r.status == 'class_period') %}
+        <div class="modal fade" id="classPeriodModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if periods|length > 0 %}
+                                <div class="mb-3">
+                                    <label class="form-label" for="classe_{{ report.route }}">Classe</label>
+                                    <select class="form-select" id="classe_{{ report.route }}" name="classe">
+                                        <option value="0">Toutes les classes</option>
+                                        {% for classroom in classrooms %}
+                                            <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="periode_classe_{{ report.route }}">Période scolaire</label>
+                                    <select class="form-select" id="periode_classe_{{ report.route }}" name="periode" required>
+                                        {% for period in periods %}
+                                            <option value="{{ period.id }}">{{ period.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% else %}
+                                <p class="text-danger mb-0"><i class="fas fa-triangle-exclamation me-1"></i> Aucune période scolaire n'est définie pour l'année en cours.</p>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger" {{ periods|length == 0 ? 'disabled' : '' }}><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Fenêtres modales « niveau + période » (tableau récapitulatif des moyennes par matière). #}
+    {% for report in reports|filter(r => r.status == 'level_period') %}
+        <div class="modal fade" id="levelPeriodModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div>
+                                <label class="form-label" for="niveau_{{ report.route }}">Niveau</label>
+                                <select class="form-select" id="niveau_{{ report.route }}" name="niveau">
+                                    <option value="0">Tous les niveaux</option>
+                                    {% for level in levels %}
+                                        <option value="{{ level.id }}">{{ level.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Modal « tous les niveaux ou un niveau » (liste avec décision de fin d'année). #}
+    {% for report in reports|filter(r => r.status == 'level_all') %}
+        <div class="modal fade" id="levelAllModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-0">
+                                <label class="form-label" for="niveau_all_{{ report.route }}">Niveau</label>
+                                <select class="form-select" id="niveau_all_{{ report.route }}" name="niveau">
+                                    <option value="0">Tous les niveaux</option>
+                                    {% for level in levels %}
+                                        <option value="{{ level.id }}">{{ level.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Modal « niveau seul » (bordereau annuel par niveau). #}
+    {% for report in reports|filter(r => r.status == 'level_only') %}
+        <div class="modal fade" id="levelOnlyModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if levels|length > 0 %}
+                                <div class="mb-0">
+                                    <label class="form-label" for="niveau_only_{{ report.route }}">Niveau</label>
+                                    <select class="form-select" id="niveau_only_{{ report.route }}" name="niveau" required>
+                                        <option value="">— Choisir un niveau —</option>
+                                        {% for level in levels %}
+                                            <option value="{{ level.id }}">{{ level.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% else %}
+                                <p class="text-danger mb-0"><i class="fas fa-triangle-exclamation me-1"></i> Aucun niveau défini pour l'établissement.</p>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger" {{ levels|length == 0 ? 'disabled' : '' }}><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Modal « moyenne supérieure à… » : période + seuil de moyenne. #}
+    {% for report in reports|filter(r => r.status == 'sup_period') %}
+        <div class="modal fade" id="supPeriodModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="get" action="{{ path(report.route) }}" target="_blank" rel="noopener">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>{{ report.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% if periods|length > 0 %}
+                                <div class="mb-3">
+                                    <label class="form-label" for="periode_sup_{{ report.route }}">Période scolaire</label>
+                                    <select class="form-select" id="periode_sup_{{ report.route }}" name="periode" required>
+                                        {% for period in periods %}
+                                            <option value="{{ period.id }}">{{ period.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="min_sup_{{ report.route }}">Moyenne minimale (/20)</label>
+                                    <input type="number" step="0.01" min="0" max="20" value="10" class="form-control" id="min_sup_{{ report.route }}" name="min" required>
+                                    <div class="form-text">Les élèves ayant une moyenne supérieure ou égale à ce seuil seront listés.</div>
+                                </div>
+                            {% else %}
+                                <p class="text-danger mb-0"><i class="fas fa-triangle-exclamation me-1"></i> Aucune période scolaire n'est définie pour l'année en cours.</p>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger" {{ periods|length == 0 ? 'disabled' : '' }}><i class="fas fa-file-pdf me-1"></i> Générer PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Modal « livret scolaire » : cascade niveau → classe → élève. #}
+    {% for report in reports|filter(r => r.status == 'livret') %}
+        <div class="modal fade" id="livretModal_{{ report.route }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-book text-danger me-2"></i>{{ report.name }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% if levels|length > 0 %}
+                            <div class="mb-3">
+                                <label class="form-label">Niveau</label>
+                                <select class="form-select" data-no-search id="livretLevel_{{ report.route }}">
+                                    <option value="">— Choisir un niveau —</option>
+                                    {% for level in levels %}<option value="{{ level.id }}">{{ level.name }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Classe</label>
+                                <select class="form-select" data-no-search id="livretClass_{{ report.route }}" disabled>
+                                    <option value="">— Choisir une classe —</option>
+                                </select>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label">Élève</label>
+                                <select class="form-select" data-no-search id="livretStudent_{{ report.route }}" disabled>
+                                    <option value="">— Choisir un élève —</option>
+                                </select>
+                            </div>
+                        {% else %}
+                            <p class="text-danger mb-0"><i class="fas fa-triangle-exclamation me-1"></i> Aucun niveau/classe défini pour l'année en cours.</p>
+                        {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                        <a id="livretGen_{{ report.route }}" href="#" target="_blank" rel="noopener" class="btn btn-danger disabled"><i class="fas fa-file-pdf me-1"></i> Générer PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+        (function () {
+            var classesByLevel = {{ classes_by_level|json_encode|raw }};
+            var studentsByClass = {{ students_by_class|json_encode|raw }};
+            var base = "{{ path(report.route, {id: 0}) }}";
+            var lvl = document.getElementById('livretLevel_{{ report.route }}');
+            var cls = document.getElementById('livretClass_{{ report.route }}');
+            var stu = document.getElementById('livretStudent_{{ report.route }}');
+            var gen = document.getElementById('livretGen_{{ report.route }}');
+            if (!lvl) { return; }
+            function fill(sel, items, ph) { sel.innerHTML = ''; sel.appendChild(new Option(ph, '')); (items || []).forEach(function (it) { sel.appendChild(new Option(it.name, it.id)); }); }
+            function reset() { gen.classList.add('disabled'); gen.removeAttribute('href'); }
+            lvl.addEventListener('change', function () { fill(cls, classesByLevel[this.value] || [], '— Choisir une classe —'); cls.disabled = !this.value; fill(stu, [], '— Choisir un élève —'); stu.disabled = true; reset(); });
+            cls.addEventListener('change', function () { fill(stu, studentsByClass[this.value] || [], '— Choisir un élève —'); stu.disabled = !this.value; reset(); });
+            stu.addEventListener('change', function () { if (this.value) { gen.href = base.replace('/0/', '/' + this.value + '/'); gen.classList.remove('disabled'); } else { reset(); } });
+        })();
+        </script>
+    {% endfor %}
 </div>
+
+{# La période n'est utile que pour un résultat trimestriel : on la désactive sinon. #}
+<script>
+document.querySelectorAll('[data-scope-select]').forEach(function (sel) {
+    var period = sel.closest('form').querySelector('[data-scope-period]');
+    if (!period) { return; }
+    function sync() { period.disabled = (sel.value !== 'trimestriel'); }
+    sel.addEventListener('change', sync);
+    sync();
+});
+</script>
 {% endblock %}

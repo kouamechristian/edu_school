@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 24px 26px; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #000; }
+        @page { margin: 18px 20px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 8px; color: #000; }
         .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 12px; }
         .header td { vertical-align: middle; }
         .header .logo { width: 70px; }
@@ -18,11 +18,13 @@
         .title-row .right { text-align: right; }
         .title-row b { font-weight: bold; }
         table.list { width: 100%; border-collapse: collapse; }
-        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; font-size: 9px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 2px 3px; font-size: 7px; }
         table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
         table.list td.center { text-align: center; }
-        table.list td.lvl { text-align: left; font-weight: bold; }
-        table.list tr.grand td { background: #dfe6ee; font-weight: bold; }
+        table.list td.band { text-align: left; font-weight: bold; }
+        table.list th.ens, table.list td.ens { background: #dfe6ee; }
+        table.list tr.total td { background: #eef2f6; font-weight: bold; }
+        table.list tr.total td.ens { background: #dfe6ee; }
         .footer { width: 100%; margin-top: 20px; font-size: 10px; }
         .footer td { vertical-align: top; }
         .footer .sign { text-align: right; text-decoration: underline; }
@@ -52,35 +54,45 @@
     <table class="list">
         <thead>
             <tr>
-                <th class="lvl" style="width:22%">Niveau \ Âge</th>
-                {% for age in age_list %}<th>{{ age }} ans</th>{% endfor %}
-                <th>Total</th>
+                <th rowspan="2">AGE</th>
+                {% for level in levels %}<th colspan="2">{{ level.label }}</th>{% endfor %}
+                <th colspan="2" class="ens">Ensemble</th>
+            </tr>
+            <tr>
+                {% for level in levels %}<th>Total</th><th>Fille</th>{% endfor %}
+                <th class="ens">Total</th><th class="ens">Fille</th>
             </tr>
         </thead>
         <tbody>
-            {% for group in by_level %}
+            {% for band in bands %}
                 <tr>
-                    <td class="lvl">{{ group.label }}</td>
-                    {% for age in age_list %}
-                        <td class="center">{{ group.ages[age] ?? 0 }}</td>
+                    <td class="band">{{ band.label }}</td>
+                    {% for level in levels %}
+                        <td class="center">{{ level.bands[band.key].total }}</td>
+                        <td class="center">{{ level.bands[band.key].girls }}</td>
                     {% endfor %}
-                    <td class="center">{{ group.total }}</td>
+                    <td class="center ens">{{ ensemble.bands[band.key].total }}</td>
+                    <td class="center ens">{{ ensemble.bands[band.key].girls }}</td>
                 </tr>
-            {% else %}
-                <tr><td colspan="{{ age_list|length + 2 }}" class="center">Aucun effectif disponible</td></tr>
             {% endfor %}
-            {% if by_level is not empty %}
-                <tr class="grand">
-                    <td class="lvl">TOTAL</td>
-                    {% set col_total = 0 %}
-                    {% for age in age_list %}
-                        {% set s = 0 %}
-                        {% for group in by_level %}{% set s = s + (group.ages[age] ?? 0) %}{% endfor %}
-                        <td class="center">{{ s }}</td>
-                    {% endfor %}
-                    <td class="center">{% set g = 0 %}{% for group in by_level %}{% set g = g + group.total %}{% endfor %}{{ g }}</td>
-                </tr>
-            {% endif %}
+            <tr class="total">
+                <td class="band">Total élève par niveau</td>
+                {% for level in levels %}
+                    <td class="center">{{ level.total }}</td>
+                    <td class="center">{{ level.girls }}</td>
+                {% endfor %}
+                <td class="center ens">{{ ensemble.total }}</td>
+                <td class="center ens">{{ ensemble.girls }}</td>
+            </tr>
+            <tr class="total">
+                <td class="band">Dont redoublant</td>
+                {% for level in levels %}
+                    <td class="center">{{ level.redTotal }}</td>
+                    <td class="center">{{ level.redGirls }}</td>
+                {% endfor %}
+                <td class="center ens">{{ ensemble.redTotal }}</td>
+                <td class="center ens">{{ ensemble.redGirls }}</td>
+            </tr>
         </tbody>
     </table>
 

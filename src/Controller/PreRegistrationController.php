@@ -485,6 +485,7 @@ class PreRegistrationController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         Request $request,
         PreRegistration $preRegistration,

@@ -1,8 +1,7 @@
 {{ form_start(form) }}
-    <div class="mb-3">{{ form_row(form.classroom) }}</div>
     <div class="row">
-        <div class="col-md-4 mb-3">{{ form_row(form.isRepeating) }}</div>
-        <div class="col-md-4 mb-3">{{ form_row(form.boursier) }}</div>
+        <div class="col-md-6 mb-3">{{ form_row(form.isRepeating) }}</div>
+        <div class="col-md-6 mb-3">{{ form_row(form.boursier) }}</div>
     </div>
     <div class="d-flex justify-content-between mt-4 pt-3 border-top">
         <a href="{{ path('admin_registration_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>

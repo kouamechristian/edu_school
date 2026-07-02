@@ -37,6 +37,15 @@ class BulletinLine
     #[ORM\Column(length: 60, nullable: true)]
     private ?string $mention = null;
 
+    /**
+     * Moyenne annuelle (toutes périodes de l'année) ramenée sur la base (null = non noté).
+     */
+    #[ORM\Column(name: 'annual_average', type: 'decimal', precision: 6, scale: 2, nullable: true)]
+    private ?string $annualAverage = null;
+
+    #[ORM\Column(name: 'annual_rank', nullable: true)]
+    private ?int $annualRank = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -89,6 +98,28 @@ class BulletinLine
     public function getMention(): ?string
     {
         return $this->mention;
+    }
+
+    public function getAnnualAverage(): ?string
+    {
+        return $this->annualAverage;
+    }
+
+    public function setAnnualAverage(?string $annualAverage): static
+    {
+        $this->annualAverage = $annualAverage;
+        return $this;
+    }
+
+    public function getAnnualRank(): ?int
+    {
+        return $this->annualRank;
+    }
+
+    public function setAnnualRank(?int $annualRank): static
+    {
+        $this->annualRank = $annualRank;
+        return $this;
     }
 
     public function setMention(?string $mention): static

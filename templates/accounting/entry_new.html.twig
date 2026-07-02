@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle écriture{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Nouvelle écriture',
+        subtitle: current_school.name,
+        icon: 'fa-pen-to-square',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Comptabilité', path: path('admin_accounting_dashboard') },
+            { label: 'Journal', path: path('admin_accounting_journal') },
+            { label: 'Nouvelle écriture' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_accounting_journal') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if latest_closure %}
+        <div class="alert alert-warning d-flex align-items-center">
+            <i class="fas fa-lock me-2"></i>
+            <div>La comptabilité est clôturée jusqu'au <strong>{{ latest_closure.endDate|date('d/m/Y') }}</strong>. Toute écriture doit porter une date <strong>postérieure</strong> à cette date.</div>
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-pen-to-square me-2"></i>Saisie manuelle</h6></div>
+        <div class="card-body">
+            <p class="text-muted small"><i class="fas fa-info-circle me-1"></i> Utilisez la saisie manuelle pour une recette ou une dépense ponctuelle non issue d'un paiement ou d'une dépense de caisse (celles-ci sont enregistrées automatiquement).</p>
+            {{ form_start(form) }}
+                <div class="row">
+                    <div class="col-md-4 mb-3">{{ form_row(form.entryDate) }}</div>
+                    <div class="col-md-4 mb-3">{{ form_row(form.type) }}</div>
+                    <div class="col-md-4 mb-3">{{ form_row(form.account) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">{{ form_row(form.amount) }}</div>
+                    <div class="col-md-8 mb-3">{{ form_row(form.label) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">{{ form_row(form.paymentMethod) }}</div>
+                    <div class="col-md-8 mb-3">{{ form_row(form.notes) }}</div>
+                </div>
+                <div class="pt-3 border-top">
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Enregistrer l'écriture</button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

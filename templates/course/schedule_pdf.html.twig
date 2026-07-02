@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 30px 28px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+        .title { text-align: center; margin-bottom: 18px; }
+        .title .school { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+        .title .edt { font-weight: bold; font-size: 14px; }
+        table.edt { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        table.edt th, table.edt td { border: 1px solid #555; padding: 5px 4px; vertical-align: middle; }
+        table.edt th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.edt td.horaire { text-align: center; font-weight: bold; white-space: nowrap; }
+        table.edt td.cell { text-align: center; height: 46px; }
+        table.edt td.cell .subj { font-weight: bold; }
+        table.edt td.cell .teacher { display: block; }
+        table.edt td.cell .room { display: block; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="title">
+        <div class="school">{{ school ? school.name|upper : '' }}</div>
+        <div class="edt">EMPLOI DU TEMPS : {{ classroom.name }} / ANNEE SCOLAIRE : {{ classroom.schoolYear ? classroom.schoolYear.name : '—' }}</div>
+    </div>
+
+    {% set days = {'lundi': 'LUNDI', 'mardi': 'MARDI', 'mercredi': 'MERCREDI', 'jeudi': 'JEUDI', 'vendredi': 'VENDREDI'} %}
+    <table class="edt">
+        <thead>
+            <tr>
+                <th width="80">HORAIRES</th>
+                {% for key, label in days %}<th>{{ label }}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for timeSlot in time_slots %}
+            <tr>
+                <td class="horaire">{{ timeSlot.startTime|date('H') }}H{{ timeSlot.startTime|date('i') }}-{{ timeSlot.endTime|date('H') }}H{{ timeSlot.endTime|date('i') }}</td>
+                {% if timeSlot.type == 'cours' %}
+                    {% for key, label in days %}
+                    <td class="cell">
+                        {% for course in schedule[key] %}
+                            {% if course.timeSlot.id == timeSlot.id %}
+                                <span class="subj">{{ course.subject.name }}</span>
+                                <span class="teacher">{{ course.teacher ? course.teacher.fullName : '' }}</span>
+                                {% if course.room %}<span class="room">{{ course.room.name }}</span>{% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                    {% endfor %}
+                {% else %}
+                    <td class="cell" colspan="5" style="text-align:center; font-weight:bold; background:#fafafa;">{{ timeSlot.typeLabel }}</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

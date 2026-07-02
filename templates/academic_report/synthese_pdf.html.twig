@@ -17,6 +17,7 @@
         .title-row td { font-size: 13px; }
         .title-row .right { text-align: right; }
         .title-row b { font-weight: bold; }
+        .title-main { text-align: center; font-weight: bold; font-size: 12px; text-decoration: underline; margin-bottom: 12px; }
         table.cards { width: 100%; border-collapse: separate; border-spacing: 6px; margin-bottom: 12px; }
         table.cards td { border: 1px solid #ccc; border-radius: 4px; padding: 8px 10px; text-align: center; background: #f7f9fb; width: 25%; }
         table.cards .v { font-size: 16px; font-weight: bold; color: #1e3a5f; }
@@ -45,52 +46,62 @@
         </tr>
     </table>
 
-    <table class="title-row">
-        <tr>
-            <td><b>SYNTHÈSE GÉNÉRALE DES RÉSULTATS SCOLAIRES</b></td>
-            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
-        </tr>
-    </table>
-
-    <table class="cards">
-        <tr>
-            <td><div class="v">{{ overall.count }}</div><div class="l">Effectif total</div></td>
-            <td><div class="v">{{ overall.graded }}</div><div class="l">Élèves notés</div></td>
-            <td><div class="v">{{ overall.admis }}</div><div class="l">Admis (moy. &gt;= 10)</div></td>
-            <td><div class="v">{{ overall.redouble }}</div><div class="l">Redoublants (&lt; 10)</div></td>
-        </tr>
-        <tr>
-            <td><div class="v">{{ overall.pct|number_format(1, ',', ' ') }} %</div><div class="l">Taux de réussite</div></td>
-            <td><div class="v">{{ overall.average is not null ? overall.average|number_format(2, ',', ' ') : '—' }}</div><div class="l">Moyenne générale</div></td>
-            <td><div class="v">{{ overall.classes }}</div><div class="l">Classes</div></td>
-            <td><div class="v">{{ levels|length }}</div><div class="l">Niveaux</div></td>
-        </tr>
-    </table>
+    <div class="title-main">SYNTHÈSE GÉNÉRALE DES RÉSULTATS SCOLAIRES {{ scope_title|default('ANNUELS') }} {{ school_year ? school_year.name : '' }}</div>
 
     <table class="list">
         <thead>
             <tr>
-                <th style="width:30%">Niveau</th>
-                <th>Effectif noté</th>
-                <th>Admis</th>
-                <th>Redouble</th>
-                <th>% Réussite</th>
-                <th>Moyenne</th>
+                <th rowspan="2" style="width:18%">NIVEAU</th>
+                <th rowspan="2">Nbre<br>de Classes</th>
+                <th colspan="3">EFFECTIF</th>
+                <th colspan="2">Moy &gt;= 10</th>
+                <th colspan="2">10 &gt; Moy &gt;= 8,5</th>
+                <th colspan="2">Moy &lt; 8,5</th>
+                <th rowspan="2">Moyenne<br>ETABLISSEMENT</th>
+            </tr>
+            <tr>
+                <th>Total</th>
+                <th>Classé</th>
+                <th>Non<br>classé</th>
+                <th>NOMBRE</th>
+                <th>%</th>
+                <th>NOMBRE</th>
+                <th>%</th>
+                <th>NOMBRE</th>
+                <th>%</th>
             </tr>
         </thead>
         <tbody>
             {% for lvl in levels %}
                 <tr>
                     <td>{{ lvl.label }}</td>
-                    <td class="center">{{ lvl.graded }} / {{ lvl.count }}</td>
-                    <td class="center">{{ lvl.admis }}</td>
-                    <td class="center">{{ lvl.redouble }}</td>
-                    <td class="center">{{ lvl.pct|number_format(1, ',', ' ') }} %</td>
-                    <td class="center">{{ lvl.average is not null ? lvl.average|number_format(2, ',', ' ') : '—' }}</td>
+                    <td class="center">{{ lvl.classes }}</td>
+                    <td class="center">{{ lvl.count }}</td>
+                    <td class="center">{{ lvl.graded }}</td>
+                    <td class="center">{{ lvl.count - lvl.graded }}</td>
+                    <td class="center">{{ lvl.b10 }}</td>
+                    <td class="center">{{ (lvl.graded > 0 ? lvl.b10 / lvl.graded * 100 : 0)|number_format(2, '.', '') }}</td>
+                    <td class="center">{{ lvl.b85 }}</td>
+                    <td class="center">{{ (lvl.graded > 0 ? lvl.b85 / lvl.graded * 100 : 0)|number_format(2, '.', '') }}</td>
+                    <td class="center">{{ lvl.blow }}</td>
+                    <td class="center">{{ (lvl.graded > 0 ? lvl.blow / lvl.graded * 100 : 0)|number_format(2, '.', '') }}</td>
+                    <td class="center">{{ lvl.average is not null ? lvl.average|number_format(2, ',', ' ') : '0,00' }}</td>
                 </tr>
-            {% else %}
-                <tr><td colspan="6" class="center">Aucune donnée disponible</td></tr>
             {% endfor %}
+            <tr class="grand">
+                <td>Total Général</td>
+                <td class="center">{{ overall.classes }}</td>
+                <td class="center">{{ overall.count }}</td>
+                <td class="center">{{ overall.graded }}</td>
+                <td class="center">{{ overall.count - overall.graded }}</td>
+                <td class="center">{{ overall.b10 }}</td>
+                <td class="center">{{ (overall.graded > 0 ? overall.b10 / overall.graded * 100 : 0)|number_format(2, '.', '') }}</td>
+                <td class="center">{{ overall.b85 }}</td>
+                <td class="center">{{ (overall.graded > 0 ? overall.b85 / overall.graded * 100 : 0)|number_format(2, '.', '') }}</td>
+                <td class="center">{{ overall.blow }}</td>
+                <td class="center">{{ (overall.graded > 0 ? overall.blow / overall.graded * 100 : 0)|number_format(2, '.', '') }}</td>
+                <td class="center">{{ overall.average is not null ? overall.average|number_format(2, ',', ' ') : '0,00' }}</td>
+            </tr>
         </tbody>
     </table>
 

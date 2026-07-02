@@ -1,0 +1,110 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Clôtures de période{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Clôtures de période',
+        subtitle: current_school.name,
+        icon: 'fa-lock',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Comptabilité', path: path('admin_accounting_dashboard') },
+            { label: 'Clôtures' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_accounting_dashboard') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-3">
+        {# ── Période ouverte + formulaire de clôture ── #}
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-calendar-check me-2"></i>Clôturer la période en cours</h6></div>
+                <div class="card-body">
+                    <div class="alert alert-light border small mb-3">
+                        <div><strong>Période ouverte :</strong>
+                            {% if open_from %}du {{ open_from|date('d/m/Y') }}{% else %}depuis l'origine{% endif %} à aujourd'hui</div>
+                        <div class="mt-1">Recettes : <span class="text-success fw-bold">{{ open_recette|number_format(0, ',', ' ') }} F</span>
+                            · Dépenses : <span class="text-danger fw-bold">{{ open_depense|number_format(0, ',', ' ') }} F</span>
+                            · Résultat : <span class="fw-bold">{{ open_net|number_format(0, ',', ' ') }} F</span></div>
+                    </div>
+
+                    <form method="post" action="{{ path('admin_accounting_closure_new') }}"
+                          data-confirm="Clôturer définitivement la période jusqu'à la date choisie ? Les écritures manuelles de cette période ne pourront plus être modifiées."
+                          data-confirm-title="Confirmer la clôture" data-confirm-btn="Oui, clôturer" data-confirm-icon="warning">
+                        <input type="hidden" name="_token" value="{{ csrf_token('close_period') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Date de clôture (incluse)</label>
+                            <input type="date" name="end_date" value="{{ suggest_end }}" max="{{ suggest_end }}" class="form-control" required>
+                            {% if latest %}<div class="form-text">Dernière clôture : {{ latest.endDate|date('d/m/Y') }}. La nouvelle doit être postérieure.</div>{% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes (facultatif)</label>
+                            <textarea name="notes" rows="2" class="form-control" placeholder="Observation sur cette clôture…"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-lock me-1"></i> Clôturer la période</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {# ── Historique des clôtures ── #}
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-clock-rotate-left me-2"></i>Historique des clôtures</h6></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Période</th>
+                                    <th class="text-end">Recettes</th>
+                                    <th class="text-end">Dépenses</th>
+                                    <th class="text-end">Résultat</th>
+                                    <th>Clôturée par</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in closures %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">{% if c.startDate %}{{ c.startDate|date('d/m/Y') }}{% else %}Origine{% endif %} → {{ c.endDate|date('d/m/Y') }}</div>
+                                            <div class="small text-muted">{{ c.entryCount }} écriture(s){% if c.notes %} · {{ c.notes }}{% endif %}</div>
+                                        </td>
+                                        <td class="text-end text-success">{{ c.totalRecette|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end text-danger">{{ c.totalDepense|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end fw-bold">{{ c.netResult|number_format(0, ',', ' ') }}</td>
+                                        <td class="small">{{ c.closedBy ? c.closedBy.fullName : '—' }}<br><span class="text-muted">{{ c.createdAt|date('d/m/Y H:i') }}</span></td>
+                                        <td class="text-end">
+                                            {% if is_granted('ROLE_ADMIN') and latest and latest.id == c.id %}
+                                                <form method="post" action="{{ path('admin_accounting_closure_delete', {'id': c.id}) }}" class="d-inline"
+                                                      data-confirm="Rouvrir cette période ? La clôture sera annulée et les écritures redeviendront modifiables."
+                                                      data-confirm-title="Rouvrir la période" data-confirm-btn="Oui, rouvrir" data-confirm-icon="warning">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete_closure' ~ c.id) }}">
+                                                    <button class="btn btn-sm btn-outline-warning" title="Rouvrir cette période"><i class="fas fa-lock-open"></i></button>
+                                                </form>
+                                            {% else %}
+                                                <span class="badge badge-soft secondary"><i class="fas fa-lock"></i></span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="6">{{ empty_state('fa-lock-open', 'Aucune clôture', 'Aucune période n\'a encore été clôturée.') }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{# Corps du bulletin (modèle officiel) — fragment réutilisable, sans <html>/<head>.
+   Utilisé par le PDF individuel et, répété, par l'impression groupée. #}
+{% set s = student %}
+<table class="vcenter"><tbody><tr><td class="vcell">
+<div class="sheet">
+
+    {# ── Bandeau titre ── #}
+    <table class="title">
+        <tr>
+            <td style="width:62%">BULLETIN DE NOTES : {{ period.code }} {{ period.name|upper }}</td>
+            <td class="right">Année Scolaire : {{ school_year ? school_year.name : '' }}</td>
+        </tr>
+    </table>
+
+    {# ── Identité ── #}
+    <table class="ident">
+        <tr>
+            <td colspan="2" class="name">Nom et Prénom(s) : {{ s.lastName|upper }} {{ s.firstName|upper }}</td>
+            <td class="photo" rowspan="2">{% if photo_data %}<img src="{{ photo_data }}" alt="">{% endif %}</td>
+        </tr>
+        <tr>
+            <td style="width:48%">
+                <b>Matricule :</b> {{ s.matriculeNational ?: (s.matriculeInterne ?: 'AUCUN') }}<br>
+                <b>Date de naissance :</b> {{ s.dateOfBirth ? s.dateOfBirth|date('d/m/Y') : '' }}<br>
+                <b>Sexe :</b> {{ s.gender == 'M' ? 'MASCULIN' : (s.gender == 'F' ? 'FEMININ' : '') }}<br>
+                <b>Nationalité :</b> {{ s.nationality ?: '' }}
+            </td>
+            <td>
+                <b>Classe :</b> {{ s.classroom ? s.classroom.name : '' }}<br>
+                <b>Effectif :</b> {{ effectif }}<br>
+                <b>Situation Scolaire :</b> {{ s.isRepeating ? 'Doublant' : 'Non Doublant' }}<br>
+                <b>Affecté :</b> {{ s.status == 'affecte' ? 'Oui' : 'Non' }}
+            </td>
+        </tr>
+    </table>
+
+    {# ── Tableau des notes ── #}
+    <table class="grades">
+        <thead>
+            <tr>
+                <th style="width:30%">Disciplines</th>
+                <th>Note</th>
+                <th>Coef.</th>
+                <th>Moy Coef.</th>
+                <th>Rang</th>
+                <th style="width:22%">Professeurs</th>
+                <th style="width:22%">Appréciations signatures</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+                {% for row in group.rows %}
+                    <tr>
+                        <td class="disc">{{ row.name }}</td>
+                        {% if row.nc %}
+                            <td class="c">NC</td><td class="c">NC</td><td class="c">NC</td><td class="c">NC</td>
+                            <td>{{ row.teacher ?: '' }}</td><td></td>
+                        {% else %}
+                            <td class="c">{{ row.moy_bareme|number_format(row.moy_bareme == row.moy_bareme|round ? 0 : 2, ',', ' ') }} / {{ row.bareme }}</td>
+                            <td class="c">{{ row.coef|number_format(row.coef == row.coef|round ? 0 : 2, ',', ' ') }}</td>
+                            <td class="c">{{ row.moy_coef|number_format(2, ',', ' ') }}</td>
+                            <td class="c">{{ row.rank }} {{ row.rank == 1 ? 'er' : 'è' }}{{ row.ex ? ' EX' : '' }}</td>
+                            <td>{{ row.teacher ?: '' }}</td>
+                            <td>{{ row.appreciation }}</td>
+                        {% endif %}
+                    </tr>
+                    {# Composantes d'une matière parente (ex. FRANÇAIS) en sous-lignes. #}
+                    {% for sub in row.subs|default([]) %}
+                        <tr>
+                            <td class="sub">{{ sub.name }}</td>
+                            {% if sub.nc %}
+                                <td class="c">NC</td>
+                            {% else %}
+                                <td class="c">{{ sub.moy_bareme|number_format(sub.moy_bareme == sub.moy_bareme|round ? 0 : 2, ',', ' ') }} / {{ sub.bareme }}</td>
+                            {% endif %}
+                            <td class="c"></td><td class="c"></td><td class="c"></td><td></td><td></td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+                <tr class="bilan">
+                    <td class="disc">{{ group.label|upper }}</td>
+                    <td class="c"></td>
+                    <td class="c">{{ group.coef|number_format(group.coef == group.coef|round ? 0 : 2, ',', ' ') }}</td>
+                    <td class="c">{{ group.moy_coef|number_format(2, ',', ' ') }}</td>
+                    <td class="c">{% if group.average is not null %}{{ group.average|number_format(2, ',', ' ') }}/20{% endif %}</td>
+                    <td colspan="2"></td>
+                </tr>
+            {% endfor %}
+            <tr class="total">
+                <td class="disc">TOTAUX TRIMESTRE</td>
+                <td class="c"></td>
+                <td class="c">{{ total_coef|number_format(total_coef == total_coef|round ? 0 : 2, ',', ' ') }}</td>
+                <td class="c">{{ total_moy_coef|number_format(2, ',', ' ') }}</td>
+                <td colspan="3"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    {# ── Assiduité / Moyenne / Résultat classe ── #}
+    <table class="bottom">
+        <tr>
+            <td class="head" style="width:34%">Assiduité</td>
+            <td class="head" style="width:33%">Moyenne Trimestrielle</td>
+            <td class="head">Resultat de la classe</td>
+        </tr>
+        <tr>
+            <td>
+                Total d'heures d'absence : <b>{{ absence_total ?? 0 }} H</b><br>
+                Justifiées : <b>{{ absence_justified ?? 0 }} H</b><br>
+                Non justifiées : <b>{{ absence_unjustified ?? 0 }} H</b>
+                {% if (absence_penalty ?? 0) > 0 %}<br>Pénalité conduite : <b>− {{ absence_penalty }} pts</b>{% endif %}
+            </td>
+            <td>
+                {% if general_average is not null %}
+                    <div class="moy-big">{{ general_average|number_format(2, ',', ' ') }}/20</div>
+                    <div class="center"><b>Rang : {{ general_rank }} {{ general_rank == 1 ? 'er' : 'è' }}{{ general_rank_ex ? ' EX' : '' }}/{{ effectif }}</b></div>
+                {% else %}
+                    <div class="moy-big">NC</div>
+                {% endif %}
+                <div class="center" style="margin-top:3px; border-top:1px solid #999; padding-top:2px;">
+                    Moyenne annuelle :
+                    {% if annual_average is not null %}
+                        <b>{{ annual_average|number_format(2, ',', ' ') }}/20</b>
+                        &nbsp;·&nbsp; Rang : <b>{{ annual_rank }} {{ annual_rank == 1 ? 'er' : 'è' }}{{ annual_rank_ex ? ' EX' : '' }}/{{ effectif }}</b>
+                    {% else %}
+                        <b>NC</b>
+                    {% endif %}
+                </div>
+            </td>
+            <td>
+                Moy de classe : <b>{{ class_average is not null ? class_average|number_format(2, ',', ' ') : '—' }}</b><br>
+                Moyenne mini : <b>{{ class_min is not null ? class_min|number_format(class_min == class_min|round ? 0 : 2, ',', ' ') : '—' }}</b><br>
+                Moyenne maxi : <b>{{ class_max is not null ? class_max|number_format(class_max == class_max|round ? 0 : 2, ',', ' ') : '—' }}</b>
+            </td>
+        </tr>
+    </table>
+
+    {# ── Mention / Appréciation / Signatures ── #}
+    <table class="bottom">
+        <tr>
+            <td class="head" style="width:34%">Mention du conseil de classe</td>
+            <td class="head" style="width:33%">Appréciation du conseil de classe :</td>
+            <td class="head">Nom / Signature et cachet du chef d'Etablissement</td>
+        </tr>
+        <tr>
+            <td>
+                <div class="center underline" style="margin:2px 0;">DISTINCTIONS</div>
+                <div><span class="chk">{{ general_average is not null and general_average >= 16 ? 'X' : '' }}</span>Tableau d'honneur + Félicitations</div>
+                <div><span class="chk">{{ general_average is not null and general_average >= 14 and general_average < 16 ? 'X' : '' }}</span>Tableau d'honneur + Encouragement</div>
+                <div><span class="chk">{{ general_average is not null and general_average >= 12 and general_average < 14 ? 'X' : '' }}</span>Tableau d'honneur</div>
+                <div class="center underline" style="margin:4px 0 2px;">SANCTIONS</div>
+                <div><span class="chk">&nbsp;</span>Avertissement Travail</div>
+                <div><span class="chk">&nbsp;</span>Avertissement Conduite</div>
+                <div><span class="chk">&nbsp;</span>Blâme Travail</div>
+                <div><span class="chk">&nbsp;</span>Blâme Conduite</div>
+            </td>
+            <td>
+                <div style="min-height:60px;"></div>
+                <div class="center">Nom / Signature du professeur principal</div>
+            </td>
+            <td>
+                <div style="min-height:46px;"></div>
+                <div class="right">{% if s.school and s.school.director %}{{ s.school.director }}{% if director_role %} — ({{ director_role }}){% endif %}{% elseif director_role %}({{ director_role }}){% endif %}</div>
+                <div class="right">{{ city }} le {{ generated_at|date('d/m/Y') }}</div>
+            </td>
+        </tr>
+    </table>
+
+</div>
+</td></tr></tbody></table>

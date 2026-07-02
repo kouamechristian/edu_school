@@ -89,17 +89,19 @@
                                                    title="Modifier">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <form method="post" 
-                                                      action="{{ path('admin_period_delete', {'id': period.id}) }}" 
+                                                {% if is_granted('ROLE_ADMIN') %}
+                                                <form method="post"
+                                                      action="{{ path('admin_period_delete', {'id': period.id}) }}"
                                                       onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette période ?');"
                                                       style="display: inline;">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ period.id) }}">
-                                                    <button type="submit" 
-                                                            class="btn btn-outline-danger btn-sm" 
+                                                    <button type="submit"
+                                                            class="btn btn-outline-danger btn-sm"
                                                             title="Supprimer">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>

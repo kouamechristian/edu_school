@@ -23,7 +23,7 @@
     <div class="card">
         <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-credit-card me-2"></i>Enregistrer un paiement</h6></div>
         <div class="card-body">
-            {{ form_start(form) }}
+            {{ form_start(form, {'attr': {'id': 'paymentForm'}}) }}
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         {{ form_row(form.student) }}
@@ -243,6 +243,50 @@
             loadStudentSummary(el.value);
             loadStudentFees(el.value);
             renderImputation();
+
+            // ── Confirmation SweetAlert avant d'enregistrer le paiement ──
+            var form = document.getElementById('paymentForm');
+            var confirmedSubmit = false;
+            if (form && typeof Swal !== 'undefined') {
+                form.addEventListener('submit', function (e) {
+                    if (confirmedSubmit) return;         // déjà confirmé
+                    if (!form.checkValidity()) return;   // laisse la validation native s'afficher
+                    e.preventDefault();
+
+                    // Nom complet de l'élève : d'abord le récapitulatif chargé, sinon l'option sélectionnée.
+                    var box = document.getElementById('studentSummary');
+                    var nom = box ? (box.querySelector('[data-field="nom"]').textContent || '').trim() : '';
+                    var prenom = box ? (box.querySelector('[data-field="prenom"]').textContent || '').trim() : '';
+                    var fullName = (nom + ' ' + prenom).replace(/—/g, '').trim();
+                    if (!fullName && el.options && el.selectedIndex >= 0) {
+                        fullName = el.options[el.selectedIndex].text;
+                    }
+
+                    var amount = amountInput ? amountInput.value : '';
+
+                    Swal.fire({
+                        title: 'Confirmer le paiement',
+                        html: 'Êtes-vous sûr de vouloir effectuer un paiement de <strong>' + formatMoneyXof(amount) + '</strong>'
+                            + ' sur l\'élève <strong>' + (fullName || '—') + '</strong> ?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Oui, enregistrer',
+                        cancelButtonText: 'Annuler',
+                        confirmButtonColor: '#198754',
+                        cancelButtonColor: '#6c757d',
+                        reverseButtons: true
+                    }).then(function (result) {
+                        if (result.isConfirmed) {
+                            confirmedSubmit = true;
+                            if (typeof form.requestSubmit === 'function') {
+                                form.requestSubmit();
+                            } else {
+                                form.submit();
+                            }
+                        }
+                    });
+                });
+            }
         });
     </script>
 {% endblock %}

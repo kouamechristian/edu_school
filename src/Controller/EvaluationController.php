@@ -204,6 +204,7 @@ class EvaluationController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'admin_evaluation_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         Request $request,
         Evaluation $evaluation,

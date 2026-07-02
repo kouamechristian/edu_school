@@ -60,10 +60,12 @@
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ level.id) }}">
                                             <button type="submit" class="btn btn-outline-secondary" title="{{ level.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ level.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
+                                        {% if is_granted('ROLE_ADMIN') %}
                                         <form method="post" action="{{ path('admin_level_delete', {'id': level.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce niveau ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ level.id) }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

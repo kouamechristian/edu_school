@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 24px 26px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 10px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 74px; }
+        .header .logo img { max-height: 60px; max-width: 68px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 9px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 13px; margin: 4px 0; }
+        .period { text-align: center; font-size: 9px; margin-bottom: 10px; }
+        .cols { width: 100%; }
+        .cols td { vertical-align: top; width: 50%; padding: 0 6px; }
+        table.acc { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+        table.acc th, table.acc td { border: 1px solid #000; padding: 3px 5px; font-size: 8.5px; }
+        table.acc th { background: #f2f2f2; text-align: left; }
+        td.num { text-align: right; }
+        .subtotal td { font-weight: bold; background: #f7f7f7; }
+        .result { margin-top: 8px; border: 1.5px solid #000; padding: 6px 8px; font-size: 11px; font-weight: bold;
+                  display: flex; justify-content: space-between; }
+        .treasury { width: 60%; border-collapse: collapse; margin-top: 12px; }
+        .treasury td { border: 1px solid #000; padding: 3px 6px; }
+        .treasury .num { text-align: right; }
+        .green { color: #15803d; } .red { color: #b91c1c; } .blue { color: #0369a1; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="ministry">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <div class="title-main">COMPTE DE RÉSULTAT</div>
+    <div class="period">
+        {% if from and to %}Période du {{ from|date('d/m/Y') }} au {{ to|date('d/m/Y') }}{% else %}Toutes périodes{% endif %}
+        — édité le {{ generated_at|date('d/m/Y H:i') }}
+    </div>
+
+    <table class="cols">
+        <tr>
+            <td>
+                <table class="acc">
+                    <thead><tr><th>Recettes</th><th style="width:30%">Montant</th></tr></thead>
+                    <tbody>
+                        {% for r in recettes %}
+                            <tr><td>{{ r.code ? r.code ~ ' — ' : '' }}{{ r.name }}</td><td class="num">{{ r.total|number_format(0, ',', ' ') }}</td></tr>
+                        {% else %}
+                            <tr><td colspan="2">Aucune recette.</td></tr>
+                        {% endfor %}
+                        <tr class="subtotal"><td>Total recettes</td><td class="num green">{{ total_recette|number_format(0, ',', ' ') }}</td></tr>
+                    </tbody>
+                </table>
+            </td>
+            <td>
+                <table class="acc">
+                    <thead><tr><th>Dépenses</th><th style="width:30%">Montant</th></tr></thead>
+                    <tbody>
+                        {% for d in depenses %}
+                            <tr><td>{{ d.code ? d.code ~ ' — ' : '' }}{{ d.name }}</td><td class="num">{{ d.total|number_format(0, ',', ' ') }}</td></tr>
+                        {% else %}
+                            <tr><td colspan="2">Aucune dépense.</td></tr>
+                        {% endfor %}
+                        <tr class="subtotal"><td>Total dépenses</td><td class="num red">{{ total_depense|number_format(0, ',', ' ') }}</td></tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div class="result">
+        <span>RÉSULTAT NET (recettes − dépenses)</span>
+        <span>{{ net_result|number_format(0, ',', ' ') }} F CFA</span>
+    </div>
+
+    <div class="title-main" style="margin-top:16px;">TRÉSORERIE (LIVRE DE CAISSE)</div>
+    <table class="treasury">
+        <tr><td>Recettes encaissées</td><td class="num green">+ {{ total_recette|number_format(0, ',', ' ') }}</td></tr>
+        <tr><td>Dépenses réglées</td><td class="num red">− {{ total_depense|number_format(0, ',', ' ') }}</td></tr>
+        <tr><td>Versements en banque</td><td class="num blue">− {{ total_versement|number_format(0, ',', ' ') }}</td></tr>
+        <tr class="subtotal"><td><strong>Solde de trésorerie (espèces en caisse)</strong></td><td class="num"><strong>{{ cash_balance|number_format(0, ',', ' ') }}</strong></td></tr>
+    </table>
+</body>
+</html>

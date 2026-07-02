@@ -1,0 +1,157 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Comptabilité — Tableau de bord{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Comptabilité',
+        subtitle: current_school.name ~ (school_year ? '  ·  ' ~ school_year.name : ''),
+        icon: 'fa-calculator',
+        color: 'primary',
+        breadcrumb: [ { label: 'Comptabilité' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_accounting_journal') }}" class="btn btn-outline-primary"><i class="fas fa-book me-1"></i> Journal</a>
+            <a href="{{ path('admin_accounting_ledger') }}" class="btn btn-outline-primary"><i class="fas fa-book-open me-1"></i> Grand livre</a>
+            <a href="{{ path('admin_accounting_reports') }}" class="btn btn-outline-primary"><i class="fas fa-chart-pie me-1"></i> Rapports</a>
+            <a href="{{ path('admin_accounting_entry_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Écriture</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {# ── KPIs ── #}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100" style="border-left:4px solid #16a34a;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">Recettes</div>
+                    <div class="h4 fw-bold text-success mb-0">{{ totals.recette|number_format(0, ',', ' ') }} F</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100" style="border-left:4px solid #dc2626;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">Dépenses</div>
+                    <div class="h4 fw-bold text-danger mb-0">{{ totals.depense|number_format(0, ',', ' ') }} F</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100" style="border-left:4px solid #2563eb;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">Résultat net</div>
+                    <div class="h4 fw-bold mb-0 {{ net_result >= 0 ? 'text-primary' : 'text-danger' }}">{{ net_result|number_format(0, ',', ' ') }} F</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100" style="border-left:4px solid #0ea5e9;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">Trésorerie (caisse)</div>
+                    <div class="h4 fw-bold text-info mb-0">{{ cash_balance|number_format(0, ',', ' ') }} F</div>
+                    <div class="small text-muted">après versements ({{ totals.versement|number_format(0, ',', ' ') }} F)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        {# ── Évolution mensuelle ── #}
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-chart-column me-2"></i>Évolution mensuelle {{ civil_year }}</h6></div>
+                <div class="card-body">
+                    <canvas id="monthlyChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+
+        {# ── Dernières écritures ── #}
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-clock-rotate-left me-2"></i>Dernières écritures</h6></div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for e in recent_entries %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="text-truncate me-2" style="max-width:60%">
+                                    <div class="small fw-semibold text-truncate">{{ e.label }}</div>
+                                    <div class="small text-muted">{{ e.entryDate|date('d/m/Y') }}</div>
+                                </div>
+                                <span class="badge bg-{{ e.typeColor }}">{{ e.cashSign > 0 ? '+' : '-' }}{{ e.amount|number_format(0, ',', ' ') }} F</span>
+                            </li>
+                        {% else %}
+                            <li class="list-group-item text-muted text-center py-4">Aucune écriture pour le moment.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Répartition par poste ── #}
+    <div class="row g-3 mt-1">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-success"><i class="fas fa-arrow-down me-2"></i>Recettes par poste</h6></div>
+                <div class="card-body p-0">
+                    {{ _self.account_table(top_recettes, 'success') }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-danger"><i class="fas fa-arrow-up me-2"></i>Dépenses par poste</h6></div>
+                <div class="card-body p-0">
+                    {{ _self.account_table(top_depenses, 'danger') }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% macro account_table(rows, color) %}
+    <table class="table table-sm mb-0">
+        <tbody>
+            {% for r in rows %}
+                <tr>
+                    <td>{% if r.code %}<span class="badge badge-soft secondary">{{ r.code }}</span> {% endif %}{{ r.name }}</td>
+                    <td class="text-end fw-bold text-{{ color }}">{{ r.total|number_format(0, ',', ' ') }} F</td>
+                </tr>
+            {% else %}
+                <tr><td class="text-muted text-center py-3">Aucun mouvement.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endmacro %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script>
+        (function () {
+            var ctx = document.getElementById('monthlyChart');
+            if (!ctx || typeof Chart === 'undefined') return;
+            var labels = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Recettes', backgroundColor: '#16a34a', data: {{ monthly.recette|json_encode|raw }} },
+                        { label: 'Dépenses', backgroundColor: '#dc2626', data: {{ monthly.depense|json_encode|raw }} }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        })();
+    </script>
+{% endblock %}

@@ -127,6 +127,7 @@ class FacultyController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Faculty $faculty, EntityManagerInterface $entityManager, SchoolContextService $contextService): Response
     {
         $this->denyAccessUnlessSameSchool($faculty, $contextService);

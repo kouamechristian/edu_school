@@ -241,6 +241,7 @@ class EmployeeController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'admin_employee_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Employee $employee, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete' . $employee->getId(), $request->getPayload()->getString('_token'))) {

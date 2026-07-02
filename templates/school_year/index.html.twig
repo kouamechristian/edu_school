@@ -51,10 +51,12 @@
                                             <button type="submit" class="btn btn-outline-primary" title="Définir comme année courante"><i class="fas fa-check-circle"></i></button>
                                         </form>
                                         {% endif %}
+                                        {% if is_granted('ROLE_ADMIN') %}
                                         <form method="post" action="{{ path('admin_school_year_delete', {'id': school_year.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette année scolaire ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ school_year.id) }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

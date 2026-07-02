@@ -117,6 +117,7 @@ class LevelController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Level $level, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$level->getId(), $request->request->get('_token'))) {

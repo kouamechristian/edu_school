@@ -46,10 +46,12 @@
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ group.id) }}">
                                             <button type="submit" class="btn btn-outline-secondary" title="{{ group.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ group.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
+                                        {% if is_granted('ROLE_ADMIN') %}
                                         <form method="post" action="{{ path('admin_school_group_delete', {'id': group.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ group.id) }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

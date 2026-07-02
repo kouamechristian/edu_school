@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Plan comptable{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Plan comptable',
+        subtitle: current_school.name,
+        icon: 'fa-list-ol',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Comptabilité', path: path('admin_accounting_dashboard') },
+            { label: 'Plan comptable' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_accounting_account_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau compte</a>
+            <a href="{{ path('admin_accounting_dashboard') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-3">
+        {% for title, rows in {'Recettes': recettes, 'Dépenses': depenses} %}
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><h6 class="m-0 fw-bold {{ title == 'Recettes' ? 'text-success' : 'text-danger' }}"><i class="fas fa-folder me-2"></i>{{ title }}</h6></div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead><tr><th>Code</th><th>Libellé</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+                            <tbody>
+                                {% for a in rows %}
+                                    <tr>
+                                        <td><span class="badge badge-soft secondary">{{ a.code }}</span></td>
+                                        <td>{{ a.name }}{% if a.system %} <i class="fas fa-lock text-muted small" title="Compte du système"></i>{% endif %}</td>
+                                        <td>{% if a.active %}<span class="badge badge-soft success">Actif</span>{% else %}<span class="badge badge-soft secondary">Inactif</span>{% endif %}</td>
+                                        <td class="text-end">
+                                            <a href="{{ path('admin_accounting_account_edit', {'id': a.id}) }}" class="btn btn-sm btn-outline-warning" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            {% if is_granted('ROLE_ADMIN') and not a.system %}
+                                                <form method="post" action="{{ path('admin_accounting_account_delete', {'id': a.id}) }}" class="d-inline"
+                                                      data-confirm="Supprimer le compte <strong>{{ a.name }}</strong> ?"
+                                                      data-confirm-title="Confirmer la suppression" data-confirm-btn="Oui, supprimer">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete_account' ~ a.id) }}">
+                                                    <button class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                                </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="4" class="text-muted text-center py-3">Aucun compte.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

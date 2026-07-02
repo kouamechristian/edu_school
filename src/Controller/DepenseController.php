@@ -160,6 +160,7 @@ class DepenseController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Depense $depense): Response
     {
         if ($this->isCsrfTokenValid('delete' . $depense->getId(), $request->request->get('_token'))) {

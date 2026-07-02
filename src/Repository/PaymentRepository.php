@@ -25,7 +25,7 @@ class PaymentRepository extends ServiceEntityRepository
     /**
      * Chiffre d'affaires (encaissements) par établissement d'un groupe.
      * Le lien vers l'école se fait via la caisse (cashRegister → school).
-     * « online » isole les paiements passés en ligne (caisse en ligne ou passerelle).
+     * « online » isole les paiements encaissés via une caisse en ligne.
      *
      * @return array<int, array{schoolId:int, schoolName:string, revenue:float, online:float}>
      */
@@ -36,7 +36,7 @@ class PaymentRepository extends ServiceEntityRepository
                 's.id AS schoolId',
                 's.name AS schoolName',
                 'SUM(p.amount) AS revenue',
-                'SUM(CASE WHEN (cr.isOnline = :online OR p.provider IS NOT NULL) THEN p.amount ELSE 0 END) AS online'
+                'SUM(CASE WHEN cr.isOnline = :online THEN p.amount ELSE 0 END) AS online'
             )
             ->join('p.cashRegister', 'cr')
             ->join('cr.school', 's')
@@ -95,28 +95,6 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Paiement en ligne déjà en attente pour un frais donné (anti double-paiement).
-     */
-    public function findActiveOnlineForStudentFee(int $studentFeeId): ?Payment
-    {
-        return $this->createQueryBuilder('p')
-            ->andWhere('p.studentFee = :sf')
-            ->andWhere('p.provider IS NOT NULL')
-            ->andWhere('p.status = :pending')
-            ->setParameter('sf', $studentFeeId)
-            ->setParameter('pending', 'en_attente')
-            ->orderBy('p.createdAt', 'DESC')
-            ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult();
-    }
-
-    public function findOneByProviderTransactionId(string $provider, string $transactionId): ?Payment
-    {
-        return $this->findOneBy(['provider' => $provider, 'providerTransactionId' => $transactionId]);
-    }
-
-    /**
      * Journal des paiements par Mobile Money (filtrable par établissement et statut).
      *
      * @return Payment[]
@@ -141,29 +119,6 @@ class PaymentRepository extends ServiceEntityRepository
         }
 
         return $qb->getQuery()->getResult();
-    }
-
-    /**
-     * Paiements en ligne encore en attente (pour la synchronisation planifiée).
-     * Limité aux paiements récents pour ne pas re-vérifier indéfiniment les abandons.
-     *
-     * @return Payment[]
-     */
-    public function findPendingOnline(int $maxAgeHours = 72, int $limit = 200): array
-    {
-        $since = new \DateTime(sprintf('-%d hours', max(1, $maxAgeHours)));
-
-        return $this->createQueryBuilder('p')
-            ->andWhere('p.provider IS NOT NULL')
-            ->andWhere('p.providerTransactionId IS NOT NULL')
-            ->andWhere('p.status = :pending')
-            ->andWhere('p.createdAt >= :since')
-            ->setParameter('pending', 'en_attente')
-            ->setParameter('since', $since)
-            ->orderBy('p.createdAt', 'ASC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
     }
 
     /**

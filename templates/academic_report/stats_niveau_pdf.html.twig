@@ -46,6 +46,11 @@
             <td><b>{{ report_title|default('TABLEAUX STATISTIQUES DES RÉSULTATS SCOLAIRES PAR NIVEAU') }}</b></td>
             <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
         </tr>
+        {% if result_scope is defined and result_scope %}
+        <tr>
+            <td colspan="2"><b>{{ result_scope }}</b></td>
+        </tr>
+        {% endif %}
     </table>
 
     <table class="list">

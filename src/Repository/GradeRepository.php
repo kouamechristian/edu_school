@@ -231,6 +231,40 @@ class GradeRepository extends ServiceEntityRepository
     }
 
     /**
+     * Moyennes de toutes les matières d'un élève pour une période, en une requête groupée.
+     *
+     * @return array<int, float> [subjectId => moyenne]
+     */
+    public function periodSubjectAveragesByStudent(int $studentId, int $periodId, bool $validatedOnly = false): array
+    {
+        $qb = $this->createQueryBuilder('g')
+            ->select('IDENTITY(e.subject) as sid')
+            ->addSelect('SUM(g.value * e.coefficient) as tp')
+            ->addSelect('SUM(e.coefficient) as tc')
+            ->leftJoin('g.evaluation', 'e')
+            ->andWhere('g.student = :student')
+            ->andWhere('e.period = :period')
+            ->andWhere('e.isActive = :active')
+            ->andWhere($validatedOnly ? 'e.isValidated = :gate' : 'e.isPublished = :gate')
+            ->andWhere('g.value IS NOT NULL')
+            ->andWhere('g.status IS NULL')
+            ->setParameter('student', $studentId)
+            ->setParameter('period', $periodId)
+            ->setParameter('active', true)
+            ->setParameter('gate', true)
+            ->groupBy('e.subject');
+
+        $out = [];
+        foreach ($qb->getQuery()->getScalarResult() as $row) {
+            if ($row['tc'] && $row['tc'] > 0) {
+                $out[(int) $row['sid']] = round($row['tp'] / $row['tc'], 2);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Statistiques de classe pour une évaluation
      */
     public function getEvaluationStatistics(int $evaluationId): array

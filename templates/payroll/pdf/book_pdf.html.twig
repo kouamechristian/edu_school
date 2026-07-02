@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 20px 22px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 8px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 8px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 70px; }
+        .header .logo img { max-height: 56px; max-width: 64px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 13px; }
+        .header .school .ministry { font-size: 9px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 12px; margin: 4px 0; }
+        .sub { text-align: center; font-size: 9px; margin-bottom: 6px; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 2px 4px; font-size: 7.5px; }
+        table.list th { background: #f2f2f2; text-align: center; }
+        td.num { text-align: right; }
+        tr.tot td { font-weight: bold; background: #f7f7f7; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="ministry">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <div class="title-main">LIVRE DE PAIE — {{ period.label|upper }}</div>
+    <div class="sub">édité le {{ generated_at|date('d/m/Y H:i') }}</div>
+
+    <table class="list">
+        <thead>
+            <tr>
+                <th style="width:3%">N°</th>
+                <th>Employé</th>
+                <th style="width:11%">Salaire base</th>
+                <th style="width:11%">Brut</th>
+                <th style="width:10%">CNPS</th>
+                <th style="width:10%">ITS</th>
+                <th style="width:11%">Retenues</th>
+                <th style="width:11%">Net à payer</th>
+                <th style="width:11%">Charges patr.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set i = 0 %}
+            {% for ps in payslips %}
+                {% set i = i + 1 %}
+                <tr>
+                    <td class="num">{{ i }}</td>
+                    <td>{{ ps.employee.fullName }}</td>
+                    <td class="num">{{ ps.baseSalary|number_format(0, ',', ' ') }}</td>
+                    <td class="num">{{ ps.grossTotal|number_format(0, ',', ' ') }}</td>
+                    <td class="num">{{ ps.cnpsEmployee|number_format(0, ',', ' ') }}</td>
+                    <td class="num">{{ ps.its|number_format(0, ',', ' ') }}</td>
+                    <td class="num">{{ ps.totalDeductions|number_format(0, ',', ' ') }}</td>
+                    <td class="num">{{ ps.netPay|number_format(0, ',', ' ') }}</td>
+                    <td class="num">{{ ps.employerTotal|number_format(0, ',', ' ') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="9" class="num" style="text-align:center">Aucun bulletin.</td></tr>
+            {% endfor %}
+            <tr class="tot">
+                <td colspan="3" class="num">TOTAUX</td>
+                <td class="num">{{ period.totalGross|number_format(0, ',', ' ') }}</td>
+                <td class="num"></td>
+                <td class="num"></td>
+                <td class="num">{{ period.totalDeductions|number_format(0, ',', ' ') }}</td>
+                <td class="num">{{ period.totalNet|number_format(0, ',', ' ') }}</td>
+                <td class="num">{{ period.totalEmployer|number_format(0, ',', ' ') }}</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

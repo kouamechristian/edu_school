@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 20px 22px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 10px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 66px; max-width: 72px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 11px; text-decoration: underline; margin-bottom: 10px; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; font-size: 8px; }
+        table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.list td.center { text-align: center; }
+        table.list td.lbl { font-weight: bold; vertical-align: middle; }
+        table.list tr.sub td { background: #eef2f6; font-weight: bold; }
+        table.list tr.grand td { background: #dfe6ee; font-weight: bold; }
+        .footer { width: 100%; margin-top: 16px; font-size: 10px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <div class="title-main">{{ report_title|default('RÉSULTATS SCOLAIRES PAR NIVEAU') }} {{ scope_title|default('ANNUELS') }} {{ school_year ? school_year.name : '' }}</div>
+
+    {% macro cells(line) %}
+        <td class="center">{{ line.eff }}</td>
+        <td class="center">{{ line.classe }}</td>
+        <td class="center">{{ line.non }}</td>
+        <td class="center">{{ line.b10 }}</td><td class="center">{{ line.b10p|number_format(2, ',', ' ') }}</td>
+        <td class="center">{{ line.b85 }}</td><td class="center">{{ line.b85p|number_format(2, ',', ' ') }}</td>
+        <td class="center">{{ line.blow }}</td><td class="center">{{ line.blowp|number_format(2, ',', ' ') }}</td>
+        <td class="center"></td>
+    {% endmacro %}
+
+    {% macro block(flat, cssClass) %}
+        {% import _self as m %}
+        <tr{% if cssClass %} class="{{ cssClass }}"{% endif %}>
+            <td rowspan="3" class="lbl">{{ flat.label }}</td>
+            <td class="center">G</td>
+            <td rowspan="3" class="center">{{ flat.classes }}</td>
+            {{ m.cells(flat.lines.g) }}
+        </tr>
+        <tr{% if cssClass %} class="{{ cssClass }}"{% endif %}>
+            <td class="center">F</td>
+            {{ m.cells(flat.lines.f) }}
+        </tr>
+        <tr{% if cssClass %} class="{{ cssClass }}"{% endif %}>
+            <td class="center">T</td>
+            {{ m.cells(flat.lines.t) }}
+        </tr>
+    {% endmacro %}
+
+    <table class="list">
+        <thead>
+            <tr>
+                <th rowspan="2" style="width:14%">NIVEAU</th>
+                <th rowspan="2">GENRE</th>
+                <th rowspan="2">Nbre<br>de Classes</th>
+                <th rowspan="2">Total</th>
+                <th rowspan="2">Classé</th>
+                <th rowspan="2">Non<br>classé</th>
+                <th colspan="2">Moy &gt;= 10</th>
+                <th colspan="2">10 &gt; Moy &gt;= 8,5</th>
+                <th colspan="2">Moy &lt; 8,5</th>
+                <th rowspan="2">MOYENNE<br>DRENA</th>
+            </tr>
+            <tr>
+                <th>NOMBRE</th><th>%</th>
+                <th>NOMBRE</th><th>%</th>
+                <th>NOMBRE</th><th>%</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% import _self as t %}
+            {% for section in sections %}
+                {% for niveau in section.niveaux %}
+                    {{ t.block(niveau, '') }}
+                {% endfor %}
+                {{ t.block(section.subtotal, 'sub') }}
+            {% else %}
+                <tr><td colspan="13" class="center">Aucune donnée disponible</td></tr>
+            {% endfor %}
+            {% if sections is not empty %}
+                {{ t.block(grand, 'grand') }}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>

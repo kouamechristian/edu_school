@@ -243,20 +243,35 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les élèves actifs « affectés » d'un niveau (via la classe de leur
-     * inscription). Sert à l'affectation en masse d'un frais de scolarité de niveau.
+     * Trouve les élèves actifs d'un niveau (via la classe de leur inscription).
+     * L'affectation réelle est déjà garantie par la jointure sur la classe
+     * (r.classroom) et le niveau (rc.level) : un élève n'apparaît que s'il est
+     * inscrit dans une classe de ce niveau. On ne filtre PAS sur le champ legacy
+     * « Student.status » qui n'est pas renseigné par l'inscription normale
+     * (EnrollmentService), ce qui excluait à tort des élèves bien affectés.
+     *
+     * Si $schoolYearId est fourni, on ne retient que les élèves dont l'inscription
+     * dans une classe du niveau concerne cette année scolaire (utile pour les
+     * bulletins, afin d'exclure les inscriptions d'années antérieures).
+     *
+     * Sert aux bulletins (élèves du niveau) et à l'affectation en masse d'un frais.
      */
-    public function findActiveBySchoolAndLevel(int $schoolId, int $levelId): array
+    public function findActiveBySchoolAndLevel(int $schoolId, int $levelId, ?int $schoolYearId = null): array
     {
-        return $this->joinRegistrations($this->createQueryBuilder('s'), 'r')
+        $qb = $this->joinRegistrations($this->createQueryBuilder('s'), 'r')
             ->innerJoin('r.classroom', 'rc')
             ->where('s.school = :schoolId')
             ->andWhere('rc.level = :levelId')
             ->andWhere('s.isActive = true')
-            ->andWhere('s.status = :status')
             ->setParameter('schoolId', $schoolId)
-            ->setParameter('levelId', $levelId)
-            ->setParameter('status', 'affecte')
+            ->setParameter('levelId', $levelId);
+
+        if ($schoolYearId !== null) {
+            $qb->andWhere('r.schoolYear = :schoolYearId')
+                ->setParameter('schoolYearId', $schoolYearId);
+        }
+
+        return $qb
             ->distinct()
             ->getQuery()
             ->getResult();

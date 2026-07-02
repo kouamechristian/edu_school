@@ -128,6 +128,7 @@ class RoundController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Round $round, EntityManagerInterface $entityManager, SchoolContextService $contextService): Response
     {
         $this->denyAccessUnlessSameSchool($round, $contextService);

@@ -102,6 +102,43 @@ class ContractType extends AbstractType
                 ],
                 'attr' => ['class' => 'form-select'],
             ])
+            ->add('maritalStatus', ChoiceType::class, [
+                'label' => 'Situation familiale',
+                'required' => false,
+                'choices' => [
+                    'Célibataire' => 'single',
+                    'Marié(e)' => 'married',
+                    'Divorcé(e)' => 'divorced',
+                    'Veuf(ve)' => 'widowed',
+                ],
+                'attr' => ['class' => 'form-select'],
+                'placeholder' => 'Sélectionnez',
+            ])
+            ->add('numberOfChildren', IntegerType::class, [
+                'label' => 'Nombre d\'enfants',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: 2', 'min' => 0],
+            ])
+            ->add('adultChildren', IntegerType::class, [
+                'label' => 'Enfants majeurs',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: 1', 'min' => 0],
+            ])
+            ->add('isDeclared', ChoiceType::class, [
+                'label' => 'Est déclaré',
+                'required' => false,
+                'choices' => [
+                    'Oui' => true,
+                    'Non' => false,
+                ],
+                'attr' => ['class' => 'form-select'],
+                'placeholder' => 'Sélectionnez',
+            ])
+            ->add('regime', TextType::class, [
+                'label' => 'Régime',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: Régime général'],
+            ])
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes / Clauses particulières',
                 'required' => false,

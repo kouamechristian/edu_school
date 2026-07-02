@@ -39,10 +39,12 @@
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
                                             <a href="{{ path('admin_subject_type_edit', {'id': subject_type.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            {% if is_granted('ROLE_ADMIN') %}
                                             <form method="post" action="{{ path('admin_subject_type_delete', {'id': subject_type.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer ce type de matière ?')">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ subject_type.id) }}">
                                                 <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                             </form>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>

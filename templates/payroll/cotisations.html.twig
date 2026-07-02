@@ -1,0 +1,127 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Cotisations — {{ period.label }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'État des cotisations — ' ~ period.label,
+        subtitle: current_school.name,
+        icon: 'fa-file-invoice-dollar',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Paie', path: path('admin_payroll_index') },
+            { label: period.label, path: path('admin_payroll_period_show', {'id': period.id}) },
+            { label: 'Cotisations' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_payroll_cotisations_pdf', {'id': period.id}) }}" target="_blank" rel="noopener" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+            <a href="{{ path('admin_payroll_cotisations_xlsx', {'id': period.id}) }}" class="btn btn-outline-success"><i class="fas fa-file-excel me-1"></i> Excel</a>
+            <a href="{{ path('admin_payroll_period_show', {'id': period.id}) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {# ── Récapitulatif à reverser ── #}
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card h-100" style="border-left:4px solid #2563eb;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">CNPS — à reverser</div>
+                    <div class="h4 fw-bold text-primary mb-0">{{ cnps_total|number_format(0, ',', ' ') }} F</div>
+                    <div class="small text-muted">salarié + patronal + prestations + accident</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100" style="border-left:4px solid #0ea5e9;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">CMU — à reverser</div>
+                    <div class="h4 fw-bold text-info mb-0">{{ cmu_total|number_format(0, ',', ' ') }} F</div>
+                    <div class="small text-muted">salarié + employeur</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100" style="border-left:4px solid #dc2626;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">ITS — à reverser (DGI)</div>
+                    <div class="h4 fw-bold text-danger mb-0">{{ its_total|number_format(0, ',', ' ') }} F</div>
+                    <div class="small text-muted">impôt sur salaires retenu</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Détail des composantes ── #}
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-layer-group me-2"></i>Détail par composante</h6></div>
+        <div class="card-body">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Composante</th><th>Organisme</th><th class="text-end">Montant</th></tr></thead>
+                <tbody>
+                    <tr><td>CNPS retraite — part salariale</td><td>CNPS</td><td class="text-end">{{ sum.cnps_employee|number_format(0, ',', ' ') }}</td></tr>
+                    <tr><td>CNPS retraite — part patronale</td><td>CNPS</td><td class="text-end">{{ sum.cnps_employer|number_format(0, ',', ' ') }}</td></tr>
+                    <tr><td>Prestations familiales</td><td>CNPS</td><td class="text-end">{{ sum.family_benefit|number_format(0, ',', ' ') }}</td></tr>
+                    <tr><td>Accident du travail</td><td>CNPS</td><td class="text-end">{{ sum.work_accident|number_format(0, ',', ' ') }}</td></tr>
+                    <tr class="table-light fw-bold"><td colspan="2">Sous-total CNPS</td><td class="text-end">{{ cnps_total|number_format(0, ',', ' ') }}</td></tr>
+                    <tr><td>CMU — part salariale</td><td>CMU</td><td class="text-end">{{ sum.cmu_employee|number_format(0, ',', ' ') }}</td></tr>
+                    <tr><td>CMU — part employeur</td><td>CMU</td><td class="text-end">{{ sum.cmu_employer|number_format(0, ',', ' ') }}</td></tr>
+                    <tr class="table-light fw-bold"><td colspan="2">Sous-total CMU</td><td class="text-end">{{ cmu_total|number_format(0, ',', ' ') }}</td></tr>
+                    <tr><td>ITS (impôt sur salaires)</td><td>DGI</td><td class="text-end">{{ sum.its|number_format(0, ',', ' ') }}</td></tr>
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold border-top"><td colspan="2">TOTAL À REVERSER</td><td class="text-end">{{ grand_total|number_format(0, ',', ' ') }} F</td></tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    {# ── Détail par employé ── #}
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-users me-2"></i>Détail par employé</h6></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Employé</th>
+                            <th class="text-end">CNPS sal.</th><th class="text-end">CNPS pat.</th>
+                            <th class="text-end">Prest. fam.</th><th class="text-end">Acc. travail</th>
+                            <th class="text-end">CMU</th><th class="text-end">ITS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ps in payslips %}
+                            <tr>
+                                <td>{{ ps.employee.fullName }}</td>
+                                <td class="text-end">{{ ps.cnpsEmployee|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ ps.cnpsEmployer|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ ps.familyBenefit|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ ps.workAccident|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ (ps.cmuEmployee + ps.cmuEmployer)|number_format(0, ',', ' ') }}</td>
+                                <td class="text-end">{{ ps.its|number_format(0, ',', ' ') }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="7" class="text-center text-muted py-3">Aucun bulletin dans cette période.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold table-light">
+                            <td>TOTAUX</td>
+                            <td class="text-end">{{ sum.cnps_employee|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end">{{ sum.cnps_employer|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end">{{ sum.family_benefit|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end">{{ sum.work_accident|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end">{{ cmu_total|number_format(0, ',', ' ') }}</td>
+                            <td class="text-end">{{ sum.its|number_format(0, ',', ' ') }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

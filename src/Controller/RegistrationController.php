@@ -16,9 +16,13 @@ use App\Repository\RegistrationRepository;
 use App\Service\EnrollmentService;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -131,6 +135,107 @@ class RegistrationController extends AbstractController
             'current_school' => $school,
             'current_school_year' => $schoolYear,
         ]);
+    }
+
+    /**
+     * Liste à plat de tous les élèves inscrits pour l'année scolaire courante, avec
+     * leur situation financière (total / payé / annulé / restant). Une seule grande
+     * table, recherche instantanée côté page.
+     */
+    #[Route('/inscrits', name: 'enrolled', methods: ['GET'])]
+    public function enrolled(
+        Request $request,
+        RegistrationRepository $registrationRepository,
+        PaginatorInterface $paginator
+    ): Response {
+        $school = $this->schoolContextService->getCurrentSchool();
+        $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
+
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour voir les inscrits.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $allRegistrations = $registrationRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
+
+        // Totaux calculés sur l'ensemble des inscrits (pas seulement la page courante).
+        $totals = ['tuition' => 0.0, 'paid' => 0.0, 'cancelled' => 0.0, 'remaining' => 0.0];
+        foreach ($allRegistrations as $reg) {
+            $totals['tuition'] += $reg->getTotalTuition();
+            $totals['paid'] += $reg->getTotalPaid();
+            $totals['cancelled'] += $reg->getTotalCancelled();
+            $totals['remaining'] += $reg->getRemainingTuition();
+        }
+
+        $registrations = $paginator->paginate($allRegistrations, $request->query->getInt('page', 1), 50);
+
+        return $this->render('registration/enrolled.html.twig', [
+            'registrations' => $registrations,
+            'total_count' => count($allRegistrations),
+            'totals' => $totals,
+            'current_school' => $school,
+            'current_school_year' => $schoolYear,
+        ]);
+    }
+
+    /**
+     * Export Excel de la liste des inscrits de l'année scolaire courante, avec leur
+     * situation financière (total / payé / annulé / restant).
+     */
+    #[Route('/inscrits/export', name: 'enrolled_export', methods: ['GET'])]
+    public function enrolledExport(RegistrationRepository $registrationRepository): Response
+    {
+        $school = $this->schoolContextService->getCurrentSchool();
+        $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
+
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour exporter les inscrits.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $registrations = $registrationRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Inscrits');
+
+        $headers = ['Mle interne', 'Nom', 'Prénom', 'Classe', 'Montant total', 'Payé', 'Annulé', 'Restant', 'Statut'];
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+
+        $rowNum = 2;
+        foreach ($registrations as $reg) {
+            $student = $reg->getStudent();
+            $sheet->fromArray([
+                $student?->getMatriculeInterne(),
+                $student?->getLastName(),
+                $student?->getFirstName(),
+                $reg->getClassroom()?->getName(),
+                $reg->getTotalTuition(),
+                $reg->getTotalPaid(),
+                $reg->getTotalCancelled(),
+                $reg->getRemainingTuition(),
+                $student?->getStatusLabel(),
+            ], null, 'A' . $rowNum);
+            $rowNum++;
+        }
+
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'inscrits_' . ($school->getCode() ?: 'export')
+            . ($schoolYear ? '_' . str_replace(['/', ' '], '-', $schoolYear->getName()) : '')
+            . '_' . date('Ymd_His') . '.xlsx';
+
+        $response = new StreamedResponse(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+        });
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
     }
 
     /**
@@ -491,6 +596,7 @@ class RegistrationController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Registration $registration): Response
     {
         if ($this->isCsrfTokenValid('delete' . $registration->getId(), $request->request->get('_token'))) {

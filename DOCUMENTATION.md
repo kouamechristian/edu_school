@@ -40,7 +40,6 @@ dédiés (parent, enseignant, fondateur).
 - **Éditeur riche / gestionnaire de fichiers** : CKEditor + elFinder
 - **E-mail** : Symfony Mailer + PHPMailer
 - **IA** : API Anthropic Claude (`ANTHROPIC_API_KEY`, `AI_MODEL`)
-- **Paiement en ligne** : passerelle GeniusPay (Mobile Money)
 
 ### Concepts transverses
 
@@ -102,7 +101,7 @@ ROLE_PARENT  → espace parent uniquement
 
 ### Contrôle d'accès (URL)
 
-- `/login`, `/webhook` → public.
+- `/login` → public.
 - `/parent/*` → `ROLE_PARENT`.
 - tout le reste `/` → `ROLE_USER` (utilisateur connecté).
 
@@ -375,45 +374,6 @@ Suivi des impayés et relances.
   - le statut de relance s'appuie sur les **échéanciers** (`FeeSchedule`) : seules les échéances
     dépassées et non couvertes constituent un « montant échu impayé ».
 
----
-
-### Module — Paiement en ligne (GeniusPay / Mobile Money)
-
-> **Espace parent** + **webhook public**
-
-Permet aux parents de régler les frais en ligne via la passerelle **GeniusPay** (Mobile Money).
-
-**Configuration** : `MobileMoneyConfig` (par établissement) + variables d'environnement
-`GENIUSPAY_BASE_URL`, `GENIUSPAY_API_KEY`, `GENIUSPAY_API_SECRET`, `GENIUSPAY_WEBHOOK_SECRET`,
-`GENIUSPAY_WEBHOOK_VERIFY`. Contrôleurs : `MobileMoneyConfigController`, `MobileMoneyLogController`.
-
-**Services (`src/Service/Payment/`)** :
-
-| Service | Rôle |
-|---------|------|
-| `GeniusPayClient` | Appels API passerelle : `createPayment()`, `getPaymentStatus()` |
-| `GeniusPayCredentialsProvider` | Fournit les identifiants (par établissement) |
-| `GeniusPaySignatureVerifier` | Vérifie la signature des webhooks |
-| `PaymentInitiator` | `initiate(StudentFee, montant, parent)` — démarre un paiement et renvoie l'URL de checkout |
-| `PaymentStatusSynchronizer` | Synchronise le statut d'un paiement avec la passerelle |
-| `WebhookProcessor` | Traite le callback (`handle(rawBody, signature, timestamp)`) |
-| `OnlineCashRegisterProvider` | Caisse virtuelle « en ligne » par établissement |
-
-**Flux** :
-
-```
-Parent (espace parent) ──initiate()──► GeniusPay ──► checkoutUrl (redirection)
-                                          │
-        Webhook public /webhook ◄─────────┘ (callback signé)
-                                          │
-        WebhookProcessor.handle() ──► met à jour Payment + StudentFee
-```
-
-Entités liées : `Payment` (champs `provider`, `providerTransactionId`, `providerStatus`,
-`payerPhone`, `checkoutUrl`, `idempotencyKey`), `PaymentWebhookEvent` (journal des callbacks).
-Contrôleurs : `Portal/ParentPaymentApiController`, `Webhook/GeniusPayWebhookController`.
-
----
 
 ### Module — Espace Parent
 
@@ -430,7 +390,6 @@ Portail dédié aux parents pour le suivi de leurs enfants.
   - `getDashboard()` — synthèse.
 - **`ParentContextService`** — contexte (enfant/année) côté parent.
 - Réinscription en ligne d'un ancien élève par son parent → crée une `PreRegistration` en `pending`.
-- Paiement en ligne des frais (voir module GeniusPay).
 
 ---
 
@@ -547,7 +506,6 @@ Variables d'environnement (`.env`) :
 | `MESSENGER_TRANSPORT_DSN` | File de messages (async) |
 | `MAILER_DSN` | Envoi d'e-mails |
 | `ANTHROPIC_API_KEY`, `AI_MODEL`, `AI_MAX_TOKENS`, `AI_CACHE_TTL`, `AI_ENABLED` | Module IA |
-| `GENIUSPAY_BASE_URL`, `GENIUSPAY_API_KEY`, `GENIUSPAY_API_SECRET`, `GENIUSPAY_WEBHOOK_SECRET`, `GENIUSPAY_WEBHOOK_URL`, `GENIUSPAY_WEBHOOK_VERIFY` | Paiement en ligne |
 
 **Initialisation** : `DefaultDataInitializer` crée les données par défaut au démarrage.
 
@@ -566,13 +524,11 @@ php bin/console debug:router                  # lister les routes
 src/
 ├── Controller/        44 contrôleurs (admin_*, parent_*, fondateur_*, ai_*, webhook)
 │   ├── Concern/       Traits réutilisables (upload, suppression d'entité)
-│   ├── Portal/        Espace parent (portail + API paiement)
-│   └── Webhook/       Callback GeniusPay (public)
-├── Entity/            41 entités Doctrine
+│   └── Portal/        Espace parent (portail)
+├── Entity/            entités Doctrine
 ├── Service/           29 services métier
-│   ├── AI/            Intégration Claude (bulletins, absences, rapports, chatbot)
-│   └── Payment/       Passerelle GeniusPay (initiation, webhook, sync)
-├── Form/              34 formulaires Symfony
+│   └── AI/            Intégration Claude (bulletins, absences, rapports, chatbot)
+├── Form/              formulaires Symfony
 ├── Repository/        Requêtes Doctrine
 ├── Security/          Authentificateur
 ├── EventSubscriber/   Contexte établissement

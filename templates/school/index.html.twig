@@ -66,10 +66,12 @@
                                             <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ school.id) }}">
                                             <button type="submit" class="btn btn-outline-secondary" title="{{ school.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ school.isActive ? 'ban' : 'check' }}"></i></button>
                                         </form>
+                                        {% if is_granted('ROLE_ADMIN') %}
                                         <form method="post" action="{{ path('admin_school_delete', {'id': school.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet établissement ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ school.id) }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

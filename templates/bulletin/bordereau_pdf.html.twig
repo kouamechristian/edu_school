@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 22px 18px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 8px; color: #000; }
+        .pp-break { page-break-after: always; }
+
+        table.head-wrap { width: 100%; border-collapse: collapse; }
+        table.head-wrap td { border: 0; vertical-align: middle; }
+        table.head-wrap td.logo { width: 72px; text-align: center; }
+        table.head-wrap td.logo img { max-height: 62px; max-width: 66px; }
+        .head { text-align: center; }
+        .head .school { font-weight: bold; font-size: 13px; text-transform: uppercase; }
+        .head .min { font-size: 8px; font-style: italic; }
+        .head .tel { font-size: 8px; }
+        .head .doc { font-weight: bold; font-size: 12px; text-decoration: underline; margin-top: 6px; }
+        .head .meta { font-weight: bold; font-size: 9px; margin-top: 2px; }
+
+        table.brd { border-collapse: collapse; width: 100%; margin-top: 8px; }
+        table.brd th, table.brd td { border: 0.7pt solid #000; padding: 3px 2px; text-align: center; }
+        table.brd th { background: #e9e9e9; font-weight: bold; font-size: 7.5px; }
+        table.brd td.name { text-align: left; white-space: nowrap; }
+        table.brd td.num { width: 22px; }
+        table.brd tr.empty td { height: 16px; }
+
+        .foot { width: 100%; margin-top: 18px; }
+        .foot td { border: 0; vertical-align: top; font-size: 8px; }
+        .foot .lbl { font-weight: bold; text-align: center; }
+        .foot .sub { text-align: center; font-style: italic; }
+        .date { text-align: center; margin-top: 14px; font-size: 8px; }
+    </style>
+</head>
+<body>
+    {% for page in pages %}
+        <table class="head-wrap">
+            <tr>
+                <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+                <td>
+                    <div class="head">
+                        <div class="school">{{ school.name }}</div>
+                        <div class="min">Ministère de l'Education Nationale et de l'Enseignement Technique</div>
+                        {% if school.phone %}<div class="tel">Tel : {{ school.phone }}</div>{% endif %}
+                        <div class="doc">BORDEREAU D'EVALUATION</div>
+                        <div class="meta">CLASSE : {{ page.classroom.name }}</div>
+                        <div class="meta">ANNEE SCOLAIRE : {{ school_year ? school_year.name : '' }}</div>
+                        <div class="meta">EVALUATION : {{ period.name|upper }}</div>
+                    </div>
+                </td>
+                <td class="logo"></td>
+            </tr>
+        </table>
+
+        <table class="brd">
+            <thead>
+                <tr>
+                    <th class="num">N°</th>
+                    <th style="width:22%; text-align:left;">NOM ET PRENOM</th>
+                    {% for col in columns %}<th>{{ col.code }}</th>{% endfor %}
+                    <th>TOTAL</th>
+                    {% if show_coef %}<th>COEF</th>{% endif %}
+                    <th>MOY</th>
+                    <th>RANG</th>
+                    <th style="width:8%">OBS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in page.rows %}
+                    <tr class="{{ with_notes ? '' : 'empty' }}">
+                        <td class="num">{{ loop.index }}</td>
+                        <td class="name">{{ row.student.lastName|upper }} {{ row.student.firstName|upper }}</td>
+                        {% for col in columns %}
+                            <td>{% if with_notes %}{{ row.cells[col.code] is not null ? row.cells[col.code]|number_format(2, ',', ' ') : 'NC' }}{% endif %}</td>
+                        {% endfor %}
+                        <td>{% if with_notes %}{{ row.total is not null ? row.total|number_format(2, ',', ' ') : 'NC' }}{% endif %}</td>
+                        {% if show_coef %}<td>{% if with_notes %}{{ row.coef is not null ? row.coef|number_format(row.coef == row.coef|round ? 0 : 2, ',', ' ') : 'NC' }}{% endif %}</td>{% endif %}
+                        <td>{% if with_notes %}{{ row.moy is not null ? row.moy|number_format(2, ',', ' ') : 'NC' }}{% endif %}</td>
+                        <td>{% if with_notes and row.rang is not null %}{{ row.rang }} {{ row.rang == 1 ? 'er' : 'è' }}{{ row.ex ? ' EX' : '' }}{% elseif with_notes %}NC{% endif %}</td>
+                        <td></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="{{ columns|length + (show_coef ? 7 : 6) }}">Aucun élève dans cette classe.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <table class="foot">
+            <tr>
+                <td style="width:50%;">
+                    <div class="lbl">TENANT DU COURS</div>
+                    <div class="sub">(Nom, Prénoms et signature)</div>
+                </td>
+                <td style="width:50%;">
+                    <div class="lbl">DIRECTEUR DES ETUDES</div>
+                    <div class="sub">(Nom, Prénoms, cachet et signature)</div>
+                </td>
+            </tr>
+        </table>
+        <div class="date">{{ school.address ?: '' }} le {{ generated_at|date('d/m/Y H:i:s') }}</div>
+
+        {% if not loop.last %}<div class="pp-break"></div>{% endif %}
+    {% endfor %}
+</body>
+</html>

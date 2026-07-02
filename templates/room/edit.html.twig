@@ -53,6 +53,7 @@
             </div>
 
             {# Zone dangereuse #}
+            {% if is_granted('ROLE_ADMIN') %}
             <div class="card card-accent danger mt-4">
                 <div class="card-body">
                     <h6 class="fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Zone dangereuse</h6>
@@ -63,6 +64,7 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>

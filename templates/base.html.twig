@@ -7,7 +7,7 @@
     <title>{% block title %}EDU-SCHOOL{% endblock %} - Système de Gestion Scolaire</title>
     
     {# Favicon #}
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-edu-school.png') }}">
     
     {# Bootstrap CSS #}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -78,8 +78,9 @@
             flex: 0 0 auto;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.65rem;
-            padding: 1.15rem 1.25rem;
+            padding: 1.1rem 1rem;
             font-family: 'Poppins', sans-serif;
             font-size: 1.15rem;
             font-weight: 700;
@@ -98,6 +99,18 @@
             border-radius: 10px;
             background: linear-gradient(135deg, #10b981, #0ea5e9);
             box-shadow: 0 4px 12px rgba(16,185,129,0.35);
+        }
+
+        .sidebar-brand img {
+            width: 100%;
+            max-width: 85px;
+            height: auto;
+            object-fit: contain;
+            transition: max-width 0.2s ease;
+        }
+
+        .sidebar.collapsed .sidebar-brand img {
+            max-width: 36px;
         }
 
         .sidebar.collapsed .sidebar-brand {
@@ -537,8 +550,7 @@
     <nav class="sidebar" id="sidebar">
         {# ── Brand ── #}
         <div class="sidebar-brand">
-            <i class="fas fa-graduation-cap"></i>
-            <span class="sidebar-brand-text">EDU-SCHOOL</span>
+            <img src="{{ asset('images/logo-edu-school.png') }}" alt="EDU-SCHOOL">
         </div>
 
         <ul class="sidebar-nav">
@@ -555,7 +567,7 @@
                ESPACE PARENT
                Visible pour les utilisateurs de type "parent"
                ============================================================== #}
-            {% if app.user and app.user.userType == 'parent' %}
+           {#} {% if app.user and app.user.userType == 'parent' %}
             {% set parent_active = current_route starts with 'parent_' %}
             <div class="nav-section">Espace Parent</div>
             <li class="nav-item">
@@ -567,7 +579,7 @@
                     <li class="nav-item"><a href="{{ path('parent_dashboard') }}" class="nav-link {{ parent_active ? 'active' : '' }}"><i class="fas fa-child"></i><span>Mes Enfants</span></a></li>
                 </ul>
             </li>
-            {% endif %}
+            {% endif %}#}
 
             {# ==============================================================
                ESPACE ENSEIGNANT
@@ -597,14 +609,14 @@
                             <i class="fas fa-clipboard-list"></i><span>Évaluations</span>
                         </a>
                     </li>
-                    {% if is_granted('ROLE_EDUCATEUR') %}
+                   {#} {% if is_granted('ROLE_EDUCATEUR') %}
                     <li class="nav-item">
                         <a href="{{ path('admin_absence_index') }}" class="nav-link {{ current_route starts with 'admin_absence_index' ? 'active' : '' }}">
                             <i class="fas fa-calendar-check"></i><span>Absences</span>
                             <span class="badge bg-warning sidebar-badge">3</span>
                         </a>
                     </li>
-                    {% endif %}
+                    {% endif %}#}
                 </ul>
             </li>
             {% endif %}
@@ -651,7 +663,7 @@
                Visible pour ROLE_ADMIN (admins, super admins)
                ============================================================== #}
             {% if is_granted('ROLE_ADMIN') %}
-            {% set admin_active = current_route starts with 'admin_school' or current_route starts with 'admin_user' or current_route starts with 'admin_subject_type' or current_route starts with 'admin_mobile_money_log' or current_route starts with 'admin_mobile_money_config' %}
+            {% set admin_active = current_route starts with 'admin_school' or current_route starts with 'admin_user' or current_route starts with 'admin_subject_type' or current_route starts with 'admin_mobile_money_log' %}
             <div class="nav-section">Administration</div>
             <li class="nav-item">
                 <a href="#" class="nav-link dropdown-toggle {{ admin_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuAdmin" aria-expanded="{{ admin_active ? 'true' : 'false' }}">
@@ -659,6 +671,11 @@
                     <span>Administration</span>
                 </a>
                 <ul class="nav flex-column collapse {{ admin_active ? 'show' : '' }}" id="menuAdmin">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_user_index') }}" class="nav-link {{ current_route starts with 'admin_user' ? 'active' : '' }}">
+                            <i class="fas fa-users"></i><span>Utilisateurs et Role</span>
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a href="{{ path('admin_school_group_index') }}" class="nav-link {{ current_route starts with 'admin_school_group' ? 'active' : '' }}">
                             <i class="fas fa-sitemap"></i><span>Groupes d'Établissements</span>
@@ -672,16 +689,6 @@
                     <li class="nav-item">
                         <a href="{{ path('admin_school_year_index') }}" class="nav-link {{ current_route starts with 'admin_school_year' ? 'active' : '' }}">
                             <i class="fas fa-calendar-alt"></i><span>Années Scolaires</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ path('admin_user_index') }}" class="nav-link {{ current_route starts with 'admin_user' ? 'active' : '' }}">
-                            <i class="fas fa-users"></i><span>Utilisateurs</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ path('admin_mobile_money_config_index') }}" class="nav-link {{ current_route starts with 'admin_mobile_money_config' ? 'active' : '' }}">
-                            <i class="fas fa-key"></i><span>Identifiants Mobile Money</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -787,7 +794,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ path('admin_registration_index') }}" class="nav-link {{ current_route starts with 'admin_registration' ? 'active' : '' }}">
+                        <a href="{{ path('admin_registration_enrolled') }}" class="nav-link {{ current_route == 'admin_registration_enrolled' ? 'active' : '' }}">
+                            <i class="fas fa-user-graduate"></i><span>Inscrits</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_registration_index') }}" class="nav-link {{ current_route starts with 'admin_registration' and current_route != 'admin_registration_enrolled' ? 'active' : '' }}">
                             <i class="fas fa-graduation-cap"></i><span>Affectation dans une classe</span>
                         </a>
                     </li>
@@ -862,7 +874,7 @@
                Gestion des employés et de leurs contrats.
                ============================================================== #}
             {% if is_granted('ROLE_RH') %}
-            {% set hr_active = current_route starts with 'admin_employee' or current_route starts with 'admin_contract' %}
+            {% set hr_active = current_route starts with 'admin_employee' or current_route starts with 'admin_contract' or current_route starts with 'admin_payroll' %}
             <div class="nav-section">Ressources Humaines</div>
             <li class="nav-item">
                 <a href="#" class="nav-link dropdown-toggle {{ hr_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuHr" aria-expanded="{{ hr_active ? 'true' : 'false' }}">
@@ -877,7 +889,22 @@
                     </li>
                     <li class="nav-item">
                         <a href="{{ path('admin_contract_index') }}" class="nav-link {{ current_route starts with 'admin_contract' ? 'active' : '' }}">
-                            <i class="fas fa-file-contract"></i><span>Contrats</span>
+                            <i class="fas fa-file-contract"></i><span>Contrat de travail</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_payroll_index') }}" class="nav-link {{ current_route starts with 'admin_payroll' and not (current_route starts with 'admin_payroll_component') and current_route != 'admin_payroll_settings' ? 'active' : '' }}">
+                            <i class="fas fa-money-check-dollar"></i><span>Paie</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_payroll_components') }}" class="nav-link {{ current_route starts with 'admin_payroll_component' ? 'active' : '' }}">
+                            <i class="fas fa-list"></i><span>Rubriques de paie</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_payroll_settings') }}" class="nav-link {{ current_route == 'admin_payroll_settings' ? 'active' : '' }}">
+                            <i class="fas fa-gear"></i><span>Paramètres de paie</span>
                         </a>
                     </li>
                 </ul>
@@ -994,9 +1021,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ path('admin_payment_index') }}" class="nav-link {{ app.request.get('_route') starts with 'admin_payment' ? 'active' : '' }}">
+                        <a href="{{ path('admin_payment_index') }}" class="nav-link {{ current_route starts with 'admin_payment' and current_route != 'admin_payment_cancelled' ? 'active' : '' }}">
                             <i class="fas fa-credit-card"></i>
                             <span>Paiements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_payment_cancelled') }}" class="nav-link {{ current_route == 'admin_payment_cancelled' ? 'active' : '' }}">
+                            <i class="fas fa-ban"></i>
+                            <span>Paiements annulés</span>
                         </a>
                     </li>
                     {% endif %}
@@ -1014,6 +1047,68 @@
                         </a>
                     </li>
                     {% endif %}
+                </ul>
+            </li>
+            {% endif %}
+
+            {# ==============================================================
+               COMPTABILITÉ - Menu déroulant dédié
+               Visible pour les comptables, la caisse et les admins (héritage)
+               ============================================================== #}
+            {% if is_granted('ROLE_COMPTABLE') %}
+            {% set compta_active = current_route starts with 'admin_accounting' %}
+            <div class="nav-section">Comptabilité</div>
+            <li class="nav-item">
+                <a href="#" class="nav-link dropdown-toggle {{ compta_active ? 'active' : '' }}"
+                   data-bs-toggle="collapse"
+                   data-bs-target="#comptaSubmenu"
+                   aria-expanded="{{ compta_active ? 'true' : 'false' }}">
+                    <i class="fas fa-calculator"></i>
+                    <span>Comptabilité</span>
+                </a>
+                <ul class="collapse {{ compta_active ? 'show' : '' }}" id="comptaSubmenu">
+                    <li class="nav-item">
+                        <a href="{{ path('admin_accounting_dashboard') }}" class="nav-link {{ current_route == 'admin_accounting_dashboard' ? 'active' : '' }}">
+                            <i class="fas fa-gauge"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_accounting_journal') }}" class="nav-link {{ current_route starts with 'admin_accounting_journal' or current_route starts with 'admin_accounting_entry' ? 'active' : '' }}">
+                            <i class="fas fa-book"></i>
+                            <span>Journal comptable</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_accounting_ledger') }}" class="nav-link {{ current_route starts with 'admin_accounting_ledger' ? 'active' : '' }}">
+                            <i class="fas fa-book-open"></i>
+                            <span>Grand livre</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_accounting_accounts') }}" class="nav-link {{ current_route starts with 'admin_accounting_account' ? 'active' : '' }}">
+                            <i class="fas fa-list-ol"></i>
+                            <span>Plan comptable</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_accounting_reports') }}" class="nav-link {{ current_route == 'admin_accounting_reports' ? 'active' : '' }}">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Rapports financiers</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_accounting_reconciliation') }}" class="nav-link {{ current_route starts with 'admin_accounting_reconciliation' ? 'active' : '' }}">
+                            <i class="fas fa-scale-balanced"></i>
+                            <span>Rapprochement</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_accounting_closures') }}" class="nav-link {{ current_route starts with 'admin_accounting_closure' ? 'active' : '' }}">
+                            <i class="fas fa-lock"></i>
+                            <span>Clôtures de période</span>
+                        </a>
+                    </li>
                 </ul>
             </li>
             {% endif %}
@@ -1423,7 +1518,81 @@
 
     {# Bootstrap JS #}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+
+    {# SweetAlert2 : boîtes de confirmation élégantes #}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        (function () {
+            // Confirmation SweetAlert générique sur tout formulaire portant `data-confirm`.
+            // Attributs facultatifs : data-confirm-title, data-confirm-btn, data-confirm-icon.
+            document.addEventListener('submit', function (e) {
+                var form = e.target;
+                if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-confirm')) {
+                    return;
+                }
+                if (form.dataset.confirmed === '1') {
+                    return; // déjà confirmé : on laisse passer
+                }
+                e.preventDefault();
+
+                Swal.fire({
+                    title: form.dataset.confirmTitle || 'Êtes-vous sûr ?',
+                    html: form.getAttribute('data-confirm'),
+                    icon: form.dataset.confirmIcon || 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: form.dataset.confirmBtn || 'Oui, confirmer',
+                    cancelButtonText: 'Annuler',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        form.dataset.confirmed = '1';
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit();
+                        } else {
+                            form.submit();
+                        }
+                    }
+                });
+            }, true);
+
+            // Migration automatique des anciens confirm() natifs (onsubmit) vers SweetAlert.
+            // Couvre tous les boutons de suppression et autres confirmations existantes,
+            // sans devoir modifier chaque gabarit.
+            document.addEventListener('DOMContentLoaded', function () {
+                if (typeof Swal === 'undefined') return;
+                document.querySelectorAll('form[onsubmit]').forEach(function (form) {
+                    var handler = form.getAttribute('onsubmit') || '';
+                    // Extrait le message de confirm('...') en gérant les quotes échappées.
+                    var m = handler.match(/confirm\(\s*(['"])((?:\\.|(?!\1)[\s\S])*)\1\s*\)/);
+                    if (!m) return;
+
+                    var message = m[2]
+                        .replace(/\\'/g, "'")
+                        .replace(/\\"/g, '"')
+                        .replace(/\\n/g, '<br>')
+                        .replace(/\\\\/g, '\\');
+
+                    form.removeAttribute('onsubmit'); // neutralise le confirm() natif
+                    form.setAttribute('data-confirm', message);
+
+                    var action = form.getAttribute('action') || '';
+                    var isDelete = /supprim|définitiv|retirer|delete/i.test(message) || /_delete|_unassign/.test(action);
+                    if (!form.hasAttribute('data-confirm-title')) {
+                        form.setAttribute('data-confirm-title', isDelete ? 'Confirmer la suppression' : 'Confirmation');
+                    }
+                    if (!form.hasAttribute('data-confirm-btn')) {
+                        form.setAttribute('data-confirm-btn', isDelete ? 'Oui, supprimer' : 'Oui, confirmer');
+                    }
+                    if (!form.hasAttribute('data-confirm-icon')) {
+                        form.setAttribute('data-confirm-icon', isDelete ? 'warning' : 'question');
+                    }
+                });
+            });
+        })();
+    </script>
+
     {# App JS (thème, compteurs, toasts, modales, sidebar) #}
     <script src="{{ asset('js/app.js') }}"></script>
 

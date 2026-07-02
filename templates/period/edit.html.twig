@@ -59,6 +59,7 @@
                 </div>
             </div>
 
+            {% if is_granted('ROLE_ADMIN') %}
             <div class="card shadow-sm mt-3">
                 <div class="card-body">
                     <h5 class="card-title text-danger">
@@ -75,6 +76,7 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>

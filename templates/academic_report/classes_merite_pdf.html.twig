@@ -3,81 +3,103 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 28px 32px; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
-        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
+        @page { margin: 24px 26px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 10px; }
         .header td { vertical-align: middle; }
-        .header .logo { width: 80px; }
-        .header .logo img { max-height: 70px; max-width: 75px; }
+        .header .logo { width: 76px; }
+        .header .logo img { max-height: 62px; max-width: 70px; }
         .header .school { text-align: center; }
-        .header .school .name { font-weight: bold; font-size: 14px; }
-        .header .school .ministry { font-size: 11px; }
-        .header .school .tel { font-size: 10px; }
-        .title-row { width: 100%; margin-bottom: 8px; }
-        .title-row td { font-size: 13px; }
-        .title-row .right { text-align: right; }
-        .title-row b { font-weight: bold; }
+        .header .school .name { font-weight: bold; font-size: 13px; }
+        .header .school .ministry { font-size: 10px; }
+        .header .school .tel { font-size: 9px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 2px; }
+        .class-name { text-align: center; font-size: 11px; margin-bottom: 8px; }
         table.list { width: 100%; border-collapse: collapse; }
-        table.list th, table.list td { border: 1px solid #000; padding: 5px 6px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; font-size: 8px; }
         table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
         table.list td.center { text-align: center; }
-        table.list td.rank { text-align: center; font-weight: bold; width: 36px; }
-        .footer { width: 100%; margin-top: 24px; font-size: 11px; }
-        .footer td { vertical-align: top; }
-        .footer .sign { text-align: right; text-decoration: underline; }
-        .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
+        .stats { margin-top: 6px; font-size: 9px; }
+        .stats div { margin: 1px 0; }
+        .stats b { font-weight: bold; }
+        .class-block { page-break-after: always; }
+        .class-block:last-child { page-break-after: auto; }
     </style>
 </head>
 <body>
-    <table class="header">
-        <tr>
-            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
-            <td class="school">
-                <div class="name">{{ school ? school.name|upper : '' }}</div>
-                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
-                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
-            </td>
-            <td class="logo"></td>
-        </tr>
-    </table>
-
-    <table class="title-row">
-        <tr>
-            <td><b>LISTE DES CLASSES PAR ORDRE DE MÉRITE</b></td>
-            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
-        </tr>
-    </table>
-
-    <table class="list">
-        <thead>
-            <tr>
-                <th>Rang</th>
-                <th style="width:22%">Classe</th>
-                <th style="width:26%">Niveau</th>
-                <th>Effectif noté</th>
-                <th>Moyenne de classe /20</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for class in classes %}
+    {% for class in classes %}
+        <div class="class-block">
+            <table class="header">
                 <tr>
-                    <td class="rank">{{ class.classAverage is not null ? loop.index : '—' }}</td>
-                    <td>{{ class.label }}</td>
-                    <td>{{ class.levelLabel }}</td>
-                    <td class="center">{{ class.graded }} / {{ class.count }}</td>
-                    <td class="center">{{ class.classAverage is not null ? class.classAverage|number_format(2, ',', ' ') : '—' }}</td>
+                    <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+                    <td class="school">
+                        <div class="name">{{ school ? school.name|upper : '' }}</div>
+                        <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                        <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+                    </td>
+                    <td class="logo"></td>
                 </tr>
-            {% else %}
-                <tr><td colspan="5" class="center">Aucune classe disponible</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </table>
 
-    <table class="footer">
-        <tr>
-            <td class="date"><span class="line">&nbsp;</span> le {{ generated_at|date('d/m/Y H:i:s') }}</td>
-            <td class="sign">Signature</td>
-        </tr>
-    </table>
+            <div class="title-main">LISTE DES CLASSES PAR ORDRE DE MÉRITE{% if period %} DU {{ period.name|upper }}{% endif %}</div>
+            <div class="class-name">{{ class.label }}</div>
+
+            <table class="list">
+                <thead>
+                    <tr>
+                        <th style="width:3%">N°</th>
+                        <th style="width:10%">Matric</th>
+                        <th style="width:16%">Nom</th>
+                        <th>Prénoms</th>
+                        <th style="width:5%">Genre</th>
+                        <th style="width:10%">Né(é) le</th>
+                        <th style="width:6%">Nat</th>
+                        <th style="width:7%">Qualité</th>
+                        <th style="width:6%">Red</th>
+                        <th style="width:7%">Moy</th>
+                        <th style="width:8%">Rang</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in class.rows %}
+                        <tr>
+                            <td class="center">{{ r.seq }}</td>
+                            <td>{{ r.matric }}</td>
+                            <td>{{ r.nom }}</td>
+                            <td>{{ r.prenoms }}</td>
+                            <td class="center">{{ r.genre }}</td>
+                            <td class="center">{{ r.ne ? r.ne|date('d/m/Y') : '' }}</td>
+                            <td class="center">{{ r.nat }}</td>
+                            <td class="center">{{ r.qualite }}</td>
+                            <td class="center">{{ r.red }}</td>
+                            <td class="center">{{ r.moy is not null ? r.moy|number_format(2, ',', ' ') : 'NC' }}</td>
+                            <td class="center">{{ r.rank }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="11" class="center">Aucun élève dans cette classe</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="stats">
+                <div>Moyenne la plus élevée : <b>{{ class.high|number_format(2, ',', ' ') }}</b></div>
+                <div>Moyenne la plus faible : <b>{{ class.low|number_format(2, ',', ' ') }}</b></div>
+                <div>Moyenne de la classe : <b>{{ class.class_avg|number_format(2, ',', ' ') }}</b></div>
+            </div>
+        </div>
+    {% else %}
+        <table class="header">
+            <tr>
+                <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+                <td class="school">
+                    <div class="name">{{ school ? school.name|upper : '' }}</div>
+                    <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                    <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+                </td>
+                <td class="logo"></td>
+            </tr>
+        </table>
+        <p>Aucune classe disponible.</p>
+    {% endfor %}
 </body>
 </html>

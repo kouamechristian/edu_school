@@ -11,6 +11,33 @@ use Doctrine\ORM\EntityManagerInterface;
 
 class GradeCalculationService
 {
+    /**
+     * Abréviations des matières (colonnes du bordereau), par matière parente
+     * (SubjectEquivalent::subjectParent). Repli sur le code de l'équivalent.
+     */
+    private const SUBJECT_ABBR = [
+        'FRANÇAIS' => 'FR',
+        'MATHÉMATIQUE' => 'MAT',
+        'HISTOIRE-GÉOGRAPHIE' => 'HG',
+        'PHYSIQUE-CHIMIE' => 'PC',
+        'SVT' => 'SVT',
+        'PHILOSOPHIE' => 'PHILO',
+        'ANGLAIS' => 'ANG',
+        'ESPAGNOL' => 'ESP',
+        'ALLEMAND' => 'ALL',
+        'EPS' => 'EPS',
+        'MUSIQUE' => 'MUS',
+        'EDHC' => 'EDHC',
+        'CONDUITE' => 'COND',
+        'ART-PLASTIQUE' => 'ART',
+        'DICTÉE' => 'DICT',
+        "ACTIVITÉ D'ÉVEIL AU MILIEU" => 'AEM',
+        'EXPLOITATION DE TEXTE' => 'EDT',
+        'COMPOSITION FRANÇAISE' => 'CF',
+        'ORTHOGRAPHE' => 'ORTH',
+        'EXPRESSION ORALE' => 'EO',
+    ];
+
     public function __construct(
         private GradeRepository $gradeRepository,
         private SubjectRepository $subjectRepository,
@@ -49,7 +76,7 @@ class GradeCalculationService
                 true
             );
 
-            $isConduite = strtoupper((string) $subject->getMatiereConduite()) === 'OUI';
+            $isConduite = $this->isConduiteSubject($subject);
 
             // Matière non conduite et non notée : ignorée. La conduite est toujours
             // prise en compte (elle part de sa moyenne, ou du barème si non notée).
@@ -87,7 +114,8 @@ class GradeCalculationService
     /**
      * Synthèse des absences d'un élève sur une période : heures totales / justifiées /
      * non justifiées, et pénalité de conduite = Σ (penaltyPoints du type) — un retrait
-     * FIXE par absence, sur TOUTES les absences (justifiées ou non).
+     * FIXE par absence, appliqué UNIQUEMENT aux absences NON justifiées. Les absences
+     * justifiées ne génèrent aucune pénalité.
      *
      * @return array{total: float, justified: float, unjustified: float, penalty: float, count: int}
      */
@@ -106,13 +134,14 @@ class GradeCalculationService
             $total += $hours;
 
             if ($absence->getJustificationStatus() === 'justified') {
+                // Absence justifiée : aucune pénalité de conduite.
                 $justified += $hours;
             } else {
                 $unjustified += $hours; // non justifiée + en attente
+                // Pénalité (retrait fixe configuré sur le type d'absence) appliquée
+                // UNIQUEMENT aux absences non justifiées.
+                $penalty += (float) ($absence->getAbsenceType()?->getPenaltyPoints() ?? 0);
             }
-
-            // Pénalité configurée sur le type d'absence : retrait fixe par absence.
-            $penalty += (float) ($absence->getAbsenceType()?->getPenaltyPoints() ?? 0);
         }
 
         return [
@@ -122,6 +151,21 @@ class GradeCalculationService
             'penalty' => round($penalty, 2),
             'count' => \count($absences),
         ];
+    }
+
+    /**
+     * Une matière est « de conduite » lorsqu'elle est rattachée à une matière
+     * équivalente dont la matière parente est CONDUITE. L'ancien indicateur
+     * Subject::matiereConduite = OUI est conservé en repli (compatibilité).
+     * C'est sur la note de cette matière qu'est déduite la pénalité d'absences.
+     */
+    private function isConduiteSubject(\App\Entity\Subject $subject): bool
+    {
+        if (strtoupper((string) $subject->getSubjectEquivalent()?->getSubjectParent()) === 'CONDUITE') {
+            return true;
+        }
+
+        return strtoupper((string) $subject->getMatiereConduite()) === 'OUI';
     }
 
     /**
@@ -252,13 +296,30 @@ class GradeCalculationService
             }
         }
 
-        // Barème par matière (« note sur bulletin », 20 par défaut) et matières de conduite.
+        // Barème par matière (« note sur bulletin », 20 par défaut), matières de conduite,
+        // et regroupement par matière équivalente partagée (ex. Composition / Expression
+        // écrite / orale → FRANÇAIS) pour les fusionner en une matière parente.
         $baremeBySubject = [];
         $conduiteSids = [];
+        $subjectById = [];
+        $equivGroup = []; // equivId => [subjectId, ...] dans l'ordre d'affichage
         foreach ($subjects as $subject) {
-            $baremeBySubject[$subject->getId()] = (int) ($subject->getNoteSurBulletin() ?: 20);
-            if (strtoupper((string) $subject->getMatiereConduite()) === 'OUI') {
-                $conduiteSids[$subject->getId()] = true;
+            $sid = $subject->getId();
+            $subjectById[$sid] = $subject;
+            $baremeBySubject[$sid] = (int) ($subject->getNoteSurBulletin() ?: 20);
+            if ($this->isConduiteSubject($subject)) {
+                $conduiteSids[$sid] = true;
+            }
+            $eq = $subject->getSubjectEquivalent();
+            if ($eq) {
+                $equivGroup[$eq->getId()][] = $sid;
+            }
+        }
+        // Un équivalent partagé par plusieurs matières => matière parente fusionnée.
+        $mergedEquivIds = [];
+        foreach ($equivGroup as $eqId => $sids) {
+            if (\count($sids) > 1) {
+                $mergedEquivIds[$eqId] = true;
             }
         }
 
@@ -293,16 +354,128 @@ class GradeCalculationService
             $generalAverages[$cs->getId()] = $tc > 0 ? round($tp / $tc, 2) : null;
         }
 
-        // Lignes du bulletin pour l'élève cible.
+        // Note « fusionnée » par matière parente (moyenne pondérée des composantes)
+        // pour chaque élève de la classe — sert au classement de la matière parente.
+        $equivUnitNotes = []; // equivId => [studentId => note sur barème]
+        foreach (array_keys($mergedEquivIds) as $eqId) {
+            foreach ($classStudents as $cs) {
+                $mc = 0.0;
+                $cf = 0.0;
+                foreach ($equivGroup[$eqId] as $sidc) {
+                    $n = $subjectNotes[$sidc][$cs->getId()] ?? null;
+                    if ($n === null) {
+                        continue;
+                    }
+                    $cfc = (float) $subjectById[$sidc]->getCoefficient();
+                    $mc += $n * $cfc;
+                    $cf += $cfc;
+                }
+                if ($cf > 0) {
+                    $equivUnitNotes[$eqId][$cs->getId()] = round($mc / $cf, 2);
+                }
+            }
+        }
+
+        // Lignes du bulletin pour l'élève cible, regroupées par type de matière
+        // (avec un sous-total par type). Les matières conservent leur ordre
+        // d'affichage à l'intérieur de chaque groupe ; les groupes sont triés
+        // selon l'ordre du type de matière.
         $rows = [];
+        $groupsByKey = []; // typeKey => ['label','order','rows','coef','moy_coef']
         $totalCoef = 0.0;
         $totalMoyCoef = 0.0;
+        $emittedEquiv = [];
         foreach ($subjects as $subject) {
             $sid = $subject->getId();
+            $eq = $subject->getSubjectEquivalent();
+            $eqId = $eq?->getId();
+            $isMerged = $eqId !== null && isset($mergedEquivIds[$eqId]);
+
+            // Composante d'une matière parente déjà rendue : on l'ignore (affichée
+            // en sous-ligne sous le parent).
+            if ($isMerged && isset($emittedEquiv[$eqId])) {
+                continue;
+            }
+
+            $type = $subject->getType();
+            $typeKey = $type?->getId() ?? 0;
+
+            if (!isset($groupsByKey[$typeKey])) {
+                $groupsByKey[$typeKey] = [
+                    'label' => $type?->getLabel() ?: 'Autres matières',
+                    'order' => $type?->getOrderNumber() ?? 9999,
+                    'rows' => [],
+                    'coef' => 0.0,
+                    'moy_coef' => 0.0,
+                ];
+            }
+
+            // ── Matière parente fusionnée (ex. FRANÇAIS = Composition + Expression…) ──
+            if ($isMerged) {
+                $emittedEquiv[$eqId] = true;
+                $parentName = $eq->getSubjectParent() ?: ($eq->getLibelle() ?: $subject->getName());
+
+                $subs = [];
+                $mc = 0.0;
+                $cf = 0.0;
+                $baremeP = null;
+                foreach ($equivGroup[$eqId] as $sidc) {
+                    $comp = $subjectById[$sidc];
+                    $bC = $baremeBySubject[$sidc] ?? 20;
+                    $baremeP = $baremeP ?? $bC;
+                    $nb = $subjectNotes[$sidc][$student->getId()] ?? null;
+                    if ($nb === null) {
+                        $subs[] = ['name' => $comp->getName(), 'nc' => true];
+                        continue;
+                    }
+                    $coefC = (float) $comp->getCoefficient();
+                    $subs[] = ['name' => $comp->getName(), 'nc' => false, 'moy_bareme' => $nb, 'bareme' => $bC];
+                    $mc += $nb * $coefC;
+                    $cf += $coefC;
+                }
+
+                if ($cf > 0) {
+                    $baremeP = $baremeP ?: 20;
+                    $noteP = round($mc / $cf, 2);
+                    $avg20 = $baremeP > 0 ? round($noteP * 20 / $baremeP, 2) : $noteP;
+                    $rankInfo = $this->rankAmong($equivUnitNotes[$eqId] ?? [], $student->getId());
+                    $row = [
+                        'name' => $parentName,
+                        'nc' => false,
+                        'moy' => $avg20,
+                        'bareme' => $baremeP,
+                        'moy_bareme' => $noteP,
+                        'coef' => $cf,
+                        'moy_coef' => round($mc, 2),
+                        'rank' => $rankInfo['rank'],
+                        'ex' => $rankInfo['ex'],
+                        'teacher' => null,
+                        'appreciation' => $this->getAppreciation($avg20),
+                        'conduite' => false,
+                        'subs' => $subs,
+                    ];
+                    $rows[] = $row;
+                    $groupsByKey[$typeKey]['rows'][] = $row;
+                    $groupsByKey[$typeKey]['coef'] += $cf;
+                    $groupsByKey[$typeKey]['moy_coef'] += $mc;
+                    $totalCoef += $cf;
+                    $totalMoyCoef += $mc;
+                } else {
+                    $row = ['name' => $parentName, 'nc' => true, 'teacher' => null, 'subs' => $subs];
+                    $rows[] = $row;
+                    $groupsByKey[$typeKey]['rows'][] = $row;
+                }
+
+                continue;
+            }
+
+            // ── Matière simple (équivalent 1:1 ou sans équivalent) ──
             $noteBareme = $subjectNotes[$sid][$student->getId()] ?? null;
 
             if ($noteBareme === null) {
-                $rows[] = ['name' => $subject->getName(), 'nc' => true, 'teacher' => $teacherBySubject[$sid] ?? null];
+                $row = ['name' => $subject->getName(), 'nc' => true, 'teacher' => $teacherBySubject[$sid] ?? null];
+                $rows[] = $row;
+                $groupsByKey[$typeKey]['rows'][] = $row;
                 continue;
             }
 
@@ -312,7 +485,7 @@ class GradeCalculationService
             $moyCoef = round($noteBareme * $coef, 2);
             $rankInfo = $this->rankAmong($subjectNotes[$sid] ?? [], $student->getId());
 
-            $rows[] = [
+            $row = [
                 'name' => $subject->getName(),
                 'nc' => false,
                 'moy' => $avg20,
@@ -326,10 +499,26 @@ class GradeCalculationService
                 'appreciation' => $this->getAppreciation($avg20),
                 'conduite' => isset($conduiteSids[$sid]),
             ];
+            $rows[] = $row;
+            $groupsByKey[$typeKey]['rows'][] = $row;
+            $groupsByKey[$typeKey]['coef'] += $coef;
+            $groupsByKey[$typeKey]['moy_coef'] += $moyCoef;
 
             $totalCoef += $coef;
             $totalMoyCoef += $moyCoef;
         }
+
+        // Tri des groupes (ordre du type, puis libellé) et finalisation des sous-totaux.
+        $groups = array_values($groupsByKey);
+        usort($groups, static fn ($a, $b) => $a['order'] === $b['order']
+            ? strcmp((string) $a['label'], (string) $b['label'])
+            : $a['order'] <=> $b['order']);
+        foreach ($groups as &$g) {
+            $g['coef'] = round($g['coef'], 2);
+            $g['moy_coef'] = round($g['moy_coef'], 2);
+            $g['average'] = $g['coef'] > 0 ? round($g['moy_coef'] / $g['coef'], 2) : null;
+        }
+        unset($g);
 
         $generalAverage = $totalCoef > 0 ? round($totalMoyCoef / $totalCoef, 2) : null;
 
@@ -337,6 +526,18 @@ class GradeCalculationService
         $validGenerals = array_filter($generalAverages, static fn ($v) => $v !== null);
         $generalRank = $generalAverage !== null ? $this->rankAmong($validGenerals, $student->getId()) : ['rank' => null, 'ex' => false];
         $classMoy = \count($validGenerals) > 0 ? round(array_sum($validGenerals) / \count($validGenerals), 2) : null;
+
+        // Moyenne générale ANNUELLE (toutes périodes de l'année) + rang dans la classe.
+        $yearId = $period->getSchoolYear()?->getId();
+        $annualAverages = [];
+        foreach ($classStudents as $cs) {
+            $av = $this->gradeRepository->calculateAnnualGeneralAverageByStudent($cs->getId(), $yearId, true);
+            if ($av !== null) {
+                $annualAverages[$cs->getId()] = $av;
+            }
+        }
+        $annualAverage = $annualAverages[$student->getId()] ?? null;
+        $annualRank = $annualAverage !== null ? $this->rankAmong($annualAverages, $student->getId()) : ['rank' => null, 'ex' => false];
 
         // Heures d'absence (et pénalité de conduite) de l'élève cible.
         $absence = $this->absenceSummary($student->getId(), $periodId);
@@ -351,11 +552,15 @@ class GradeCalculationService
             'absence_unjustified' => $absence['unjustified'],
             'absence_penalty' => $absence['penalty'],
             'rows' => $rows,
+            'groups' => $groups,
             'total_coef' => $totalCoef,
             'total_moy_coef' => round($totalMoyCoef, 2),
             'general_average' => $generalAverage,
             'general_rank' => $generalRank['rank'],
             'general_rank_ex' => $generalRank['ex'],
+            'annual_average' => $annualAverage,
+            'annual_rank' => $annualRank['rank'],
+            'annual_rank_ex' => $annualRank['ex'],
             'class_average' => $classMoy,
             'class_min' => \count($validGenerals) > 0 ? min($validGenerals) : null,
             'class_max' => \count($validGenerals) > 0 ? max($validGenerals) : null,
@@ -364,6 +569,154 @@ class GradeCalculationService
             'honneur' => $generalAverage !== null && $generalAverage >= 12,
             'encouragement' => $generalAverage !== null && $generalAverage >= 14,
             'felicitations' => $generalAverage !== null && $generalAverage >= 16,
+            'generated_at' => new \DateTime(),
+        ];
+    }
+
+    /**
+     * Bordereau d'évaluation (« fiche de notes ») d'un niveau : une page par
+     * classe, en lignes les élèves et en colonnes les matières (fusionnées par
+     * matière équivalente, ex. FRANÇAIS), avec TOTAL / MOY / RANG.
+     *
+     * @return array<string, mixed>
+     */
+    public function generateBordereaux(Period $period, \App\Entity\Level $level, \App\Entity\School $school): array
+    {
+        $periodId = $period->getId();
+
+        // Matières du niveau, regroupées en colonnes par matière équivalente.
+        $subjects = $this->subjectRepository->findBySchoolAndLevel($school->getId(), $level->getId());
+        usort($subjects, static function ($a, $b) {
+            $oa = $a->getBulletinOrderNumber() ?? 9999;
+            $ob = $b->getBulletinOrderNumber() ?? 9999;
+            return $oa === $ob ? strcmp((string) $a->getName(), (string) $b->getName()) : $oa <=> $ob;
+        });
+
+        $coefBySid = [];
+        $baremeBySid = [];
+        $conduiteSid = [];
+        $columns = [];   // [colKey => ['code','order','subjectIds','conduite']]
+        foreach ($subjects as $subject) {
+            $sid = $subject->getId();
+            $coefBySid[$sid] = (float) $subject->getCoefficient();
+            $baremeBySid[$sid] = (int) ($subject->getNoteSurBulletin() ?: 20);
+            $conduiteSid[$sid] = $this->isConduiteSubject($subject);
+
+            $eq = $subject->getSubjectEquivalent();
+            $colKey = $eq ? 'e' . $eq->getId() : 's' . $sid;
+            if (!isset($columns[$colKey])) {
+                $parent = $eq?->getSubjectParent();
+                $code = ($parent !== null ? (self::SUBJECT_ABBR[mb_strtoupper($parent)] ?? null) : null)
+                    ?: ($eq?->getCode() ?: ($subject->getCode() ?: $subject->getName()));
+                $columns[$colKey] = [
+                    'code' => $code,
+                    'order' => $subject->getBulletinOrderNumber() ?? 9999,
+                    'subjectIds' => [],
+                    'conduite' => false,
+                ];
+            }
+            $columns[$colKey]['subjectIds'][] = $sid;
+            $columns[$colKey]['conduite'] = $columns[$colKey]['conduite'] || $conduiteSid[$sid];
+        }
+        $columns = array_values($columns);
+        usort($columns, static fn ($a, $b) => $a['order'] <=> $b['order']);
+
+        // Classes du niveau pour l'année de la période.
+        $year = $period->getSchoolYear();
+        $classrooms = $this->entityManager->getRepository(\App\Entity\Classroom::class)->findByLevel($level->getId());
+        $classrooms = array_filter(
+            $classrooms,
+            static fn ($c) => $year === null || $c->getSchoolYear()?->getId() === $year->getId()
+        );
+
+        $pages = [];
+        foreach ($classrooms as $classroom) {
+            $students = $this->entityManager->getRepository(Student::class)->findActiveByClassroom($classroom->getId());
+            usort($students, static fn ($a, $b) => strcmp(
+                mb_strtoupper($a->getLastName() . ' ' . $a->getFirstName()),
+                mb_strtoupper($b->getLastName() . ' ' . $b->getFirstName())
+            ));
+
+            // Note par colonne + moyenne générale de chaque élève.
+            $rows = [];
+            foreach ($students as $st) {
+                $penalty = $this->absenceSummary($st->getId(), $periodId)['penalty'];
+                $cells = [];
+                $tp = 0.0;
+                $tc = 0.0;
+                foreach ($columns as $col) {
+                    $mc = 0.0;
+                    $cf = 0.0;
+                    foreach ($col['subjectIds'] as $sidc) {
+                        $b = $baremeBySid[$sidc];
+                        $avg = $this->gradeRepository->calculateAverageByStudentSubjectAndPeriod($st->getId(), $sidc, $periodId, true);
+                        if ($conduiteSid[$sidc]) {
+                            $note = max(0.0, ($avg !== null ? $avg * $b / 20 : (float) $b) - $penalty);
+                        } elseif ($avg !== null) {
+                            $note = $avg * $b / 20;
+                        } else {
+                            continue;
+                        }
+                        $mc += $note * $coefBySid[$sidc];
+                        $cf += $coefBySid[$sidc];
+                    }
+                    $cells[$col['code']] = $cf > 0 ? round($mc / $cf, 2) : null;
+                    if ($cf > 0) {
+                        $tp += $mc;
+                        $tc += $cf;
+                    }
+                }
+
+                $rows[] = [
+                    'student' => $st,
+                    'cells' => $cells,
+                    'total' => $tc > 0 ? round($tp, 2) : null,
+                    'coef' => $tc > 0 ? round($tc, 2) : null,
+                    'moy' => $tc > 0 ? round($tp / $tc, 2) : null,
+                ];
+            }
+
+            // Rang (compétition) par moyenne décroissante, avec ex-aequo.
+            $moys = [];
+            foreach ($rows as $i => $r) {
+                if ($r['moy'] !== null) {
+                    $moys[$i] = $r['moy'];
+                }
+            }
+            arsort($moys);
+            foreach ($rows as $i => &$r) {
+                if ($r['moy'] === null) {
+                    $r['rang'] = null;
+                    $r['ex'] = false;
+                    continue;
+                }
+                $greater = 0;
+                $equal = 0;
+                foreach ($moys as $v) {
+                    if ($v > $r['moy']) {
+                        $greater++;
+                    } elseif ($v == $r['moy']) {
+                        $equal++;
+                    }
+                }
+                $r['rang'] = $greater + 1;
+                $r['ex'] = $equal > 1;
+            }
+            unset($r);
+
+            $pages[] = [
+                'classroom' => $classroom,
+                'rows' => $rows,
+            ];
+        }
+
+        return [
+            'school' => $school,
+            'level' => $level,
+            'period' => $period,
+            'school_year' => $year,
+            'columns' => $columns,
+            'pages' => $pages,
             'generated_at' => new \DateTime(),
         ];
     }

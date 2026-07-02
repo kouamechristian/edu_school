@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Paie — Rubriques{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Rubriques de paie',
+        subtitle: current_school.name,
+        icon: 'fa-list',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Paie', path: path('admin_payroll_index') },
+            { label: 'Rubriques' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_payroll_component_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouvelle rubrique</a>
+            <a href="{{ path('admin_payroll_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr><th>Code</th><th>Libellé</th><th>Sens</th><th>Calcul</th><th>Imposable</th><th>CNPS</th><th>Statut</th><th class="text-end">Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for c in components %}
+                            <tr>
+                                <td><span class="badge badge-soft secondary">{{ c.code }}</span></td>
+                                <td>{{ c.name }}</td>
+                                <td><span class="badge badge-soft {{ c.gain ? 'success' : 'danger' }}">{{ c.directionLabel }}</span></td>
+                                <td>{% if c.calcMode == 'fixed' %}{{ c.amount|number_format(0, ',', ' ') }} F{% else %}{{ c.rate|number_format(2, ',', ' ') }} % ({{ c.base == 'gross' ? 'brut' : 'base' }}){% endif %}</td>
+                                <td>{{ c.gain ? (c.taxable ? 'Oui' : 'Non') : '—' }}</td>
+                                <td>{{ c.gain ? (c.cnpsSubject ? 'Oui' : 'Non') : '—' }}</td>
+                                <td>{% if c.active %}<span class="badge badge-soft success">Actif</span>{% else %}<span class="badge badge-soft secondary">Inactif</span>{% endif %}</td>
+                                <td class="text-end">
+                                    <a href="{{ path('admin_payroll_component_edit', {'id': c.id}) }}" class="btn btn-sm btn-outline-warning" title="Modifier"><i class="fas fa-edit"></i></a>
+                                    {% if is_granted('ROLE_ADMIN') %}
+                                        <form method="post" action="{{ path('admin_payroll_component_delete', {'id': c.id}) }}" class="d-inline"
+                                              data-confirm="Supprimer la rubrique <strong>{{ c.name }}</strong> ?" data-confirm-title="Confirmer la suppression" data-confirm-btn="Oui, supprimer">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_component' ~ c.id) }}">
+                                            <button class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="8">{{ empty_state('fa-list', 'Aucune rubrique', 'Ajoutez des primes et retenues.') }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -56,7 +56,7 @@
                 <th>N°</th>
                 <th>Contact</th>
                 <th>WhatsApp</th>
-                <th>Nom</th>
+                <th>Noms et Prenons</th>
                 <th>Matricule</th>
             </tr>
         </thead>
@@ -70,7 +70,7 @@
                     <td>{{ student.parentPhone ?: '' }}</td>
                     <td>{{ student.emergencyPhone ?: '' }}</td>
                     <td>{{ student.lastName }} {{ student.firstName }}</td>
-                    <td>{{ student.matriculeInterne ?: '' }}</td>
+                    <td>{{ student.matriculeNational ?: '' }}</td>
                 </tr>
                 {% endfor %}
             {% endif %}

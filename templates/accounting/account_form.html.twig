@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ is_new ? 'Nouveau compte' : 'Modifier le compte' }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: is_new ? 'Nouveau compte' : 'Modifier : ' ~ account.name,
+        subtitle: current_school.name,
+        icon: 'fa-folder-plus',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Comptabilité', path: path('admin_accounting_dashboard') },
+            { label: 'Plan comptable', path: path('admin_accounting_accounts') },
+            { label: is_new ? 'Nouveau' : 'Modifier' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_accounting_accounts') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card">
+        <div class="card-body">
+            {{ form_start(form) }}
+                <div class="row">
+                    <div class="col-md-4 mb-3">{{ form_row(form.code) }}</div>
+                    <div class="col-md-5 mb-3">{{ form_row(form.name) }}</div>
+                    <div class="col-md-3 mb-3">{{ form_row(form.type) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-9 mb-3">{{ form_row(form.description) }}</div>
+                    <div class="col-md-3 mb-3">{{ form_row(form.isActive) }}</div>
+                </div>
+                <div class="pt-3 border-top">
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Enregistrer</button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

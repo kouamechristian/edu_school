@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 16px 18px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 7.5px; color: #000; }
+        /* Espace réservé à l'en-tête pré-imprimé du papier de l'établissement. */
+        .letterhead-space { height: 100px; }
+        .topbar { width: 100%; margin-bottom: 4px; }
+        .topbar td { font-size: 9px; font-weight: bold; }
+        .infos { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+        .infos td { border: 1px solid #000; padding: 2px 5px; font-size: 8px; }
+        .infos .k { background: #f2f2f2; font-weight: bold; width: 14%; }
+        table.grid { width: 100%; border-collapse: collapse; }
+        table.grid th, table.grid td { border: 1px solid #000; padding: 1px 3px; font-size: 7px; }
+        table.grid th { background: #f2f2f2; text-align: center; }
+        td.c { text-align: center; }
+        td.l { text-align: left; }
+        tr.grp td { background: #eef2f7; font-weight: bold; }
+        tr.tot td { background: #e8e8e8; font-weight: bold; }
+        .foot { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        .foot td { border: 1px solid #000; padding: 4px 6px; vertical-align: top; font-size: 8px; }
+        .foot .title { font-weight: bold; text-decoration: underline; margin-bottom: 3px; }
+        .chk { font-size: 8px; }
+        .note { text-align: center; font-style: italic; margin-top: 5px; font-size: 8px; }
+    </style>
+</head>
+<body>
+    {% set np = periods|length %}
+    {# En-tête volontairement omis : impression sur papier pré-imprimé à en-tête. #}
+    <div class="letterhead-space"></div>
+
+    <table class="topbar">
+        <tr>
+            <td>Livret scolaire — {{ school_year ? school_year.name : '' }}</td>
+            <td style="text-align:center">Classe : {{ classroom ? classroom.name : '—' }}</td>
+            <td style="text-align:right">Effectif : {{ effectif }}</td>
+        </tr>
+    </table>
+
+    <table class="infos">
+        <tr>
+            <td class="k">Matricule</td><td>{{ student.matriculeNational ?: (student.matriculeInterne ?: '') }}</td>
+            <td class="k">Né(e) le</td><td>{{ student.dateOfBirth ? student.dateOfBirth|date('d/m/Y') : '' }}</td>
+        </tr>
+        <tr>
+            <td class="k">Nom & Prénoms</td><td>{{ student.lastName }} {{ student.firstName }}</td>
+            <td class="k">Redoublant(e)</td><td>{{ student.latestRegistration and student.latestRegistration.isRepeating ? 'OUI' : 'NON' }}</td>
+        </tr>
+    </table>
+
+    <table class="grid">
+        <thead>
+            <tr>
+                <th rowspan="2" style="width:15%">Matières</th>
+                <th rowspan="2" style="width:4%">Coef</th>
+                {% for p in periods %}<th colspan="2">{{ p.name }}</th>{% endfor %}
+                <th colspan="2">Annuel</th>
+                <th rowspan="2" style="width:12%">Appréciation</th>
+                <th rowspan="2" style="width:14%">Professeur / Signature</th>
+            </tr>
+            <tr>
+                {% for p in periods %}<th style="width:5%">Moy</th><th style="width:4%">Rang</th>{% endfor %}
+                <th style="width:5%">Moy</th><th style="width:4%">Rang</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+                {% for r in group.rows %}
+                    <tr>
+                        <td class="l">{{ r.subject }}</td>
+                        <td class="c">{{ r.coef|number_format(0) }}</td>
+                        {% for pp in r.periods %}
+                            <td class="c">{{ pp.moy is not null ? pp.moy|number_format(2, ',', ' ') : 'NC' }}</td>
+                            <td class="c">{{ pp.rank ?: 'NC' }}</td>
+                        {% endfor %}
+                        <td class="c">{{ r.annual_moy is not null ? r.annual_moy|number_format(2, ',', ' ') : 'NC' }}</td>
+                        <td class="c">{{ r.annual_rank ?: 'NC' }}</td>
+                        <td class="l">{{ r.appreciation ?: '' }}</td>
+                        <td class="l">{{ r.teacher ?: '' }}</td>
+                    </tr>
+                {% endfor %}
+                <tr class="grp">
+                    <td class="l" colspan="2">Bilan {{ group.label }}</td>
+                    {% for b in group.bilan %}
+                        <td class="c">{{ b is not null ? b|number_format(2, ',', ' ') : 'NC' }}</td>
+                        <td></td>
+                    {% endfor %}
+                    <td></td><td></td><td></td><td></td>
+                </tr>
+            {% endfor %}
+            <tr class="tot">
+                <td class="l">TOTAUX</td>
+                <td class="c">{{ coef_total|number_format(0) }}</td>
+                {% for t in totaux %}
+                    <td class="c">{{ t.sum|number_format(2, ',', ' ') }}</td>
+                    <td></td>
+                {% endfor %}
+                <td class="c">{{ annual_general is not null ? annual_general|number_format(2, ',', ' ') : 'NC' }}</td>
+                <td></td><td></td><td></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="foot">
+        <tr>
+            <td style="width:34%">
+                <div class="title">Mention du conseil de classe</div>
+                <div class="chk">
+                    &#9744; Tableau d'honneur + Félicitations<br>
+                    &#9744; Tableau d'honneur<br>
+                    &#9744; Encouragements<br>
+                    &#9744; Blâme (Travail) &nbsp;&nbsp; &#9744; Blâme (Conduite)
+                </div>
+            </td>
+            <td style="width:33%">
+                <div class="title">Rappel par période</div>
+                {% for p in periods %}
+                    <div>{{ p.name }} : {{ totaux[loop.index0].general is not null ? totaux[loop.index0].general|number_format(2, ',', ' ') : 'NC' }}
+                        {% if period_general_rank[loop.index0] %}— {{ period_general_rank[loop.index0] }} sur {{ effectif }}{% endif %}</div>
+                {% endfor %}
+                <div class="title" style="margin-top:6px">Appréciation du conseil de classe</div>
+                <div style="height:22px"></div>
+            </td>
+            <td style="width:33%">
+                <div class="title">Bilan annuel</div>
+                <div>Moyenne annuelle : <b>{{ annual_general is not null ? annual_general|number_format(2, ',', ' ') : 'NC' }}</b></div>
+                <div>Rang annuel : <b>{{ annual_rank ?: 'NC' }} sur {{ effectif }}</b></div>
+                {% if mention %}<div>Mention : <b>{{ mention }}</b></div>{% endif %}
+                {% if decision %}<div>Décision : <b>{{ decision }}</b></div>{% endif %}
+                <div style="margin-top:10px">Le Chef d'Établissement</div>
+                <div style="text-align:right; margin-top:6px">__________ le {{ generated_at|date('d/m/Y') }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="note">Conservez soigneusement ce livret de notes. Aucun duplicata ne sera délivré.</div>
+</body>
+</html>

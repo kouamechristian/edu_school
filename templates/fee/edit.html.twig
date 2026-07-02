@@ -138,10 +138,12 @@
                                                 {% else %}<span class="badge badge-soft success"><i class="fas fa-check me-1"></i>À venir</span>{% endif %}
                                             </td>
                                             <td class="text-center">
+                                                {% if is_granted('ROLE_ADMIN') %}
                                                 <form method="post" action="{{ path('admin_fee_schedule_delete', {'id': fee.id, 'scheduleId': schedule.id}) }}" onsubmit="return confirm('Supprimer cette échéance ?');" class="d-inline">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('schedule_delete' ~ schedule.id) }}">
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                                 </form>
+                                                {% endif %}
                                             </td>
                                         </tr>
                                     {% endfor %}

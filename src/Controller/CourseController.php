@@ -10,6 +10,8 @@ use App\Repository\ClassroomRepository;
 use App\Repository\CourseRepository;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -232,6 +234,7 @@ class CourseController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, Course $course, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$course->getId(), $request->request->get('_token'))) {
@@ -258,6 +261,40 @@ class CourseController extends AbstractController
             'classroom' => $classroom,
             'schedule' => $schedule,
             'time_slots' => $timeSlots,
+        ]);
+    }
+
+    /**
+     * Emploi du temps d'une classe au format PDF (mise en page « fiche » : en-tête
+     * établissement + grille horaires × jours).
+     */
+    #[Route('/schedule/{id}/pdf', name: 'schedule_pdf', methods: ['GET'])]
+    public function schedulePdf(Classroom $classroom, CourseRepository $courseRepository, \App\Repository\TimeSlotRepository $timeSlotRepository): Response
+    {
+        $schedule = $courseRepository->findScheduleByClassroom($classroom->getId());
+        $timeSlots = $timeSlotRepository->findBySchool($classroom->getSchool()->getId());
+
+        $html = $this->renderView('course/schedule_pdf.html.twig', [
+            'classroom' => $classroom,
+            'schedule' => $schedule,
+            'time_slots' => $timeSlots,
+            'school' => $classroom->getSchool(),
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = sprintf('EMPLOI_DU_TEMPS_%s.pdf', $classroom->getId());
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
         ]);
     }
 }

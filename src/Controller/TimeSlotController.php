@@ -105,6 +105,7 @@ class TimeSlotController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, TimeSlot $timeSlot, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$timeSlot->getId(), $request->request->get('_token'))) {

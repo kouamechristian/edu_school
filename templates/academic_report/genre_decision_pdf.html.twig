@@ -17,6 +17,7 @@
         .title-row td { font-size: 11px; }
         .title-row .right { text-align: right; }
         .title-row b { font-weight: bold; }
+        .title-main { text-align: center; font-weight: bold; font-size: 10px; text-decoration: underline; margin-bottom: 8px; }
         table.list { width: 100%; border-collapse: collapse; }
         table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; font-size: 8.5px; }
         table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
@@ -45,52 +46,72 @@
         </tr>
     </table>
 
-    <table class="title-row">
-        <tr>
-            <td><b>ADMISSION, REDOUBLEMENT ET EXCLUSION — APPROCHE GENRE</b></td>
-            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
-        </tr>
-    </table>
+    <div class="title-main">STATISTIQUE DES ÉLÈVES EN SITUATION D'ADMISSION, DE REDOUBLEMENT ET D'EXCLUSION AVEC L'APPROCHE GENRE{% if period %} DU {{ period.name|upper }}{% endif %} {{ school_year ? school_year.name : '' }}</div>
 
     <table class="list">
         <thead>
             <tr>
-                <th rowspan="2" style="width:22%">Niveau</th>
-                <th colspan="4" class="grp-g">Garçons</th>
-                <th colspan="4" class="grp-f">Filles</th>
-                <th colspan="4" class="grp-t">Total</th>
+                <th colspan="16">ELEVES EN SITUATION</th>
+                <th rowspan="4">TOTAL GENERAL :<br>(d'Exclusion)</th>
             </tr>
             <tr>
-                <th class="grp-g">Noté</th><th class="grp-g">Adm.</th><th class="grp-g">Red.</th><th class="grp-g">Exc.</th>
-                <th class="grp-f">Noté</th><th class="grp-f">Adm.</th><th class="grp-f">Red.</th><th class="grp-f">Exc.</th>
-                <th class="grp-t">Noté</th><th class="grp-t">Adm.</th><th class="grp-t">Red.</th><th class="grp-t">Exc.</th>
+                <th rowspan="3" style="width:14%">NIVEAU</th>
+                <th colspan="3" class="grp-g">D'ADMISSION</th>
+                <th colspan="3" class="grp-f">DE REDOUBLEMENT</th>
+                <th colspan="9" class="grp-t">D'EXCLUSION</th>
+            </tr>
+            <tr>
+                <th colspan="3" class="grp-g">Non Red et Red ayant MG &gt;= 10</th>
+                <th colspan="3" class="grp-f">Non Red ayant :<br>10 &gt; MG &gt;= 8,5</th>
+                <th colspan="3" class="grp-t">Red ayant :<br>10 &gt; MG &gt;= 8,5</th>
+                <th colspan="3" class="grp-t">Non Red ayant :<br>MG &lt; 8,5</th>
+                <th colspan="3" class="grp-t">Red ayant :<br>MG &lt; 8,5</th>
+            </tr>
+            <tr>
+                <th class="grp-g">G</th><th class="grp-g">F</th><th class="grp-g">T</th>
+                <th class="grp-f">G</th><th class="grp-f">F</th><th class="grp-f">T</th>
+                <th class="grp-t">G</th><th class="grp-t">F</th><th class="grp-t">S/T</th>
+                <th class="grp-t">G</th><th class="grp-t">F</th><th class="grp-t">S/T</th>
+                <th class="grp-t">G</th><th class="grp-t">F</th><th class="grp-t">S/T</th>
             </tr>
         </thead>
         <tbody>
-            {% for lvl in levels %}
-                <tr>
-                    <td>{{ lvl.label }}</td>
-                    <td class="center">{{ lvl.g.noted }}</td><td class="center">{{ lvl.g.admis }}</td><td class="center">{{ lvl.g.redouble }}</td><td class="center">0</td>
-                    <td class="center">{{ lvl.f.noted }}</td><td class="center">{{ lvl.f.admis }}</td><td class="center">{{ lvl.f.redouble }}</td><td class="center">0</td>
-                    <td class="center">{{ lvl.graded }}</td><td class="center">{{ lvl.admis }}</td><td class="center">{{ lvl.redouble }}</td><td class="center">0</td>
+            {% macro cells(row) %}
+                <td class="center">{{ row.adm_g }}</td><td class="center">{{ row.adm_f }}</td><td class="center">{{ row.adm_t }}</td>
+                <td class="center">{{ row.red_g }}</td><td class="center">{{ row.red_f }}</td><td class="center">{{ row.red_t }}</td>
+                <td class="center">{{ row.exc1_g }}</td><td class="center">{{ row.exc1_f }}</td><td class="center">{{ row.exc1_t }}</td>
+                <td class="center">{{ row.exc2_g }}</td><td class="center">{{ row.exc2_f }}</td><td class="center">{{ row.exc2_t }}</td>
+                <td class="center">{{ row.exc3_g }}</td><td class="center">{{ row.exc3_f }}</td><td class="center">{{ row.exc3_t }}</td>
+                <td class="center">{{ row.exc_total }}</td>
+            {% endmacro %}
+            {% import _self as tbl %}
+            {% for section in sections %}
+                {% for row in section.rows %}
+                    <tr>
+                        <td>{{ row.label }}</td>
+                        {{ tbl.cells(row) }}
+                    </tr>
+                {% endfor %}
+                <tr class="grand">
+                    <td>{{ section.subtotal.label }}</td>
+                    {{ tbl.cells(section.subtotal) }}
                 </tr>
             {% else %}
-                <tr><td colspan="13" class="center">Aucune donnée disponible</td></tr>
+                <tr><td colspan="17" class="center">Aucune donnée disponible</td></tr>
             {% endfor %}
-            {% if levels is not empty %}
+            {% if sections is not empty %}
                 <tr class="grand">
-                    <td>TOTAL</td>
-                    <td class="center">{{ overall.g.noted }}</td><td class="center">{{ overall.g.admis }}</td><td class="center">{{ overall.g.redouble }}</td><td class="center">0</td>
-                    <td class="center">{{ overall.f.noted }}</td><td class="center">{{ overall.f.admis }}</td><td class="center">{{ overall.f.redouble }}</td><td class="center">0</td>
-                    <td class="center">{{ overall.graded }}</td><td class="center">{{ overall.admis }}</td><td class="center">{{ overall.redouble }}</td><td class="center">0</td>
+                    <td>{{ grand.label }}</td>
+                    {{ tbl.cells(grand) }}
                 </tr>
             {% endif %}
         </tbody>
     </table>
 
     <div class="note">
-        Décision calculée sur la moyenne annuelle : Admis (Adm.) si moyenne &gt;= 10/20, sinon Redouble (Red.).
-        L'exclusion (Exc.) n'étant pas déductible automatiquement des notes, elle est laissée à 0.
+        Situation calculée sur la moyenne générale (MG) de la période : Admission si MG &gt;= 10 ;
+        Redoublement si 8,5 &lt;= MG &lt; 10 (non-redoublant) ; Exclusion pour les autres cas selon
+        le statut redoublant. Le total général correspond aux effectifs en situation d'exclusion.
     </div>
 
     <table class="footer">

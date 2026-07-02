@@ -66,10 +66,12 @@
                                         <div class="btn-group btn-group-sm">
                                             <a href="{{ path('admin_course_show', {'id': course.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
                                             <a href="{{ path('admin_course_edit', {'id': course.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                            {% if is_granted('ROLE_ADMIN') %}
                                             <form method="post" action="{{ path('admin_course_delete', {'id': course.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce cours ?');" class="d-inline">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ course.id) }}">
                                                 <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                             </form>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>

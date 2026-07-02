@@ -152,10 +152,12 @@
                                                 <button type="submit" class="btn btn-outline-success" title="Valider"><i class="fas fa-check"></i></button>
                                             </form>
                                         {% endif %}
+                                        {% if is_granted('ROLE_ADMIN') %}
                                         <form method="post" action="{{ path('admin_pre_registration_document_delete', {'id': document.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer ce document ?')">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ document.id) }}">
                                             <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </div>
                             {% endfor %}

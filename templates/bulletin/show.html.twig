@@ -15,37 +15,97 @@
 
     {% include '_flash.html.twig' %}
 
-    {# ── Statut + actions ── #}
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="text-muted small"><i class="fas fa-users me-1"></i> {{ rows|length }} élève(s)</span>
-            {% if bulletin.isValidated %}
-                <span class="badge bg-success"><i class="fas fa-check me-1"></i> Validé{% if bulletin.validatedAt %} le {{ bulletin.validatedAt|date('d/m/Y') }}{% endif %}</span>
-            {% elseif bulletin.computed %}
-                <span class="badge bg-info text-dark"><i class="fas fa-calculator me-1"></i> Moyennes calculées{% if bulletin.computedAt %} le {{ bulletin.computedAt|date('d/m/Y H:i') }}{% endif %}</span>
-            {% else %}
-                <span class="badge bg-secondary">Non calculé</span>
-            {% endif %}
-        </div>
+    {# ── Barre d'outils structurée ── #}
+    <div class="card mb-3">
+        <div class="card-body">
+            {# En-tête : statut + retour #}
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pb-3 mb-3 border-bottom">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="text-muted small"><i class="fas fa-users me-1"></i> {{ rows|length }} élève(s)</span>
+                    {% if bulletin.isValidated %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i> Validé{% if bulletin.validatedAt %} le {{ bulletin.validatedAt|date('d/m/Y') }}{% endif %}</span>
+                    {% elseif bulletin.computed %}
+                        <span class="badge bg-info text-dark"><i class="fas fa-calculator me-1"></i> Moyennes calculées{% if bulletin.computedAt %} le {{ bulletin.computedAt|date('d/m/Y H:i') }}{% endif %}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Non calculé</span>
+                    {% endif %}
+                </div>
+                <a href="{{ path('admin_bulletin_index') }}" class="btn btn-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+            </div>
 
-        <div class="d-flex gap-2 flex-wrap">
-            {% if not bulletin.isValidated %}
-                <form method="post" action="{{ path('admin_bulletin_compute', {id: bulletin.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('compute' ~ bulletin.id) }}">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-calculator me-1"></i> Calculer les moyennes</button>
-                </form>
-                <form method="post" action="{{ path('admin_bulletin_validate', {id: bulletin.id}) }}" class="d-inline"
-                      onsubmit="return confirm('Valider ce bulletin ? Le recalcul sera désactivé.');">
-                    <input type="hidden" name="_token" value="{{ csrf_token('validate' ~ bulletin.id) }}">
-                    <button type="submit" class="btn btn-success" {{ bulletin.computed ? '' : 'disabled' }}>
-                        <i class="fas fa-check-circle me-1"></i> Valider
-                    </button>
-                </form>
-            {% endif %}
-            <a href="{{ path('admin_bulletin_print_all', {id: bulletin.id}) }}" target="_blank" class="btn btn-outline-dark">
-                <i class="fas fa-print me-1"></i> Imprimer bulletin
-            </a>
-            <a href="{{ path('admin_bulletin_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+            <div class="row g-4">
+                {# Groupe 1 : Calculs #}
+                <div class="col-lg-4">
+                    <div class="text-uppercase small fw-bold text-muted mb-2"><i class="fas fa-calculator me-1"></i> Calculs</div>
+                    {% if bulletin.isValidated %}
+                        <p class="text-muted small mb-0"><i class="fas fa-lock me-1"></i> Bulletin validé : le recalcul est désactivé.</p>
+                    {% else %}
+                        <div class="d-flex gap-2 flex-wrap">
+                            <form method="post" action="{{ path('admin_bulletin_compute', {id: bulletin.id}) }}" class="d-inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('compute' ~ bulletin.id) }}">
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-calculator me-1"></i> Calculer les moyennes</button>
+                            </form>
+                            <form method="post" action="{{ path('admin_bulletin_compute_annual', {id: bulletin.id}) }}" class="d-inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('computeannual' ~ bulletin.id) }}">
+                                <button type="submit" class="btn btn-outline-primary"><i class="fas fa-calendar-check me-1"></i> Moyenne annuelle</button>
+                            </form>
+                            <form method="post" action="{{ path('admin_bulletin_validate', {id: bulletin.id}) }}" class="d-inline"
+                                  data-confirm="Valider ce bulletin ? Le recalcul sera désactivé." data-confirm-title="Valider le bulletin" data-confirm-btn="Oui, valider" data-confirm-icon="question">
+                                <input type="hidden" name="_token" value="{{ csrf_token('validate' ~ bulletin.id) }}">
+                                <button type="submit" class="btn btn-success" {{ bulletin.computed ? '' : 'disabled' }}>
+                                    <i class="fas fa-check-circle me-1"></i> Valider
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {# Groupe 2 : Fiches & bordereaux #}
+                <div class="col-lg-4">
+                    <div class="text-uppercase small fw-bold text-muted mb-2"><i class="fas fa-table me-1"></i> Fiches &amp; bordereaux</div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ path('admin_bulletin_bordereau', {id: bulletin.id}) }}" target="_blank" class="btn btn-outline-secondary">
+                            <i class="fas fa-table me-1"></i> Fiche vide
+                        </a>
+                        <a href="{{ path('admin_bulletin_bordereau', {id: bulletin.id, notes: 1}) }}" target="_blank" class="btn btn-outline-info">
+                            <i class="fas fa-table-list me-1"></i> Fiche avec notes
+                        </a>
+                        <a href="{{ path('admin_bulletin_bordereau', {id: bulletin.id, notes: 1, coef: 1}) }}" target="_blank" class="btn btn-outline-primary">
+                            <i class="fas fa-clipboard-list me-1"></i> Bordereau d'évaluation
+                        </a>
+                    </div>
+                </div>
+
+                {# Groupe 3 : Impression des bulletins #}
+                <div class="col-lg-4">
+                    <div class="text-uppercase small fw-bold text-muted mb-2"><i class="fas fa-print me-1"></i> Impression des bulletins</div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-print me-1"></i> Imprimer par classe
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">Choisir une classe</h6></li>
+                            {% for classroom in classrooms %}
+                                <li>
+                                    <a class="dropdown-item" target="_blank"
+                                       href="{{ path('admin_bulletin_print_all', {id: bulletin.id, classroom: classroom.id}) }}">
+                                        <i class="fas fa-chalkboard me-2 text-muted"></i>{{ classroom.name }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li><span class="dropdown-item disabled">Aucune classe pour ce niveau</span></li>
+                            {% endfor %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                   href="{{ path('admin_bulletin_print_all', {id: bulletin.id}) }}">
+                                    <i class="fas fa-layer-group me-2 text-muted"></i>Toutes les classes
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -63,6 +123,8 @@
                                 <th>Élève</th>
                                 <th>Classe</th>
                                 <th class="text-center">Moyenne / {{ base }}</th>
+                                <th class="text-center">Moy. annuelle / {{ base }}</th>
+                                <th class="text-center" width="70">Rang ann.</th>
                                 <th>Mention</th>
                                 <th class="text-end" width="90">Bulletin</th>
                             </tr>
@@ -83,6 +145,15 @@
                                             <span class="text-muted">NC</span>
                                         {% endif %}
                                     </td>
+                                    <td class="text-center">
+                                        {% if row.annual_average is not null %}
+                                            {% set acls = row.annual_average >= (base * 0.7) ? 'success' : (row.annual_average >= (base * 0.5) ? 'warning' : 'danger') %}
+                                            <span class="badge badge-soft {{ acls }}">{{ row.annual_average }}</span>
+                                        {% else %}
+                                            <span class="text-muted">NC</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center fw-semibold">{{ row.annual_rank ?? '—' }}</td>
                                     <td>{{ row.mention ?: '—' }}</td>
                                     <td class="text-end">
                                         {% if bulletin.period %}

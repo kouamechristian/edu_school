@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 24px 26px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 8px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 74px; }
+        .header .logo img { max-height: 60px; max-width: 68px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 9px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 12px; margin: 4px 0 2px; }
+        .sub { text-align: center; font-size: 9px; margin-bottom: 8px; }
+        .idbox { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .idbox td { border: 1px solid #000; padding: 3px 6px; font-size: 8.5px; width: 25%; }
+        .idbox .k { background: #f2f2f2; font-weight: bold; }
+        table.pay { width: 100%; border-collapse: collapse; }
+        table.pay th, table.pay td { border: 1px solid #000; padding: 3px 6px; font-size: 8.5px; }
+        table.pay th { background: #f2f2f2; }
+        td.num { text-align: right; }
+        .green { color: #15803d; } .red { color: #b91c1c; }
+        .net { margin-top: 8px; border: 1.5px solid #000; padding: 6px 8px; font-size: 12px; font-weight: bold;
+               display: flex; justify-content: space-between; }
+        .employer { margin-top: 6px; font-size: 8.5px; color: #444; }
+        .signs { width: 100%; margin-top: 34px; }
+        .signs td { width: 50%; text-align: center; font-size: 9px; padding-top: 28px; border-top: 1px dotted #666; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">{% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}</td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="ministry">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <div class="title-main">BULLETIN DE PAIE</div>
+    <div class="sub">Période : {{ payslip.period.label }} — Réf. {{ payslip.reference }} — édité le {{ generated_at|date('d/m/Y') }}</div>
+
+    <table class="idbox">
+        <tr>
+            <td class="k">Employé</td><td>{{ payslip.employee.fullName }}</td>
+            <td class="k">Emploi</td><td>{{ payslip.contract ? payslip.contract.jobTitle : (payslip.employee.position ?: '') }}</td>
+        </tr>
+        <tr>
+            <td class="k">Type contrat</td><td>{{ payslip.contract ? payslip.contract.contractTypeLabel : '—' }}</td>
+            <td class="k">Parts (IGR)</td><td>{{ payslip.parts }}</td>
+        </tr>
+    </table>
+
+    <table class="pay">
+        <thead>
+            <tr><th>Rubrique</th><th style="width:16%">Base</th><th style="width:12%">Taux</th><th style="width:16%">Gain</th><th style="width:16%">Retenue</th></tr>
+        </thead>
+        <tbody>
+            {% for l in payslip.lines %}
+                <tr>
+                    <td>{{ l.label }}</td>
+                    <td class="num">{{ l.base ? (l.base|number_format(0, ',', ' ')) : '' }}</td>
+                    <td class="num">{{ l.rate ? (l.rate|number_format(2, ',', ' ') ~ '%') : '' }}</td>
+                    <td class="num green">{{ l.gain ? (l.amount|number_format(0, ',', ' ')) : '' }}</td>
+                    <td class="num red">{{ not l.gain ? (l.amount|number_format(0, ',', ' ')) : '' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="num"><strong>TOTAUX</strong></td>
+                <td class="num green"><strong>{{ payslip.grossTotal|number_format(0, ',', ' ') }}</strong></td>
+                <td class="num red"><strong>{{ payslip.totalDeductions|number_format(0, ',', ' ') }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="net">
+        <span>NET À PAYER</span><span>{{ payslip.netPay|number_format(0, ',', ' ') }} F CFA</span>
+    </div>
+    <div class="employer">
+        Charges patronales : {{ payslip.employerTotal|number_format(0, ',', ' ') }} F CFA —
+        Coût total employeur : {{ (payslip.grossTotal + payslip.employerTotal)|number_format(0, ',', ' ') }} F CFA
+    </div>
+
+    <table class="signs">
+        <tr><td>L'Employé(e)</td><td>L'Employeur</td></tr>
+    </table>
+</body>
+</html>

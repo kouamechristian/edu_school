@@ -46,4 +46,25 @@ class BulletinRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * Retourne le bulletin existant pour un (établissement, année, niveau, période)
+     * donné, s'il y en a un — quel que soit son statut (brouillon ou validé). Sert
+     * à garantir l'unicité : un seul bulletin par niveau et par période.
+     */
+    public function findOneFor(int $schoolId, int $yearId, int $levelId, int $periodId): ?Bulletin
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.school = :school')
+            ->andWhere('b.schoolYear = :year')
+            ->andWhere('b.level = :level')
+            ->andWhere('b.period = :period')
+            ->setParameter('school', $schoolId)
+            ->setParameter('year', $yearId)
+            ->setParameter('level', $levelId)
+            ->setParameter('period', $periodId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

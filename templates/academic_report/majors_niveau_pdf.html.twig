@@ -3,26 +3,28 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 28px 32px; }
-        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
-        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
+        @page { margin: 20px 22px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 10px; }
         .header td { vertical-align: middle; }
         .header .logo { width: 80px; }
-        .header .logo img { max-height: 70px; max-width: 75px; }
+        .header .logo img { max-height: 66px; max-width: 72px; }
         .header .school { text-align: center; }
         .header .school .name { font-weight: bold; font-size: 14px; }
         .header .school .ministry { font-size: 11px; }
         .header .school .tel { font-size: 10px; }
         .title-row { width: 100%; margin-bottom: 8px; }
-        .title-row td { font-size: 13px; }
+        .title-row td { font-size: 11px; }
         .title-row .right { text-align: right; }
         .title-row b { font-weight: bold; }
+        .title-main { text-align: center; font-weight: bold; font-size: 12px; text-decoration: underline; margin-bottom: 6px; }
         table.list { width: 100%; border-collapse: collapse; }
-        table.list th, table.list td { border: 1px solid #000; padding: 5px 6px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 4px; font-size: 8px; }
         table.list th { text-align: center; font-weight: bold; background: #f2f2f2; }
         table.list td.center { text-align: center; }
-        table.list tr.level-row td { background: #e9edf2; font-weight: bold; }
-        .footer { width: 100%; margin-top: 24px; font-size: 11px; }
+        table.list td.estab { text-align: center; font-weight: bold; vertical-align: middle; }
+        table.list tr.sep td { border-left: 1px solid #000; border-right: 1px solid #000; border-top: none; border-bottom: none; height: 6px; padding: 0; }
+        .footer { width: 100%; margin-top: 20px; font-size: 10px; }
         .footer td { vertical-align: top; }
         .footer .sign { text-align: right; text-decoration: underline; }
         .footer .date .line { border-bottom: 1px solid #000; display: inline-block; width: 150px; }
@@ -41,33 +43,67 @@
         </tr>
     </table>
 
+    <div class="title-main">LISTE DES MAJORS DE CLASSE{% if period %} DU {{ period.name|upper }}{% endif %} ({{ top }} par niveau)</div>
     <table class="title-row">
         <tr>
-            <td><b>LISTE DES MAJORS DE CLASSE (PAR NIVEAU)</b></td>
-            <td class="right"><b>Année Scolaire:</b> {{ school_year ? school_year.name : '—' }}</td>
+            <td><b>Période :</b> {{ period ? period.name|upper : '—' }}</td>
+            <td class="right"><b>Année Scolaire :</b> {{ school_year ? school_year.name : '—' }}</td>
         </tr>
     </table>
 
     <table class="list">
         <thead>
             <tr>
-                <th style="width:24%">Classe</th>
-                <th>Major (Nom &amp; Prénoms)</th>
-                <th style="width:16%">Moyenne /20</th>
+                <th style="width:3%">N°</th>
+                <th style="width:14%">ETABLISSEMENT</th>
+                <th style="width:3%">N°</th>
+                <th style="width:10%">MATRICULE</th>
+                <th>NOM ET PRENOMS</th>
+                <th style="width:8%">Age<br>Né(e) le</th>
+                <th style="width:5%">Genre</th>
+                <th style="width:4%">Nat</th>
+                <th style="width:4%">LV2</th>
+                <th style="width:6%">MOY/20</th>
+                <th style="width:5%">Rang</th>
+                <th style="width:6%">Classe</th>
+                <th style="width:10%">OBSERVATIONS</th>
             </tr>
         </thead>
         <tbody>
-            {% for group in by_level %}
-                <tr class="level-row"><td colspan="3">{{ group.label }}</td></tr>
-                {% for class in group.classes %}
+            {% for level in levels %}
+                {% if level.rows is not empty %}
+                    {% for row in level.rows %}
+                        <tr>
+                            {% if loop.parent.loop.first and loop.first %}
+                                <td rowspan="{{ total_rows }}" class="center">1</td>
+                                <td rowspan="{{ total_rows }}" class="estab">{{ school ? school.name|upper : '' }}</td>
+                            {% endif %}
+                            <td class="center">{{ row.seq }}</td>
+                            <td>{{ row.matricule }}</td>
+                            <td>{{ row.name }}</td>
+                            <td class="center">{{ row.birthDate ? row.birthDate|date('d/m/Y') : '' }}</td>
+                            <td class="center">{{ row.genre }}</td>
+                            <td class="center">{{ row.nat }}</td>
+                            <td class="center">{{ row.lv2 ?? '' }}</td>
+                            <td class="center">{{ row.average|number_format(2, ',', ' ') }}</td>
+                            <td class="center">{{ row.rank }}</td>
+                            <td class="center">{{ row.classe }}</td>
+                            <td></td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
                     <tr>
-                        <td>{{ class.label }}</td>
-                        <td>{% if class.major %}{{ class.major.student.lastName|upper }} {{ class.major.student.firstName }}{% else %}—{% endif %}</td>
-                        <td class="center">{% if class.major %}{{ class.major.average|number_format(2, ',', ' ') }}{% else %}—{% endif %}</td>
+                        {% if loop.first %}
+                            <td rowspan="{{ total_rows }}" class="center">1</td>
+                            <td rowspan="{{ total_rows }}" class="estab">{{ school ? school.name|upper : '' }}</td>
+                        {% endif %}
+                        <td class="center">—</td>
+                        <td colspan="10">{{ level.label }} : aucun élève noté</td>
                     </tr>
-                {% endfor %}
+                {% endif %}
+                <tr class="sep"><td colspan="11"></td></tr>
             {% else %}
-                <tr><td colspan="3" class="center">Aucune classe disponible</td></tr>
+                <tr><td colspan="13" class="center">Aucune classe disponible</td></tr>
             {% endfor %}
         </tbody>
     </table>

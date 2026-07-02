@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ is_new ? 'Nouvelle rubrique' : 'Modifier rubrique' }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: is_new ? 'Nouvelle rubrique' : 'Modifier : ' ~ component.name,
+        subtitle: current_school.name,
+        icon: 'fa-list',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Paie', path: path('admin_payroll_index') },
+            { label: 'Rubriques', path: path('admin_payroll_components') },
+            { label: is_new ? 'Nouvelle' : 'Modifier' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_payroll_components') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card">
+        <div class="card-body">
+            {{ form_start(form) }}
+                <div class="row">
+                    <div class="col-md-3 mb-3">{{ form_row(form.code) }}</div>
+                    <div class="col-md-5 mb-3">{{ form_row(form.name) }}</div>
+                    <div class="col-md-2 mb-3">{{ form_row(form.direction) }}</div>
+                    <div class="col-md-2 mb-3">{{ form_row(form.isActive) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">{{ form_row(form.calcMode) }}</div>
+                    <div class="col-md-3 mb-3">{{ form_row(form.base) }}</div>
+                    <div class="col-md-3 mb-3">{{ form_row(form.amount) }}</div>
+                    <div class="col-md-3 mb-3">{{ form_row(form.rate) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">{{ form_row(form.taxable) }}</div>
+                    <div class="col-md-3 mb-3">{{ form_row(form.cnpsSubject) }}</div>
+                    <div class="col-md-3 mb-3">{{ form_row(form.sortOrder) }}</div>
+                </div>
+                <div class="alert alert-light border small mb-3"><i class="fas fa-info-circle me-1"></i> « Imposable » et « Soumis CNPS » ne s'appliquent qu'aux gains. Le montant fixe s'utilise en mode « Montant fixe » ; le taux (%) en mode « Pourcentage ».</div>
+                <div class="pt-3 border-top">
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Enregistrer</button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

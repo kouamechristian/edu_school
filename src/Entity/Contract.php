@@ -59,6 +59,25 @@ class Contract
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
 
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
+    #[Assert\PositiveOrZero(message: 'Le nombre d\'enfants doit être positif')]
+    private ?int $numberOfChildren = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Choice(choices: ['single', 'married', 'divorced', 'widowed'], message: 'Situation familiale invalide')]
+    private ?string $maritalStatus = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $isDeclared = null;
+
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
+    #[Assert\PositiveOrZero(message: 'Le nombre d\'enfants majeurs doit être positif')]
+    private ?int $adultChildren = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
+    private ?string $regime = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
@@ -238,6 +257,72 @@ class Contract
     public function setNotes(?string $notes): static
     {
         $this->notes = $notes;
+        return $this;
+    }
+
+    public function getNumberOfChildren(): ?int
+    {
+        return $this->numberOfChildren;
+    }
+
+    public function setNumberOfChildren(?int $numberOfChildren): static
+    {
+        $this->numberOfChildren = $numberOfChildren;
+        return $this;
+    }
+
+    public function getMaritalStatus(): ?string
+    {
+        return $this->maritalStatus;
+    }
+
+    public function setMaritalStatus(?string $maritalStatus): static
+    {
+        $this->maritalStatus = $maritalStatus;
+        return $this;
+    }
+
+    public function getMaritalStatusLabel(): string
+    {
+        return match ($this->maritalStatus) {
+            'single' => 'Célibataire',
+            'married' => 'Marié(e)',
+            'divorced' => 'Divorcé(e)',
+            'widowed' => 'Veuf(ve)',
+            default => '—',
+        };
+    }
+
+    public function isDeclared(): ?bool
+    {
+        return $this->isDeclared;
+    }
+
+    public function setIsDeclared(?bool $isDeclared): static
+    {
+        $this->isDeclared = $isDeclared;
+        return $this;
+    }
+
+    public function getAdultChildren(): ?int
+    {
+        return $this->adultChildren;
+    }
+
+    public function setAdultChildren(?int $adultChildren): static
+    {
+        $this->adultChildren = $adultChildren;
+        return $this;
+    }
+
+    public function getRegime(): ?string
+    {
+        return $this->regime;
+    }
+
+    public function setRegime(?string $regime): static
+    {
+        $this->regime = $regime;
         return $this;
     }
 
