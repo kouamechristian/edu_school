@@ -186,6 +186,36 @@ class FondateurController extends AbstractController
         return $this->redirectToRoute('fondateur_validations');
     }
 
+    #[Route('/caisse/{id}/annuler-validation', name: 'annuler_validation_caisse', methods: ['POST'])]
+    public function annulerValidationCaisse(
+        Request $request,
+        CashRegister $cashRegister,
+        EntityManagerInterface $entityManager,
+        \App\Service\NotificationService $notificationService
+    ): Response {
+        if ($this->isCsrfTokenValid('annuler_validation'.$cashRegister->getId(), $request->request->get('_token'))) {
+            $cashRegister->setIsValidated(false)
+                ->setValidatedBy(null)
+                ->setValidatedAt(null);
+
+            // Notifier le caissier que la validation de sa caisse a été annulée.
+            if ($cashRegister->getCashier()) {
+                $notificationService->notify(
+                    $cashRegister->getCashier(),
+                    'Validation de caisse annulée',
+                    'La validation de votre caisse a été annulée par le fondateur. Vous ne pouvez plus enregistrer de paiements ni effectuer de versements tant qu\'elle n\'est pas revalidée.',
+                    $this->generateUrl('admin_cash_register_index'),
+                    'fa-circle-exclamation'
+                );
+            }
+
+            $entityManager->flush();
+            $this->addFlash('success', 'La validation de la caisse a été annulée. Le caissier a été notifié.');
+        }
+
+        return $this->redirectToRoute('fondateur_validations');
+    }
+
     #[Route('/autorisations', name: 'autorisations', methods: ['GET'])]
     public function autorisations(CashRegisterRepository $cashRegisterRepository): Response
     {

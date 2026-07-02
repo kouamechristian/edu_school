@@ -45,12 +45,17 @@
                                     </td>
                                     <td class="text-end">
                                         {% if not cr.isValidated %}
-                                            <form method="post" action="{{ path('fondateur_valider_caisse', {'id': cr.id}) }}" class="d-inline" onsubmit="return confirm('Valider cette caisse ?');">
+                                            <form method="post" action="{{ path('fondateur_valider_caisse', {'id': cr.id}) }}" class="d-inline"
+                                                  data-confirm="Valider la caisse de <strong>{{ cr.cashier ? cr.cashier.fullName : '' }}</strong> ?" data-confirm-title="Valider la caisse" data-confirm-btn="Oui, valider" data-confirm-icon="question">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('valider' ~ cr.id) }}">
                                                 <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check me-1"></i> Valider</button>
                                             </form>
                                         {% else %}
-                                            <span class="text-muted small">—</span>
+                                            <form method="post" action="{{ path('fondateur_annuler_validation_caisse', {'id': cr.id}) }}" class="d-inline"
+                                                  data-confirm="Annuler la validation de la caisse de <strong>{{ cr.cashier ? cr.cashier.fullName : '' }}</strong> ?<br><small>Le caissier ne pourra plus encaisser ni verser tant qu'elle n'est pas revalidée.</small>" data-confirm-title="Annuler la validation" data-confirm-btn="Oui, annuler" data-confirm-icon="warning">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('annuler_validation' ~ cr.id) }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-rotate-left me-1"></i> Annuler la validation</button>
+                                            </form>
                                         {% endif %}
                                     </td>
                                 </tr>
