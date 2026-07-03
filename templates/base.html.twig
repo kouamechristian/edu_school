@@ -667,7 +667,7 @@
                Visible pour ROLE_ADMIN (admins, super admins)
                ============================================================== #}
             {% if is_granted('ROLE_ADMIN') %}
-            {% set admin_active = current_route starts with 'admin_school' or current_route starts with 'admin_user' or current_route starts with 'admin_subject_type' or current_route starts with 'admin_mobile_money_log' %}
+            {% set admin_active = current_route starts with 'admin_school' or current_route starts with 'admin_user' or current_route starts with 'admin_subject_type' or current_route starts with 'admin_mobile_money_log' or current_route starts with 'admin_mouchard' %}
             <div class="nav-section">Administration</div>
             <li class="nav-item">
                 <a href="#" class="nav-link dropdown-toggle {{ admin_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuAdmin" aria-expanded="{{ admin_active ? 'true' : 'false' }}">
@@ -698,6 +698,11 @@
                     <li class="nav-item">
                         <a href="{{ path('admin_mobile_money_log_index') }}" class="nav-link {{ current_route starts with 'admin_mobile_money_log' ? 'active' : '' }}">
                             <i class="fas fa-mobile-screen-button"></i><span>Logs Mobile Money</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_mouchard_index') }}" class="nav-link {{ current_route starts with 'admin_mouchard' ? 'active' : '' }}">
+                            <i class="fas fa-user-secret"></i><span>Mouchard</span>
                         </a>
                     </li>
                 </ul>

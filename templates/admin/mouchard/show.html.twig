@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détail de l'action #{{ log.id }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Détail de l\'action',
+        subtitle: log.description,
+        icon: 'fa-magnifying-glass',
+        color: 'primary',
+        breadcrumb: [ { label: 'Administration' }, { label: 'Mouchard', path: path('admin_mouchard_index') }, { label: '#' ~ log.id } ]
+    } %}{% endembed %}
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card table-card h-100">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-circle-info me-2"></i>Informations</h6></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-5 text-muted">Date</dt>
+                        <dd class="col-7">{{ log.createdAt|date('d/m/Y H:i:s') }}</dd>
+
+                        <dt class="col-5 text-muted">Action</dt>
+                        <dd class="col-7"><span class="badge bg-{{ log.actionColor }}"><i class="fas {{ log.actionIcon }} me-1"></i>{{ log.actionLabel }}</span></dd>
+
+                        <dt class="col-5 text-muted">Utilisateur</dt>
+                        <dd class="col-7">{{ log.user ? log.user.fullName : log.username }} <small class="text-muted">({{ log.username }})</small></dd>
+
+                        <dt class="col-5 text-muted">Établissement</dt>
+                        <dd class="col-7">{{ log.school ? log.school.name : '—' }}</dd>
+
+                        <dt class="col-5 text-muted">Type d'objet</dt>
+                        <dd class="col-7">{{ log.entityTypeLabel ?: '—' }}{% if log.entityId %} <small class="text-muted">#{{ log.entityId }}</small>{% endif %}</dd>
+
+                        <dt class="col-5 text-muted">Libellé objet</dt>
+                        <dd class="col-7">{{ log.entityLabel ?: '—' }}</dd>
+
+                        <dt class="col-5 text-muted">Adresse IP</dt>
+                        <dd class="col-7">{{ log.ipAddress ?: '—' }}</dd>
+
+                        <dt class="col-5 text-muted">Route</dt>
+                        <dd class="col-7"><small>{{ log.route ?: '—' }}</small></dd>
+
+                        <dt class="col-5 text-muted">Méthode</dt>
+                        <dd class="col-7">{{ log.method ?: '—' }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card table-card h-100">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-code-compare me-2"></i>Champs modifiés</h6></div>
+                <div class="card-body">
+                    {% if log.changes %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr><th>Champ</th><th>Avant</th><th>Après</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for field, values in log.changes %}
+                                        <tr>
+                                            <td class="fw-semibold">{{ field }}</td>
+                                            <td class="text-danger"><del>{{ values[0] is iterable ? values[0]|json_encode : (values[0] is same as(null) ? '∅' : values[0]) }}</del></td>
+                                            <td class="text-success">{{ values[1] is iterable ? values[1]|json_encode : (values[1] is same as(null) ? '∅' : values[1]) }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0"><i class="fas fa-circle-info me-1"></i>Aucun détail de modification pour cette action.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ path('admin_mouchard_index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Retour au journal</a>
+    </div>
+</div>
+{% endblock %}

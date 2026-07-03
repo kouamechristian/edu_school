@@ -1,0 +1,137 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Mouchard — Journal d'activité{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Mouchard — Journal d\'activité',
+        subtitle: is_super_admin ? 'Tous les établissements' : (current_school ? current_school.name : 'Aucun établissement'),
+        icon: 'fa-user-secret',
+        color: 'primary',
+        breadcrumb: [ { label: 'Administration' }, { label: 'Mouchard' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {# ── Filtres ── #}
+    <div class="card filter-card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3 col-6">
+                    <label for="search" class="form-label">Recherche</label>
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Utilisateur, libellé…" value="{{ filters.search }}">
+                </div>
+                <div class="col-md-2 col-6">
+                    <label for="action" class="form-label">Action</label>
+                    <select name="action" id="action" class="form-select">
+                        <option value="">Toutes</option>
+                        {% for value, label in action_labels %}
+                            <option value="{{ value }}" {{ filters.action == value ? 'selected' : '' }}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 col-6">
+                    <label for="entity_type" class="form-label">Type</label>
+                    <select name="entity_type" id="entity_type" class="form-select">
+                        <option value="">Tous</option>
+                        {% for type in entity_types %}
+                            <option value="{{ type }}" {{ filters.entity_type == type ? 'selected' : '' }}>{{ entity_labels[type] ?? type }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 col-6">
+                    <label for="user_id" class="form-label">Utilisateur</label>
+                    <select name="user_id" id="user_id" class="form-select">
+                        <option value="">Tous</option>
+                        {% for u in users %}
+                            <option value="{{ u.id }}" {{ filters.user_id == u.id ? 'selected' : '' }}>{{ u.fullName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 col-6">
+                    <label for="date_from" class="form-label">Du</label>
+                    <input type="date" name="date_from" id="date_from" class="form-control" value="{{ filters.date_from }}">
+                </div>
+                <div class="col-md-3 col-6">
+                    <label for="date_to" class="form-label">Au</label>
+                    <input type="date" name="date_to" id="date_to" class="form-control" value="{{ filters.date_to }}">
+                </div>
+                <div class="col-md-3 col-6 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1"><i class="fas fa-filter me-1"></i> Filtrer</button>
+                    <a href="{{ path('admin_mouchard_index') }}" class="btn btn-outline-secondary" title="Réinitialiser"><i class="fas fa-rotate-left"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Liste ── #}
+    <div class="card table-card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list-check me-2"></i>Traces d'activité
+                <span class="badge badge-soft ms-1">{{ pagination.getTotalItemCount }}</span>
+            </h6>
+        </div>
+        <div class="card-body">
+            {% if pagination.items is empty %}
+                {{ empty_state('fa-user-secret', 'Aucune trace', 'Aucune action ne correspond à ces filtres.') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Utilisateur</th>
+                                <th>Action</th>
+                                <th>Objet</th>
+                                <th>Détail</th>
+                                <th>IP</th>
+                                <th class="text-end">—</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in pagination.items %}
+                                <tr>
+                                    <td class="text-muted text-nowrap">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
+                                    <td>
+                                        <span class="fw-semibold">{{ log.user ? log.user.fullName : log.username }}</span>
+                                        {% if log.user %}<div><small class="text-muted">{{ log.username }}</small></div>{% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ log.actionColor }}">
+                                            <i class="fas {{ log.actionIcon }} me-1"></i>{{ log.actionLabel }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if log.entityType %}
+                                            <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ log.entityTypeLabel }}</span>
+                                            {% if log.entityId %}<small class="text-muted">#{{ log.entityId }}</small>{% endif %}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.entityLabel %}
+                                            <span title="{{ log.description }}">{{ log.entityLabel|length > 50 ? log.entityLabel|slice(0, 50) ~ '…' : log.entityLabel }}</span>
+                                        {% else %}
+                                            <span class="text-muted">{{ log.description|default('—') }}</span>
+                                        {% endif %}
+                                        {% if log.changes %}<span class="badge bg-info-subtle text-info-emphasis ms-1">{{ log.changes|length }} champ(s)</span>{% endif %}
+                                    </td>
+                                    <td><small class="text-muted">{{ log.ipAddress ?: '—' }}</small></td>
+                                    <td class="text-end">
+                                        <a href="{{ path('admin_mouchard_show', { id: log.id }) }}" class="btn btn-sm btn-outline-primary" title="Détails"><i class="fas fa-eye"></i></a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% include '_pagination.html.twig' with { pagination: pagination } %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
