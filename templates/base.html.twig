@@ -548,9 +548,13 @@
        Sections affichées selon is_granted() et app.user.userType
        ================================================================ #}
     <nav class="sidebar" id="sidebar">
-        {# ── Brand ── #}
+        {# ── Brand : logo de l'établissement courant (repli sur le logo EDU-SCHOOL) ── #}
         <div class="sidebar-brand">
-            <img src="{{ asset('images/logo-edu-school.png') }}" alt="EDU-SCHOOL">
+            {% if current_school is defined and current_school and current_school.logo %}
+                <img src="{{ asset(current_school.logo|trim('/', 'left')) }}" alt="{{ current_school.name }}">
+            {% else %}
+                <img src="{{ asset('images/logo-edu-school.png') }}" alt="EDU-SCHOOL">
+            {% endif %}
         </div>
 
         <ul class="sidebar-nav">
