@@ -280,9 +280,15 @@ class PaymentController extends AbstractController
                     'id' => $fee->getId(),
                     'name' => $fee->getName(),
                     'remaining' => $studentFee->getRemainingAmount(),
+                    'is_arriere' => $studentFee->isArriereAnterieur(),
                     'schedules' => $scheduleList,
                 ];
             }
+
+            // Les arriérés antérieurs se soldent en priorité : on les remonte en tête
+            // de liste (puis tri alphabétique) pour guider l'imputation du caissier.
+            usort($list, static fn (array $a, array $b): int => ($b['is_arriere'] <=> $a['is_arriere']) ?: strcmp((string) $a['name'], (string) $b['name']));
+
             $feesByStudent[$choiceStudent->getId()] = $list;
         }
 

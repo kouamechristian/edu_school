@@ -50,6 +50,22 @@ class StudentFee
     #[Assert\Choice(choices: ['non_paye', 'partiellement_paye', 'paye'])]
     private ?string $status = 'non_paye';
 
+    /**
+     * Ligne d'arriéré d'une année antérieure (impayé repris d'avant l'utilisation
+     * du logiciel). Une telle ligne reste due par l'élève et recouvrable via le
+     * module de recouvrement, MAIS son montant ne doit jamais gonfler le chiffre
+     * d'affaires de l'année courante (cf. exclusion dans PaymentRepository).
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isArriereAnterieur = false;
+
+    /**
+     * Année scolaire d'origine de l'arriéré (ex. "2024-2025"), à titre informatif.
+     */
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
+    private ?string $anneeOrigine = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
@@ -167,6 +183,28 @@ class StudentFee
             'paye' => 'success',
             default => 'secondary'
         };
+    }
+
+    public function isArriereAnterieur(): bool
+    {
+        return $this->isArriereAnterieur;
+    }
+
+    public function setIsArriereAnterieur(bool $isArriereAnterieur): static
+    {
+        $this->isArriereAnterieur = $isArriereAnterieur;
+        return $this;
+    }
+
+    public function getAnneeOrigine(): ?string
+    {
+        return $this->anneeOrigine;
+    }
+
+    public function setAnneeOrigine(?string $anneeOrigine): static
+    {
+        $this->anneeOrigine = $anneeOrigine;
+        return $this;
     }
 
     public function getRemainingAmount(): float

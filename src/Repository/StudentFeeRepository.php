@@ -90,6 +90,26 @@ class StudentFeeRepository extends ServiceEntityRepository
         return (float) ($result ?? 0);
     }
 
+    /**
+     * Lignes d'arriérés antérieurs d'un établissement (isArriereAnterieur = true),
+     * triées par élève. Alimente l'« État des arriérés » du module Recouvrement.
+     *
+     * @return StudentFee[]
+     */
+    public function findArrieresBySchool(int $schoolId): array
+    {
+        return $this->createQueryBuilder('sf')
+            ->join('sf.student', 's')
+            ->addSelect('s')
+            ->where('s.school = :schoolId')
+            ->andWhere('sf.isArriereAnterieur = true')
+            ->setParameter('schoolId', $schoolId)
+            ->orderBy('s.lastName', 'ASC')
+            ->addOrderBy('s.firstName', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function getUnpaidByStudent(int $studentId): array
     {
         return $this->createQueryBuilder('sf')

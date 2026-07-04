@@ -29,6 +29,7 @@ class EnrollmentService
         private FeeAssignmentService $feeAssignmentService,
         private RegistrationRepository $registrationRepository,
         private MatriculeGenerator $matriculeGenerator,
+        private ArriereManager $arriereManager,
     ) {
     }
 
@@ -99,6 +100,10 @@ class EnrollmentService
         if ($registration !== null) {
             $this->feeAssignmentService->assignScolariteFeesForRegistration($registration);
             $this->entityManager->flush();
+
+            // Report automatique du solde impayé de l'année précédente en arriéré sur cette
+            // inscription (sans effet pour un nouvel élève, qui n'a pas d'année antérieure).
+            $this->arriereManager->carryForwardPreviousBalance($registration);
         }
 
         return $registration;

@@ -40,8 +40,13 @@ class PaymentRepository extends ServiceEntityRepository
             )
             ->join('p.cashRegister', 'cr')
             ->join('cr.school', 's')
+            // Les arriérés antérieurs ne comptent pas dans le chiffre d'affaires de
+            // l'année courante ; on écarte les paiements imputés à une telle ligne
+            // (les paiements sans ligne rattachée restent comptés).
+            ->leftJoin('p.studentFee', 'sf')
             ->andWhere('s.schoolGroup = :group')
             ->andWhere('p.status IN (:paid)')
+            ->andWhere('sf.id IS NULL OR sf.isArriereAnterieur = false')
             ->setParameter('group', $group)
             ->setParameter('paid', self::PAID_STATUSES)
             ->setParameter('online', true)
@@ -71,10 +76,13 @@ class PaymentRepository extends ServiceEntityRepository
             ->select('SUM(p.amount)')
             ->join('p.cashRegister', 'cr')
             ->join('cr.school', 's')
+            // Exclut les encaissements d'arriérés antérieurs du CA mensuel (cf. getRevenueBySchoolForGroup).
+            ->leftJoin('p.studentFee', 'sf')
             ->andWhere('s.schoolGroup = :group')
             ->andWhere('p.status IN (:paid)')
             ->andWhere('p.paymentDate >= :start')
             ->andWhere('p.paymentDate < :end')
+            ->andWhere('sf.id IS NULL OR sf.isArriereAnterieur = false')
             ->setParameter('group', $group)
             ->setParameter('paid', self::PAID_STATUSES)
             ->setParameter('start', $start)
@@ -303,12 +311,62 @@ class PaymentRepository extends ServiceEntityRepository
         return (float) ($result ?? 0);
     }
 
+    /**
+     * Total des encaissements d'une caisse (hors annulés).
+     *
+     * Représente l'argent PHYSIQUEMENT présent dans la caisse (arriérés antérieurs
+     * inclus : ce sont des espèces réellement encaissées). Sert au calcul du solde
+     * disponible pour les versements et les dépenses.
+     */
     public function getTotalAmountByCashRegister(int $cashRegisterId): float
     {
         $result = $this->createQueryBuilder('p')
             ->select('SUM(p.amount) as total')
             ->andWhere('p.cashRegister = :cashRegisterId')
             ->andWhere('p.status != :cancelled')
+            ->setParameter('cashRegisterId', $cashRegisterId)
+            ->setParameter('cancelled', 'annulé')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($result ?? 0);
+    }
+
+    /**
+     * Recettes d'une caisse HORS arriérés antérieurs (et hors annulés).
+     *
+     * C'est le « chiffre d'affaires » de la caisse : les encaissements d'arriérés
+     * d'années précédentes en sont exclus (ils ne gonflent pas le CA courant).
+     * À utiliser pour l'affichage, jamais pour le solde physique disponible.
+     */
+    public function getRevenueTotalByCashRegister(int $cashRegisterId): float
+    {
+        $result = $this->createQueryBuilder('p')
+            ->select('SUM(p.amount) as total')
+            ->leftJoin('p.studentFee', 'sf')
+            ->andWhere('p.cashRegister = :cashRegisterId')
+            ->andWhere('p.status != :cancelled')
+            ->andWhere('sf.id IS NULL OR sf.isArriereAnterieur = false')
+            ->setParameter('cashRegisterId', $cashRegisterId)
+            ->setParameter('cancelled', 'annulé')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($result ?? 0);
+    }
+
+    /**
+     * Total des encaissements d'arriérés antérieurs d'une caisse (hors annulés).
+     * Complément de {@see getRevenueTotalByCashRegister()} : total = recettes + arriérés.
+     */
+    public function getArrieresTotalByCashRegister(int $cashRegisterId): float
+    {
+        $result = $this->createQueryBuilder('p')
+            ->select('SUM(p.amount) as total')
+            ->join('p.studentFee', 'sf')
+            ->andWhere('p.cashRegister = :cashRegisterId')
+            ->andWhere('p.status != :cancelled')
+            ->andWhere('sf.isArriereAnterieur = true')
             ->setParameter('cashRegisterId', $cashRegisterId)
             ->setParameter('cancelled', 'annulé')
             ->getQuery()

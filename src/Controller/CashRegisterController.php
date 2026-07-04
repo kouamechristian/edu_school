@@ -36,19 +36,24 @@ class CashRegisterController extends AbstractController
         }
 
         $cashRegister = $cashRegisterRepository->findOpenForCashier($school, $cashier);
-        $paymentsTotal = 0.0;
+        $paymentsTotal = 0.0;   // total physique (arriérés inclus) → solde disponible
+        $paymentsRevenue = 0.0; // recettes affichées (hors arriérés antérieurs)
+        $arrieresTotal = 0.0;   // part d'arriérés encaissés (hors CA)
         $depositsTotal = 0.0;
         $depensesTotal = 0.0;
         $deposits = [];
         if ($cashRegister) {
             $paymentsTotal = $paymentRepository->getTotalAmountByCashRegister($cashRegister->getId());
+            $paymentsRevenue = $paymentRepository->getRevenueTotalByCashRegister($cashRegister->getId());
+            $arrieresTotal = $paymentRepository->getArrieresTotalByCashRegister($cashRegister->getId());
             // Solde officiel : seuls les versements APPROUVÉS par le fondateur le réduisent.
             $depositsTotal = $cashDepositRepository->getApprovedTotalByCashRegister($cashRegister->getId());
             $depensesTotal = $depenseRepository->getTotalByCashRegister($cashRegister->getId());
             $deposits = $cashDepositRepository->findByCashRegister($cashRegister->getId());
         }
 
-        // Solde actuel = ouverture + encaissements - versements approuvés - dépenses
+        // Solde actuel = ouverture + encaissements PHYSIQUES (arriérés compris) - versements approuvés - dépenses.
+        // On garde le total physique ici : l'argent d'arriéré est réellement en caisse et doit rester versable.
         $currentBalance = $cashRegister
             ? (float) $cashRegister->getOpeningBalance() + $paymentsTotal - $depositsTotal - $depensesTotal
             : 0.0;
@@ -58,14 +63,16 @@ class CashRegisterController extends AbstractController
         $onlineTotal = 0.0;
         $onlineCount = 0;
         if ($onlineCashRegister) {
-            $onlineTotal = $paymentRepository->getTotalAmountByCashRegister($onlineCashRegister->getId());
+            // Recettes en ligne hors arriérés (cohérent avec l'affichage de la caisse physique).
+            $onlineTotal = $paymentRepository->getRevenueTotalByCashRegister($onlineCashRegister->getId());
             $onlineCount = $paymentRepository->count(['cashRegister' => $onlineCashRegister]);
         }
 
         return $this->render('cash_register/index.html.twig', [
             'current_school' => $school,
             'cash_register' => $cashRegister,
-            'payments_total' => $paymentsTotal,
+            'payments_total' => $paymentsRevenue,
+            'arrieres_total' => $arrieresTotal,
             'deposits_total' => $depositsTotal,
             'depenses_total' => $depensesTotal,
             'deposits' => $deposits,

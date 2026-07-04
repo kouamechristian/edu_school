@@ -1156,6 +1156,12 @@
                             <span>Relance</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_recouvrement_arrieres') }}" class="nav-link {{ current_route starts with 'admin_recouvrement_arrieres' ? 'active' : '' }}">
+                            <i class="fas fa-clock-rotate-left"></i>
+                            <span>Arriérés</span>
+                        </a>
+                    </li>
                 </ul>
             </li>
             {% endif %}

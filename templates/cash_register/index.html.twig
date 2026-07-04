@@ -69,7 +69,13 @@
             </div>
             <div class="col-6 col-xl-3">
                 <div class="stat-card success h-100"><div class="card-body d-flex align-items-center justify-content-between">
-                    <div><div class="stat-label mb-1">Encaissements</div><div class="stat-value text-success" style="font-size:1.1rem;">{{ payments_total|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
+                    <div>
+                        <div class="stat-label mb-1">Encaissements <small class="text-muted">(hors arriérés)</small></div>
+                        <div class="stat-value text-success" style="font-size:1.1rem;">{{ payments_total|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div>
+                        {% if arrieres_total is defined and arrieres_total > 0 %}
+                            <div class="small text-muted mt-1"><i class="fas fa-clock-rotate-left me-1"></i>+ {{ arrieres_total|number_format(0, ',', ' ') }} F d'arriérés (dans le solde, hors CA)</div>
+                        {% endif %}
+                    </div>
                     <div class="stat-icon"><i class="fas fa-coins"></i></div>
                 </div></div>
             </div>

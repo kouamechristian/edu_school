@@ -1,0 +1,188 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Arriérés antérieurs{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'État des arriérés',
+        subtitle: current_school ? current_school.name ~ (current_school_year is defined and current_school_year ? '  ·  ' ~ current_school_year.name : '') : 'Impayés des années antérieures',
+        icon: 'fa-clock-rotate-left',
+        color: 'warning',
+        breadcrumb: [ { label: 'Recouvrement', path: path('admin_recouvrement_dashboard') }, { label: 'Arriérés' } ]
+    } %}
+        {% block actions %}
+            {% if current_school %}
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importArrieresModal">
+                    <i class="fas fa-file-import me-1"></i> Importer (.xlsx)
+                </button>
+                <a href="{{ path('admin_recouvrement_arrieres_pdf') }}" target="_blank" class="btn btn-danger">
+                    <i class="fas fa-file-pdf me-1"></i> Lire / Télécharger PDF
+                </a>
+            {% endif %}
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if not current_school %}
+        <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Veuillez sélectionner un établissement pour accéder aux arriérés.</div>
+    {% else %}
+        {# ── Modale d'import Excel ── #}
+        <div class="modal fade" id="importArrieresModal" tabindex="-1" aria-labelledby="importArrieresModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="post" action="{{ path('admin_recouvrement_arrieres_import') }}" enctype="multipart/form-data">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="importArrieresModalLabel"><i class="fas fa-file-import me-2"></i>Importer des arriérés</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="_token" value="{{ csrf_token('import_arrieres') }}">
+                            <div class="alert alert-info small mb-3">
+                                Le fichier Excel doit contenir deux colonnes : <strong>matricule</strong> et <strong>montant_arriere</strong>.
+                                Chaque arriéré est rattaché à l'inscription {{ current_school_year ? current_school_year.name : 'de l\'année courante' }} de l'élève ;
+                                les matricules introuvables ou sans inscription sont ignorés.
+                            </div>
+                            <div class="mb-3">
+                                <a href="{{ path('admin_recouvrement_arrieres_modele') }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-download me-1"></i> Télécharger le modèle Excel
+                                </a>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Fichier Excel (.xlsx)</label>
+                                <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label">Année d'origine des arriérés</label>
+                                <input type="text" name="annee_origine" value="2024-2025" class="form-control" placeholder="2024-2025">
+                                <div class="form-text">Sert de libellé au frais « Arriéré … » et à la colonne Origine.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-success"><i class="fas fa-upload me-1"></i> Importer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info d-flex align-items-center">
+            <i class="fas fa-circle-info me-2"></i>
+            Les arriérés restent dus par l'élève et recouvrables, mais leur montant n'entre pas dans le chiffre d'affaires de l'année courante.
+        </div>
+
+        {# ── Cartes de synthèse ── #}
+        <div class="row g-3 mb-4">
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100"><div class="card-body">
+                    <div class="text-muted small">Élèves concernés</div>
+                    <div class="h4 mb-0">{{ totals.count }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-primary border-3"><div class="card-body">
+                    <div class="text-muted small">Total dû</div>
+                    <div class="h5 mb-0">{{ totals.due|number_format(0, ',', ' ') }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-success border-3"><div class="card-body">
+                    <div class="text-muted small">Déjà payé</div>
+                    <div class="h5 mb-0 text-success">{{ totals.paid|number_format(0, ',', ' ') }}</div>
+                </div></div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card stat-card h-100 border-start border-warning border-3"><div class="card-body">
+                    <div class="text-muted small">Reste à recouvrer</div>
+                    <div class="h5 mb-0 text-warning">{{ totals.balance|number_format(0, ',', ' ') }}</div>
+                </div></div>
+            </div>
+        </div>
+
+        {# ── Recherche dynamique ── #}
+        <div class="card filter-card mb-4">
+            <div class="card-body">
+                <label class="form-label">Recherche dynamique</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="liveSearch" class="form-control" placeholder="Nom, matricule, classe..." autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        {# ── Tableau ── #}
+        <div class="card table-card">
+            <div class="card-body">
+                {% if rows is empty %}
+                    {{ empty_state('fa-clock-rotate-left', 'Aucun arriéré', 'Aucun arriéré antérieur n\'a été enregistré pour cet établissement.') }}
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="arrieresTable">
+                            <thead>
+                                <tr>
+                                    <th>Matricule</th><th>Élève</th><th>Classe</th><th>Origine</th>
+                                    <th class="text-end">Montant dû</th><th class="text-end">Payé</th><th class="text-end">Reste</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                    {% set s = row.student %}
+                                    <tr data-search="{{ (s.fullName ~ ' ' ~ (s.matriculeInterne ?: '') ~ ' ' ~ (s.classroom ? s.classroom.name : ''))|lower }}">
+                                        <td><small class="text-muted">{{ s.matriculeInterne ?: '—' }}</small></td>
+                                        <td><strong>{{ s.fullName }}</strong></td>
+                                        <td>{{ s.classroom ? s.classroom.name : '—' }}</td>
+                                        <td><span class="badge badge-soft warning">{{ row.origine ?: '—' }}</span></td>
+                                        <td class="text-end">{{ row.due|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end text-success">{{ row.paid|number_format(0, ',', ' ') }}</td>
+                                        <td class="text-end fw-bold {{ row.balance > 0 ? 'text-danger' : '' }}">{{ row.balance|number_format(0, ',', ' ') }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold border-top">
+                                    <td colspan="4" class="text-end">Total général</td>
+                                    <td class="text-end">{{ totals.due|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end text-success">{{ totals.paid|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end text-danger">{{ totals.balance|number_format(0, ',', ' ') }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="text-muted small mt-3" id="visibleCount"></div>
+                    {% include '_pagination.html.twig' with { pagination: rows } %}
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+(function () {
+    const search = document.getElementById('liveSearch');
+    const table = document.getElementById('arrieresTable');
+    if (!table) return;
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const counter = document.getElementById('visibleCount');
+
+    function apply() {
+        const q = (search.value || '').trim().toLowerCase();
+        let visible = 0;
+        rows.forEach(function (tr) {
+            const show = !q || tr.dataset.search.indexOf(q) !== -1;
+            tr.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        if (counter) counter.textContent = visible + ' élève(s) affiché(s)';
+    }
+
+    search.addEventListener('input', apply);
+    apply();
+})();
+</script>
+{% endblock %}

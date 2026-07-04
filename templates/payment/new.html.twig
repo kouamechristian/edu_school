@@ -42,7 +42,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3" id="fee-wrap">{{ form_row(form.fee) }}</div>
+                    <div class="col-md-6 mb-3" id="fee-wrap">
+                        {{ form_row(form.fee) }}
+                        <div id="arriereWarning" class="alert alert-warning py-2 mt-2 mb-0 small" style="display:none;"></div>
+                    </div>
                 </div>
 
                 <div class="row">
@@ -160,12 +163,34 @@
 
                 sel.appendChild(new Option('Sélectionnez un frais', ''));
                 fees.forEach(function (f) {
-                    var opt = new Option(f.name + ' — Reste : ' + formatMoneyXof(f.remaining), f.id);
+                    var label = (f.is_arriere ? '⚠ ARRIÉRÉ — ' : '') + f.name + ' — Reste : ' + formatMoneyXof(f.remaining);
+                    var opt = new Option(label, f.id);
                     opt.setAttribute('data-remaining', f.remaining);
+                    opt.setAttribute('data-arriere', f.is_arriere ? '1' : '0');
                     sel.appendChild(opt);
                 });
 
                 if (previous) { sel.value = previous; }
+            }
+
+            // ── Avertissement de priorité : un arriéré antérieur se solde avant la scolarité courante ──
+            function updateArriereWarning() {
+                var warn = document.getElementById('arriereWarning');
+                if (!warn) return;
+
+                var fees = feesByStudent[el.value] || [];
+                var arrieres = fees.filter(function (f) { return f.is_arriere && Number(f.remaining) > 0; });
+
+                if (arrieres.length === 0) { warn.style.display = 'none'; return; }
+
+                var selOpt = feeSelect && feeSelect.selectedIndex >= 0 ? feeSelect.options[feeSelect.selectedIndex] : null;
+                var selectedIsArriere = selOpt && selOpt.getAttribute('data-arriere') === '1';
+                if (selectedIsArriere) { warn.style.display = 'none'; return; }
+
+                var totalArriere = arrieres.reduce(function (s, f) { return s + Number(f.remaining); }, 0);
+                warn.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>Cet élève a un arriéré antérieur de <strong>'
+                    + formatMoneyXof(totalArriere) + '</strong> à solder <strong>en priorité</strong> avant la scolarité courante.';
+                warn.style.display = '';
             }
 
             // Pré-remplir le montant avec le reste dû du frais choisi.
@@ -179,6 +204,7 @@
                         amountInput.value = Math.round(remaining);
                     }
                     renderImputation();
+                    updateArriereWarning();
                 });
             }
             if (amountInput) {
@@ -238,11 +264,13 @@
                 loadStudentSummary(el.value);
                 loadStudentFees(el.value);
                 renderImputation();
+                updateArriereWarning();
             });
 
             loadStudentSummary(el.value);
             loadStudentFees(el.value);
             renderImputation();
+            updateArriereWarning();
 
             // ── Confirmation SweetAlert avant d'enregistrer le paiement ──
             var form = document.getElementById('paymentForm');

@@ -308,6 +308,236 @@ class RecouvrementController extends AbstractController
     }
 
     /**
+     * État des arriérés antérieurs (impayés repris d'une année précédente) :
+     * un élève par ligne, avec dû / payé / reste, et un total général.
+     */
+    #[Route('/arrieres', name: 'arrieres', methods: ['GET'])]
+    public function arrieres(
+        Request $request,
+        \App\Repository\StudentFeeRepository $studentFeeRepository,
+        SchoolContextService $contextService,
+        \Knp\Component\Pager\PaginatorInterface $paginator
+    ): Response {
+        $currentSchool = $contextService->getCurrentSchool();
+
+        if (!$currentSchool) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour accéder aux arriérés.');
+
+            return $this->render('recouvrement/arrieres.html.twig', [
+                'current_school' => null,
+                'rows' => [],
+                'totals' => ['due' => 0, 'paid' => 0, 'balance' => 0, 'count' => 0],
+            ]);
+        }
+
+        [$rows, $totals] = $this->buildArrieres($studentFeeRepository, $currentSchool->getId());
+
+        return $this->render('recouvrement/arrieres.html.twig', [
+            'current_school' => $currentSchool,
+            'current_school_year' => $contextService->getCurrentSchoolYear(),
+            'rows' => $paginator->paginate($rows, $request->query->getInt('page', 1), 50),
+            'totals' => $totals,
+        ]);
+    }
+
+    /**
+     * Export PDF de l'état des arriérés.
+     */
+    #[Route('/arrieres/pdf', name: 'arrieres_pdf', methods: ['GET'])]
+    public function arrieresPdf(
+        \App\Repository\StudentFeeRepository $studentFeeRepository,
+        SchoolContextService $contextService
+    ): Response {
+        $currentSchool = $contextService->getCurrentSchool();
+
+        if (!$currentSchool) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour générer le PDF.');
+
+            return $this->redirectToRoute('admin_recouvrement_arrieres');
+        }
+
+        [$rows, $totals] = $this->buildArrieres($studentFeeRepository, $currentSchool->getId());
+
+        $logoData = null;
+        if ($currentSchool->getLogo()) {
+            $logoPath = $this->getParameter('kernel.project_dir') . '/public/' . ltrim($currentSchool->getLogo(), '/');
+            if (is_file($logoPath)) {
+                $mime = mime_content_type($logoPath) ?: 'image/png';
+                $logoData = 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($logoPath));
+            }
+        }
+
+        $html = $this->renderView('recouvrement/arrieres_pdf.html.twig', [
+            'school' => $currentSchool,
+            'current_school_year' => $contextService->getCurrentSchoolYear(),
+            'rows' => $rows,
+            'totals' => $totals,
+            'logo_data' => $logoData,
+            'generated_at' => new \DateTime(),
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="ARRIERES_%s.pdf"', $currentSchool->getId()),
+        ]);
+    }
+
+    /**
+     * Modèle Excel (.xlsx) prêt à remplir pour l'import des arriérés.
+     */
+    #[Route('/arrieres/modele', name: 'arrieres_modele', methods: ['GET'])]
+    public function arrieresModele(): Response
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Arriérés');
+
+        // En-têtes attendus par l'import (détectés par leur libellé).
+        $sheet->fromArray([['matricule', 'montant_arriere']], null, 'A1');
+        $sheet->getStyle('A1:B1')->getFont()->setBold(true);
+
+        // Lignes d'exemple : matricules volontairement fictifs (préfixe « EX- »).
+        // S'ils ne sont pas remplacés, ils seront simplement ignorés à l'import.
+        $sheet->fromArray([
+            ['EX-2026-00001', 150000],
+            ['EX-2026-00002', 75000],
+        ], null, 'A2');
+
+        $sheet->getColumnDimension('A')->setWidth(24);
+        $sheet->getColumnDimension('B')->setWidth(18);
+
+        $response = new \Symfony\Component\HttpFoundation\StreamedResponse(static function () use ($spreadsheet): void {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
+        });
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="modele_arrieres.xlsx"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
+    }
+
+    /**
+     * Import web d'arriérés depuis un fichier .xlsx (même logique que la commande CLI).
+     * Réservé à l'établissement courant : les élèves d'un autre établissement sont ignorés.
+     */
+    #[Route('/arrieres/import', name: 'arrieres_import', methods: ['POST'])]
+    public function arrieresImport(
+        Request $request,
+        \App\Service\ArriereImporter $importer,
+        SchoolContextService $contextService
+    ): Response {
+        $currentSchool = $contextService->getCurrentSchool();
+        if (!$currentSchool) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement.');
+
+            return $this->redirectToRoute('admin_recouvrement_arrieres');
+        }
+
+        if (!$this->isCsrfTokenValid('import_arrieres', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide.');
+
+            return $this->redirectToRoute('admin_recouvrement_arrieres');
+        }
+
+        /** @var \Symfony\Component\HttpFoundation\File\UploadedFile|null $file */
+        $file = $request->files->get('file');
+        if (!$file || !$file->isValid()) {
+            $this->addFlash('error', 'Aucun fichier valide n\'a été téléversé (vérifiez aussi la taille maximale autorisée).');
+
+            return $this->redirectToRoute('admin_recouvrement_arrieres');
+        }
+
+        if (!in_array(strtolower((string) $file->getClientOriginalExtension()), ['xlsx', 'xls'], true)) {
+            $this->addFlash('error', 'Format non supporté : téléversez un fichier Excel (.xlsx).');
+
+            return $this->redirectToRoute('admin_recouvrement_arrieres');
+        }
+
+        $anneeCible = $contextService->getCurrentSchoolYear()?->getName();
+        if (!$anneeCible) {
+            $this->addFlash('error', 'Aucune année scolaire courante n\'est définie.');
+
+            return $this->redirectToRoute('admin_recouvrement_arrieres');
+        }
+
+        $anneeOrigine = trim((string) $request->request->get('annee_origine')) ?: '2024-2025';
+
+        $result = $importer->import($file->getPathname(), $anneeCible, $anneeOrigine, true, $currentSchool);
+
+        if ($result['error'] !== null) {
+            $this->addFlash('error', 'Import impossible : ' . $result['error']);
+
+            return $this->redirectToRoute('admin_recouvrement_arrieres');
+        }
+
+        if ($result['imported'] > 0) {
+            $this->addFlash('success', sprintf(
+                '%d arriéré(s) importé(s).%s',
+                $result['imported'],
+                $result['skipped'] > 0 ? sprintf(' %d ligne(s) ignorée(s).', $result['skipped']) : ''
+            ));
+        } else {
+            $this->addFlash('warning', sprintf(
+                'Aucun arriéré importé (%d ligne(s) ignorée(s)). Vérifiez les matricules et les inscriptions %s.',
+                $result['skipped'],
+                $anneeCible
+            ));
+        }
+
+        return $this->redirectToRoute('admin_recouvrement_arrieres');
+    }
+
+    /**
+     * Agrège les lignes d'arriérés par élève (dû / payé / reste) + total général.
+     *
+     * @return array{0: list<array{student: Student, origine: ?string, due: float, paid: float, balance: float}>, 1: array{due: float, paid: float, balance: float, count: int}}
+     */
+    private function buildArrieres(\App\Repository\StudentFeeRepository $studentFeeRepository, int $schoolId): array
+    {
+        $byStudent = [];
+        foreach ($studentFeeRepository->findArrieresBySchool($schoolId) as $sf) {
+            $student = $sf->getStudent();
+            if ($student === null) {
+                continue;
+            }
+            $key = $student->getId();
+            if (!isset($byStudent[$key])) {
+                $byStudent[$key] = [
+                    'student' => $student,
+                    'origine' => $sf->getAnneeOrigine(),
+                    'due' => 0.0,
+                    'paid' => 0.0,
+                    'balance' => 0.0,
+                ];
+            }
+            $byStudent[$key]['due'] += (float) $sf->getAmount();
+            $byStudent[$key]['paid'] += (float) $sf->getPaidAmount();
+            $byStudent[$key]['balance'] += $sf->getRemainingAmount();
+        }
+
+        $rows = array_values($byStudent);
+
+        $totals = ['due' => 0.0, 'paid' => 0.0, 'balance' => 0.0, 'count' => \count($rows)];
+        foreach ($rows as $row) {
+            $totals['due'] += $row['due'];
+            $totals['paid'] += $row['paid'];
+            $totals['balance'] += $row['balance'];
+        }
+
+        return [$rows, $totals];
+    }
+
+    /**
      * Factorise la lecture des filtres et le calcul des lignes de recouvrement.
      *
      * @return array{0: ?string, 1: ?int, 2: array, 3: array}
