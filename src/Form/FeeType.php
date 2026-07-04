@@ -60,7 +60,7 @@ class FeeType extends AbstractType
             ->add('frequency', ChoiceType::class, [
                 'label' => 'Fréquence',
                 'choices' => [
-                    'Unique' => 'unique',
+                    'Indéterminé' => 'indetermine',
                     'Mensuel' => 'mensuel',
                     'Trimestriel' => 'trimestriel',
                     'Annuel' => 'annuel',

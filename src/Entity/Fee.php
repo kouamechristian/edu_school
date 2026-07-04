@@ -55,7 +55,7 @@ class Fee
     private ?string $category = 'scolarite';
 
     #[ORM\Column(length: 20)]
-    #[Assert\Choice(choices: ['unique', 'mensuel', 'trimestriel', 'annuel'], message: 'La fréquence doit être unique, mensuel, trimestriel ou annuel')]
+    #[Assert\Choice(choices: ['unique', 'indetermine', 'mensuel', 'trimestriel', 'annuel'], message: 'La fréquence doit être indéterminée, mensuelle, trimestrielle ou annuelle')]
     private ?string $frequency = 'unique';
 
     #[ORM\Column]
@@ -230,6 +230,7 @@ class Fee
     {
         return match($this->frequency) {
             'unique' => 'Unique',
+            'indetermine' => 'Indéterminé',
             'mensuel' => 'Mensuel',
             'trimestriel' => 'Trimestriel',
             'annuel' => 'Annuel',
