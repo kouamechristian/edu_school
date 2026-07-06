@@ -720,15 +720,64 @@ class Student
         return $latest;
     }
 
+    /**
+     * Total dû, toutes années confondues.
+     *
+     * Cas particulier des arriérés antérieurs (report d'un impayé sur l'inscription
+     * courante). Deux sous-cas :
+     *  - report automatique d'une année GÉRÉE dans le logiciel (l'élève a une inscription
+     *    pour l'année d'origine) : l'impayé est DÉJÀ porté par les frais réels de cette
+     *    année-là. On EXCLUT alors la ligne d'arriéré du total, sinon la dette compterait
+     *    double (l'ancienne année garde son reste réel, visible).
+     *  - arriéré IMPORTÉ d'une année NON gérée (aucune inscription pour l'année d'origine,
+     *    ex. reprise d'un impayé 2024-2025 pré-logiciel) : l'arriéré est la seule trace de
+     *    la dette, on le COMPTE normalement.
+     *
+     * Les paiements imputés sur un arriéré sont toujours comptés dans {@see getTotalPaid()},
+     * si bien qu'un règlement d'arriéré réduit correctement le reste à payer de l'élève.
+     */
     public function getTotalTuition(): float
     {
         $total = 0;
         foreach ($this->studentFees as $sf) {
-            if ($sf->getFee()?->isActive()) {
-                $total += (float) $sf->getAmount();
+            if (!$sf->getFee()?->isActive()) {
+                continue;
             }
+            if ($sf->isArriereAnterieur() && $this->hasRegistrationForYearName($sf->getAnneeOrigine())) {
+                continue; // dette déjà comptée via les frais réels de l'année d'origine
+            }
+            $total += (float) $sf->getAmount();
         }
         return $total;
+    }
+
+    /**
+     * Vrai si cette ligne d'arriéré est EXCLUE du total toutes années de l'élève (report
+     * d'une année gérée, déjà comptée via ses frais réels) — par opposition à un arriéré
+     * importé d'une année non gérée, qui est bien compté. Utilisé par la fiche élève pour
+     * afficher la bonne mention.
+     */
+    public function isArriereExcludedFromTotal(StudentFee $sf): bool
+    {
+        return $sf->isArriereAnterieur() && $this->hasRegistrationForYearName($sf->getAnneeOrigine());
+    }
+
+    /**
+     * Indique si l'élève possède une inscription pour l'année scolaire portant ce nom
+     * (ex. « 2025-2026 »). Sert à distinguer un arriéré reporté d'une année gérée
+     * (dette déjà comptée ailleurs) d'un arriéré importé d'une année non gérée.
+     */
+    private function hasRegistrationForYearName(?string $yearName): bool
+    {
+        if ($yearName === null || $yearName === '') {
+            return false;
+        }
+        foreach ($this->getRegistrations() as $registration) {
+            if ($registration->getSchoolYear()?->getName() === $yearName) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function getTotalPaid(): float

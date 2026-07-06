@@ -257,7 +257,7 @@
 
                     <div class="text-center mb-3">
                         <h4 class="fw-bold text-primary mb-0">{{ totalTuition|number_format(0, ',', ' ') }} <small class="text-muted fs-6">FCFA</small></h4>
-                        <small class="text-muted">Total scolarité</small>
+                        <small class="text-muted">Total dû (toutes années)</small>
                     </div>
 
                     <div class="progress mb-3">
@@ -271,41 +271,55 @@
                         </div>
                         <div class="col-6">
                             <strong class="text-{{ remaining > 0 ? 'danger' : 'success' }} d-block">{{ remaining|number_format(0, ',', ' ') }}</strong>
-                            <small class="text-muted">Reste</small>
+                            <small class="text-muted">Reste réel</small>
                         </div>
                     </div>
 
-                    {% if student.studentFees|length > 0 %}
-                        <hr>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
-                                <thead><tr><th>Frais</th><th class="text-end">Montant</th><th width="40"></th></tr></thead>
-                                <tbody>
-                                    {% for sf in student.studentFees %}
-                                        <tr>
-                                            <td>
-                                                <strong>{{ sf.fee.name }}</strong><br>
-                                                <span class="badge bg-{{ sf.fee.categoryColor }}">{{ sf.fee.categoryLabel }}</span>
-                                                <span class="badge bg-{{ sf.statusColor }}">{{ sf.statusLabel }}</span>
-                                            </td>
-                                            <td class="text-end align-middle">
-                                                <strong>{{ sf.amount|number_format(0, ',', ' ') }} F</strong>
-                                                {% if sf.paidAmount > 0 %}<br><small class="text-success">Payé : {{ sf.paidAmount|number_format(0, ',', ' ') }} F</small>{% endif %}
-                                            </td>
-                                            <td class="align-middle">
-                                                {% if sf.status == 'non_paye' %}
-                                                    <form method="post" action="{{ path('admin_student_remove_fee', {'id': student.id, 'studentFeeId': sf.id}) }}"
-                                                          onsubmit="return confirm('Retirer ce frais ?');" class="d-inline">
-                                                        <input type="hidden" name="_token" value="{{ csrf_token('remove_fee' ~ sf.id) }}">
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Retirer"><i class="fas fa-times"></i></button>
-                                                    </form>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+                    {% if fees_by_year|length > 0 %}
+                        {% for grp in fees_by_year %}
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-primary"><i class="fas fa-calendar-alt me-1"></i>{{ grp.year_name }}</span>
+                                <small class="text-muted">
+                                    Total : <strong>{{ grp.total|number_format(0, ',', ' ') }} F</strong>
+                                    · Reste : <strong class="text-{{ grp.remaining > 0 ? 'danger' : 'success' }}">{{ grp.remaining|number_format(0, ',', ' ') }} F</strong>
+                                </small>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead><tr><th>Frais</th><th class="text-end">Montant</th><th width="40"></th></tr></thead>
+                                    <tbody>
+                                        {% for sf in grp.fees %}
+                                            <tr{% if sf.arriereAnterieur %} class="table-warning"{% endif %}>
+                                                <td>
+                                                    <strong>{{ sf.fee.name }}</strong><br>
+                                                    {% if sf.arriereAnterieur %}
+                                                        <span class="badge bg-warning text-dark"><i class="fas fa-clock-rotate-left me-1"></i>Report {{ sf.anneeOrigine }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-{{ sf.fee.categoryColor }}">{{ sf.fee.categoryLabel }}</span>
+                                                    {% endif %}
+                                                    <span class="badge bg-{{ sf.statusColor }}">{{ sf.statusLabel }}</span>
+                                                    {% if sf.arriereAnterieur %}<br><small class="text-muted fst-italic">{% if student.isArriereExcludedFromTotal(sf) %}Impayé reporté de {{ sf.anneeOrigine }} — déjà compté sur cette année-là (non ré-additionné au total global).{% else %}Impayé repris de {{ sf.anneeOrigine }} (année hors logiciel).{% endif %}</small>{% endif %}
+                                                </td>
+                                                <td class="text-end align-middle">
+                                                    <strong>{{ sf.amount|number_format(0, ',', ' ') }} F</strong>
+                                                    {% if sf.paidAmount > 0 %}<br><small class="text-success">Payé : {{ sf.paidAmount|number_format(0, ',', ' ') }} F</small>{% endif %}
+                                                </td>
+                                                <td class="align-middle">
+                                                    {% if sf.status == 'non_paye' %}
+                                                        <form method="post" action="{{ path('admin_student_remove_fee', {'id': student.id, 'studentFeeId': sf.id}) }}"
+                                                              onsubmit="return confirm('Retirer ce frais ?');" class="d-inline">
+                                                            <input type="hidden" name="_token" value="{{ csrf_token('remove_fee' ~ sf.id) }}">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Retirer"><i class="fas fa-times"></i></button>
+                                                        </form>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endfor %}
                     {% else %}
                         <hr>
                         <div class="text-center text-muted py-2"><small>Aucun frais affecté</small></div>

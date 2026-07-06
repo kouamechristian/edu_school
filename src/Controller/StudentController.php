@@ -884,9 +884,47 @@ class StudentController extends AbstractController
             });
         }
 
+        // Regroupement des frais par année scolaire (affichage « frais + total par année »).
+        // Les frais sans inscription rattachée tombent dans un groupe « non rattaché ».
+        $feesByYear = [];
+        foreach ($student->getStudentFees() as $sf) {
+            $year = $sf->getRegistration()?->getSchoolYear();
+            $key = $year?->getId() ?? 0;
+            if (!isset($feesByYear[$key])) {
+                $feesByYear[$key] = [
+                    'year_name' => $year?->getName() ?? 'Frais non rattachés à une année',
+                    'start' => $year?->getStartDate(),
+                    'fees' => [],
+                    'total' => 0.0,
+                    'paid' => 0.0,
+                    'remaining' => 0.0,
+                ];
+            }
+            $feesByYear[$key]['fees'][] = $sf;
+            if ($sf->getFee()?->isActive()) {
+                $feesByYear[$key]['total'] += (float) $sf->getAmount();
+                $feesByYear[$key]['paid'] += (float) $sf->getPaidAmount();
+            }
+        }
+        foreach ($feesByYear as &$grp) {
+            $grp['remaining'] = max(0, $grp['total'] - $grp['paid']);
+        }
+        unset($grp);
+        // Années les plus récentes d'abord ; groupe « non rattaché » (start null) en dernier.
+        uasort($feesByYear, static function (array $a, array $b): int {
+            if ($a['start'] === null) {
+                return $b['start'] === null ? 0 : 1;
+            }
+            if ($b['start'] === null) {
+                return -1;
+            }
+            return $b['start'] <=> $a['start'];
+        });
+
         return $this->render('student/show.html.twig', [
             'student' => $student,
             'available_fees' => $availableFees,
+            'fees_by_year' => $feesByYear,
             'payments' => $paymentRepository->findByStudent($student),
             'transfers' => $transferRepository->findByStudent($student->getId()),
         ]);

@@ -7,7 +7,9 @@ use App\Entity\Registration;
 use App\Entity\School;
 use App\Entity\Student;
 use App\Entity\StudentFee;
+use App\Entity\SchoolYear;
 use App\Repository\FeeRepository;
+use App\Repository\RegistrationRepository;
 use App\Repository\StudentFeeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -30,6 +32,7 @@ class ArriereManager
         private readonly EntityManagerInterface $entityManager,
         private readonly FeeRepository $feeRepository,
         private readonly StudentFeeRepository $studentFeeRepository,
+        private readonly RegistrationRepository $registrationRepository,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -117,8 +120,13 @@ class ArriereManager
      * Reporte le solde impayé de l'inscription précédente de l'élève sur sa nouvelle
      * inscription, sous forme d'un arriéré étiqueté avec l'année d'origine.
      *
-     * Les lignes impayées de l'année précédente sont « soldées par report » (leur dette
-     * est transférée sur le nouvel arriéré, pas perdue) afin d'éviter tout double comptage.
+     * L'année précédente conserve ses chiffres réels (paiements et reste non modifiés) :
+     * la dette y reste visible telle qu'elle était (« dette réelle » de l'année d'origine).
+     * L'arriéré la rend recouvrable et payable sur la nouvelle année, et il est compté dans
+     * le total de la nouvelle inscription. Le double comptage au niveau du total *toutes
+     * années* de l'élève est évité côté {@see \App\Entity\Student::getTotalTuition()}, qui
+     * exclut les lignes d'arriéré (la dette y est déjà portée par les frais réels de
+     * l'année d'origine).
      *
      * @return StudentFee|null l'arriéré créé, ou null s'il n'y a rien à reporter
      */
@@ -149,15 +157,6 @@ class ArriereManager
             return null; // déjà reporté
         }
 
-        // Solde par report : on neutralise les lignes impayées de l'année précédente
-        // (leur montant vient d'être transféré sur le nouvel arriéré).
-        foreach ($previous->getStudentFees() as $sf) {
-            if ($sf->getFee()?->isActive() && $sf->getRemainingAmount() > 0) {
-                $sf->setPaidAmount($sf->getAmount());
-            }
-        }
-        $this->entityManager->flush();
-
         $this->logger->info('Arriéré reporté automatiquement à la réinscription', [
             'student' => $student->getFullName(),
             'origine' => $anneeOrigine,
@@ -169,33 +168,57 @@ class ArriereManager
     }
 
     /**
-     * Inscription de l'élève à l'année immédiatement antérieure à la nouvelle (par date
-     * de début d'année scolaire), le cas échéant.
+     * Inscription de l'élève à l'année immédiatement antérieure à la nouvelle, le cas échéant.
+     *
+     * On s'appuie sur l'historique récupéré en base ({@see RegistrationRepository::findHistoryForStudent})
+     * plutôt que sur la reconstruction en mémoire {@see Student::getRegistrations()}, qui peut être
+     * périmée juste après une réinscription (collection déjà hydratée). Le classement chronologique
+     * se fait sur le NOM d'année (« 2024-2025 », toujours renseigné et trié correctement), avec la
+     * date de début en repli : ainsi le report ne tombe plus silencieusement à l'eau lorsqu'une année
+     * n'a pas de date de début saisie.
      */
     private function findPreviousRegistration(Student $student, Registration $newRegistration): ?Registration
     {
-        $newStart = $newRegistration->getSchoolYear()?->getStartDate();
-        if ($newStart === null) {
+        $newKey = $this->yearSortKey($newRegistration->getSchoolYear());
+        if ($newKey === null) {
             return null;
         }
 
         $previous = null;
-        $previousStart = null;
+        $previousKey = null;
 
-        foreach ($student->getRegistrations() as $registration) {
+        foreach ($this->registrationRepository->findHistoryForStudent($student) as $registration) {
             if ($registration->getId() !== null && $registration->getId() === $newRegistration->getId()) {
                 continue;
             }
-            $start = $registration->getSchoolYear()?->getStartDate();
-            if ($start === null || $start >= $newStart) {
+            $key = $this->yearSortKey($registration->getSchoolYear());
+            if ($key === null || $key >= $newKey) {
                 continue; // on ne garde que les années strictement antérieures
             }
-            if ($previousStart === null || $start > $previousStart) {
+            if ($previousKey === null || $key > $previousKey) {
                 $previous = $registration;
-                $previousStart = $start;
+                $previousKey = $key;
             }
         }
 
         return $previous;
+    }
+
+    /**
+     * Clé de tri chronologique d'une année scolaire : son nom (« 2024-2025 » se trie
+     * correctement) ou, à défaut, sa date de début. Retourne null si l'année est indéterminable.
+     */
+    private function yearSortKey(?SchoolYear $year): ?string
+    {
+        if ($year === null) {
+            return null;
+        }
+
+        $name = $year->getName();
+        if ($name !== null && $name !== '') {
+            return $name;
+        }
+
+        return $year->getStartDate()?->format('Y-m-d');
     }
 }
