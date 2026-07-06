@@ -184,7 +184,10 @@ class PaymentController extends AbstractController
         }
 
         $payment = new Payment();
-        $studentChoices = $studentRepository->findWithRemainingBalanceBySchool($currentSchool->getId());
+        $studentChoices = $studentRepository->findWithRemainingBalanceBySchool(
+            $currentSchool->getId(),
+            $contextService->getCurrentSchoolYear()?->getId()
+        );
         $form = $this->createForm(PaymentType::class, $payment, [
             'student_choices' => $studentChoices,
         ]);
@@ -402,7 +405,10 @@ class PaymentController extends AbstractController
 
         $studentChoices = [];
         if ($currentSchool) {
-            $studentChoices = $studentRepository->findWithRemainingBalanceBySchool($currentSchool->getId());
+            $studentChoices = $studentRepository->findWithRemainingBalanceBySchool(
+                $currentSchool->getId(),
+                $contextService->getCurrentSchoolYear()?->getId()
+            );
         }
         $boundStudent = $payment->getStudent();
         if ($boundStudent) {

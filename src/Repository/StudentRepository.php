@@ -458,7 +458,7 @@ class StudentRepository extends ServiceEntityRepository
     /**
      * Élèves actifs de l'établissement avec un reste à payer sur au moins une ligne de frais active.
      */
-    public function findWithRemainingBalanceBySchool(int $schoolId): array
+    public function findWithRemainingBalanceBySchool(int $schoolId, ?int $schoolYearId = null): array
     {
         $idRows = $this->createQueryBuilder('s')
             ->select('s.id')
@@ -484,6 +484,12 @@ class StudentRepository extends ServiceEntityRepository
         }
         $ids = array_values(array_unique($ids));
 
+        // Ne conserver que les élèves inscrits pour l'année scolaire donnée.
+        // (Intersection séparée pour ne pas fausser le SUM du solde par la jointure.)
+        if ($schoolYearId !== null && $ids !== []) {
+            $ids = array_values(array_intersect($ids, $this->findIdsEnrolledInYear($schoolId, $schoolYearId)));
+        }
+
         if ($ids === []) {
             return [];
         }
@@ -495,6 +501,34 @@ class StudentRepository extends ServiceEntityRepository
             ->addOrderBy('s.firstName', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Identifiants des élèves (actifs) ayant une inscription pour l'année scolaire donnée.
+     *
+     * @return int[]
+     */
+    private function findIdsEnrolledInYear(int $schoolId, int $schoolYearId): array
+    {
+        $rows = $this->joinRegistrations($this->createQueryBuilder('s'), 'i', 'i.schoolYear = :yearId')
+            ->select('s.id')
+            ->where('s.school = :schoolId')
+            ->andWhere('s.isActive = true')
+            ->setParameter('schoolId', $schoolId)
+            ->setParameter('yearId', $schoolYearId)
+            ->distinct()
+            ->getQuery()
+            ->getScalarResult();
+
+        $ids = [];
+        foreach ($rows as $row) {
+            $v = (int) current($row);
+            if ($v > 0) {
+                $ids[] = $v;
+            }
+        }
+
+        return $ids;
     }
 
     /**

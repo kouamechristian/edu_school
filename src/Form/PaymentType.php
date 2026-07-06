@@ -21,7 +21,14 @@ class PaymentType extends AbstractType
         $studentField = [
             'class' => Student::class,
             'label' => 'Élève',
-            'choice_label' => 'fullName',
+            // Libellé « Matricule — NOM Prénom » : rend la recherche possible aussi bien
+            // par matricule que par nom/prénom (le select est recherchable via TomSelect).
+            'choice_label' => function (Student $s): string {
+                $matricule = $s->getMatriculeInterne() ?: $s->getMatriculeNational();
+
+                return trim(($matricule ? $matricule . ' — ' : '') . $s->getFullName());
+            },
+            'placeholder' => 'Rechercher un élève (matricule, nom, prénom)…',
             'attr' => [
                 'class' => 'form-select js-student-select',
             ],
