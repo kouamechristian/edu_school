@@ -24,6 +24,8 @@ class RoundController extends AbstractController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(RoundRepository $roundRepository, SchoolContextService $contextService, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
+        $this->denyAccessIfPreschoolPrimary($contextService);
+
         $currentSchool = $contextService->getCurrentSchool();
 
         if (!$currentSchool) {
@@ -48,6 +50,8 @@ class RoundController extends AbstractController
         SchoolContextService $contextService,
         CycleRepository $cycleRepository
     ): Response {
+        $this->denyAccessIfPreschoolPrimary($contextService);
+
         $currentSchool = $contextService->getCurrentSchool();
 
         if (!$currentSchool) {
@@ -150,10 +154,23 @@ class RoundController extends AbstractController
      */
     private function denyAccessUnlessSameSchool(Round $round, SchoolContextService $contextService): void
     {
+        $this->denyAccessIfPreschoolPrimary($contextService);
+
         $currentSchool = $contextService->getCurrentSchool();
 
         if (!$currentSchool || $round->getSchool()?->getId() !== $currentSchool->getId()) {
             throw $this->createNotFoundException('Cette série n\'appartient pas à l\'établissement courant.');
+        }
+    }
+
+    /**
+     * Les séries ne concernent pas les établissements Préscolaire-Primaire :
+     * on bloque l'accès direct aux routes pour ce type d'établissement.
+     */
+    private function denyAccessIfPreschoolPrimary(SchoolContextService $contextService): void
+    {
+        if ($contextService->getCurrentSchool()?->getType() === 'PRESCOLAIRE-PRIMAIRE') {
+            throw $this->createNotFoundException('Les séries ne sont pas disponibles pour un établissement Préscolaire-Primaire.');
         }
     }
 }

@@ -24,6 +24,8 @@ class FacultyController extends AbstractController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(FacultyRepository $facultyRepository, SchoolContextService $contextService, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
+        $this->denyAccessIfPreschoolPrimary($contextService);
+
         $currentSchool = $contextService->getCurrentSchool();
 
         if (!$currentSchool) {
@@ -48,6 +50,8 @@ class FacultyController extends AbstractController
         SchoolContextService $contextService,
         CycleRepository $cycleRepository
     ): Response {
+        $this->denyAccessIfPreschoolPrimary($contextService);
+
         $currentSchool = $contextService->getCurrentSchool();
 
         if (!$currentSchool) {
@@ -149,12 +153,25 @@ class FacultyController extends AbstractController
      */
     private function denyAccessUnlessSameSchool(Faculty $faculty, SchoolContextService $contextService): void
     {
+        $this->denyAccessIfPreschoolPrimary($contextService);
+
         $currentSchool = $contextService->getCurrentSchool();
 
         $facultySchoolId = $faculty->getSchool()?->getId() ?? $faculty->getCycle()?->getSchool()?->getId();
 
         if (!$currentSchool || $facultySchoolId !== $currentSchool->getId()) {
             throw $this->createNotFoundException('Cette faculté n\'appartient pas à l\'établissement courant.');
+        }
+    }
+
+    /**
+     * Les filières ne concernent pas les établissements Préscolaire-Primaire :
+     * on bloque l'accès direct aux routes pour ce type d'établissement.
+     */
+    private function denyAccessIfPreschoolPrimary(SchoolContextService $contextService): void
+    {
+        if ($contextService->getCurrentSchool()?->getType() === 'PRESCOLAIRE-PRIMAIRE') {
+            throw $this->createNotFoundException('Les filières ne sont pas disponibles pour un établissement Préscolaire-Primaire.');
         }
     }
 }
