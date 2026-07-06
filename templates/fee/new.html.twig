@@ -32,9 +32,12 @@
                             {{ form_errors(form.name) }}
                         </div>
                         <div class="mb-3">
-                            {{ form_label(form.level, null, {'label_attr': {'class': 'form-label'}}) }}
-                            {{ form_widget(form.level, {'attr': {'class': 'form-select'}}) }}
-                            {{ form_errors(form.level) }}
+                            {{ form_label(form.levels, null, {'label_attr': {'class': 'form-label'}}) }}
+                            {{ form_widget(form.levels, {'attr': {'class': 'form-select'}}) }}
+                            {% if form.levels.vars.help is defined and form.levels.vars.help %}
+                                <div class="form-text">{{ form.levels.vars.help }} Maintenez <kbd>Ctrl</kbd> (ou <kbd>Cmd</kbd>) pour en sélectionner plusieurs.</div>
+                            {% endif %}
+                            {{ form_errors(form.levels) }}
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">

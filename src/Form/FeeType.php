@@ -19,6 +19,7 @@ class FeeType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $school = $options['current_school'];
+        $multiLevel = $options['multi_level'];
 
         $builder
             ->add('name', TextType::class, [
@@ -79,23 +80,33 @@ class FeeType extends AbstractType
             ])
         ;
 
-        if ($school) {
-            $builder->add('level', EntityType::class, [
+        $levelQueryBuilder = $school
+            ? function (EntityRepository $er) use ($school) {
+                return $er->createQueryBuilder('l')
+                    ->where('l.school = :school')
+                    ->andWhere('l.isActive = true')
+                    ->setParameter('school', $school)
+                    ->orderBy('l.orderNumber', 'ASC');
+            }
+            : null;
+
+        if ($multiLevel) {
+            // Création : plusieurs niveaux à la fois (un frais sera créé par niveau).
+            // Champ non mappé — le contrôleur exploite les niveaux sélectionnés.
+            $builder->add('levels', EntityType::class, [
                 'class' => Level::class,
-                'label' => 'Niveau (optionnel)',
+                'label' => 'Niveaux concernés',
+                'help' => 'Laissez vide pour appliquer à tous les niveaux. Sélectionnez un ou plusieurs niveaux (un frais sera créé pour chacun).',
                 'choice_label' => 'name',
                 'required' => false,
-                'placeholder' => 'Tous les niveaux',
-                'query_builder' => function (EntityRepository $er) use ($school) {
-                    return $er->createQueryBuilder('l')
-                        ->where('l.school = :school')
-                        ->andWhere('l.isActive = true')
-                        ->setParameter('school', $school)
-                        ->orderBy('l.orderNumber', 'ASC');
-                },
+                'multiple' => true,
+                'expanded' => false,
+                'mapped' => false,
+                'query_builder' => $levelQueryBuilder,
                 'attr' => [
-                    'class' => 'form-select'
-                ]
+                    'class' => 'form-select',
+                    'size' => 6,
+                ],
             ]);
         } else {
             $builder->add('level', EntityType::class, [
@@ -104,6 +115,7 @@ class FeeType extends AbstractType
                 'choice_label' => 'name',
                 'required' => false,
                 'placeholder' => 'Tous les niveaux',
+                'query_builder' => $levelQueryBuilder,
                 'attr' => [
                     'class' => 'form-select'
                 ]
@@ -116,6 +128,9 @@ class FeeType extends AbstractType
         $resolver->setDefaults([
             'data_class' => Fee::class,
             'current_school' => null,
+            'multi_level' => false,
         ]);
+
+        $resolver->setAllowedTypes('multi_level', 'bool');
     }
 }
