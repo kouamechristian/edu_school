@@ -96,7 +96,7 @@
                                         <strong>{{ pre_registration.fullName }}</strong>
                                         {% if pre_registration.parentName %}<br><small class="text-muted">Parent : {{ pre_registration.parentName }}</small>{% endif %}
                                     </td>
-                                    <td class="text-muted">{{ pre_registration.dateOfBirth|date('d/m/Y') }}</td>
+                                    <td class="text-muted">{{ pre_registration.dateOfBirth ? pre_registration.dateOfBirth|date('d/m/Y') : '—' }}</td>
                                     <td>{% if pre_registration.requestedLevel %}{{ pre_registration.requestedLevel.name }}{% else %}<span class="text-muted">Non spécifié</span>{% endif %}</td>
                                     <td><span class="badge bg-{{ pre_registration.statusColor }}">{{ pre_registration.statusLabel }}</span></td>
                                     <td class="text-muted">{{ pre_registration.createdAt|date('d/m/Y H:i') }}</td>

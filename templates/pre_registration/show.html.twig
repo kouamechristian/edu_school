@@ -79,7 +79,7 @@
                         <div class="info-row"><div class="info-label">Nom complet</div><div class="info-value">{{ pre_registration.fullName }}</div></div>
                         <div class="info-row"><div class="info-label">Matricule interne</div><div class="info-value">{{ pre_registration.matriculeInterne ?: '—' }}</div></div>
                         <div class="info-row"><div class="info-label">Matricule national</div><div class="info-value">{{ pre_registration.matriculeNational ?: '—' }}</div></div>
-                        <div class="info-row"><div class="info-label">Date de naissance</div><div class="info-value">{{ pre_registration.dateOfBirth|date('d/m/Y') }}</div></div>
+                        <div class="info-row"><div class="info-label">Date de naissance</div><div class="info-value">{{ pre_registration.dateOfBirth ? pre_registration.dateOfBirth|date('d/m/Y') : '—' }}</div></div>
                         <div class="info-row"><div class="info-label">Lieu de naissance</div><div class="info-value">{{ pre_registration.placeOfBirth ?: '—' }}</div></div>
                         <div class="info-row"><div class="info-label">Genre</div><div class="info-value">{{ pre_registration.genderLabel }}</div></div>
                         <div class="info-row"><div class="info-label">Nationalité</div><div class="info-value">{{ pre_registration.nationality ?: '—' }}</div></div>

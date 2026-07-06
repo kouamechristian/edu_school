@@ -49,6 +49,7 @@ class PreRegistrationType extends AbstractType
             ->add('dateOfBirth', DateType::class, [
                 'label' => 'Date de naissance',
                 'widget' => 'single_text',
+                'required' => false,
                 'attr' => ['class' => 'form-control'],
             ])
             ->add('gender', ChoiceType::class, [
