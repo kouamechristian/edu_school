@@ -322,13 +322,39 @@ class RegistrationController extends AbstractController
             $data = $form->getData();
             /** @var PreRegistration $preRegistration */
             $preRegistration = $data['preRegistration'];
-            /** @var Classroom $classroom */
+            /** @var Classroom|null $classroom */
             $classroom = $data['classroom'];
 
             if ($preRegistration->getStatus() !== 'validated'
                 || $preRegistration->getSchool()?->getId() !== $school->getId()) {
                 $this->addFlash('error', 'Préinscription introuvable ou non valide pour l\'inscription.');
                 return $this->redirectToRoute('admin_registration_new');
+            }
+
+            // Aucune classe choisie → affectation automatique. On remplit une classe
+            // avant d'ouvrir la suivante : on prend la PREMIÈRE classe non pleine du
+            // niveau demandé (ordre alphabétique), sans équilibrage entre classes.
+            if ($classroom === null) {
+                $requestedLevel = $preRegistration->getRequestedLevel();
+                $candidates = [];
+                foreach ($classrooms as $candidate) {
+                    if (in_array($candidate->getId(), $fullClassroomIds, true)) {
+                        continue; // classe pleine
+                    }
+                    if ($requestedLevel !== null && $candidate->getLevel()?->getId() !== $requestedLevel->getId()) {
+                        continue; // niveau différent
+                    }
+                    $candidates[] = $candidate;
+                }
+                usort($candidates, fn (Classroom $a, Classroom $b) => strcmp((string) $a->getName(), (string) $b->getName()));
+                $classroom = $candidates[0] ?? null;
+
+                if ($classroom === null) {
+                    $this->addFlash('error', $requestedLevel !== null
+                        ? sprintf('Aucune classe non pleine disponible pour le niveau %s.', $requestedLevel->getName())
+                        : 'Aucune classe non pleine disponible pour cette inscription.');
+                    return $this->redirectToRoute('admin_registration_new');
+                }
             }
 
             // Garde-fou : la classe a pu se remplir entre l'affichage et la soumission.
@@ -384,8 +410,8 @@ class RegistrationController extends AbstractController
     /**
      * Inscription en masse des élèves d'un niveau : on sélectionne plusieurs
      * préinscriptions validées du niveau et le système les affecte automatiquement aux
-     * classes du niveau en équilibrant les effectifs (chaque élève va dans la classe la
-     * moins remplie ayant encore de la place).
+     * classes du niveau par remplissage séquentiel (on remplit entièrement une classe,
+     * dans l'ordre, avant d'ouvrir la suivante).
      */
     #[Route('/niveau/{id}', name: 'level', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function levelEnroll(
@@ -428,6 +454,10 @@ class RegistrationController extends AbstractController
             ];
         }
 
+        // Ordre stable (alphabétique) : le remplissage séquentiel remplit une classe
+        // avant d'ouvrir la suivante en suivant cet ordre.
+        usort($classes, fn (array $a, array $b) => strcmp((string) $a['classroom']->getName(), (string) $b['classroom']->getName()));
+
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('level_enroll' . $level->getId(), (string) $request->request->get('_token'))) {
                 $this->addFlash('error', 'Jeton de sécurité invalide, veuillez réessayer.');
@@ -452,9 +482,8 @@ class RegistrationController extends AbstractController
                 }
             }
 
-            // Affectation automatique : équilibrer les effectifs. Chaque élève est placé
-            // dans la classe ayant le plus petit effectif courant (parmi celles qui ont
-            // encore de la place), ce qui répartit les élèves de façon homogène.
+            // Affectation automatique : remplissage séquentiel. On remplit entièrement
+            // une classe (dans l'ordre) avant d'ouvrir la suivante — pas d'équilibrage.
             $remaining = [];
             $count = [];
             foreach ($classes as $c) {
@@ -477,18 +506,15 @@ class RegistrationController extends AbstractController
                     continue;
                 }
 
-                // Classe avec le plus petit effectif parmi celles ayant de la place.
+                // Première classe (dans l'ordre) ayant encore de la place : on remplit
+                // une classe avant de passer à la suivante.
                 $target = null;
-                $bestCount = null;
                 foreach ($classes as $c) {
                     $cid = $c['classroom']->getId();
                     $hasSpace = $remaining[$cid] === null || $remaining[$cid] > 0;
-                    if (!$hasSpace) {
-                        continue;
-                    }
-                    if ($target === null || $count[$cid] < $bestCount) {
+                    if ($hasSpace) {
                         $target = $c['classroom'];
-                        $bestCount = $count[$cid];
+                        break;
                     }
                 }
 

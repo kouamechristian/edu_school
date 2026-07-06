@@ -66,6 +66,10 @@ class RegistrationEnrollType extends AbstractType
             ->add('classroom', EntityType::class, [
                 'label' => 'Classe d\'affectation',
                 'class' => Classroom::class,
+                // Optionnel : si aucune classe n'est choisie, l'élève est affecté
+                // automatiquement à la première classe non pleine de son niveau.
+                'required' => false,
+                'help' => 'Laissez vide pour une affectation automatique : l\'élève ira dans la première classe non pleine de son niveau.',
                 // Affiche les places restantes quand la capacité est connue.
                 'choice_label' => function (Classroom $c) use ($remainingByClassroom) {
                     if (array_key_exists($c->getId(), $remainingByClassroom)) {
@@ -76,7 +80,7 @@ class RegistrationEnrollType extends AbstractType
                     return $c->getName();
                 },
                 'choice_attr' => fn (Classroom $c) => ['data-level' => (string) ($c->getLevel()?->getId() ?? '')],
-                'placeholder' => 'Choisir une classe…',
+                'placeholder' => 'Automatique (première classe non pleine)',
                 // Le contenu de ce select est réécrit dynamiquement en JS (filtrage par
                 // niveau de la préinscription) ; on le laisse en select natif (no-search)
                 // car le widget TomSelect ne reflète pas les <option> ajoutées à la volée.
