@@ -33,9 +33,16 @@ class Fee
     #[Assert\NotBlank(message: 'L\'établissement est obligatoire')]
     private ?School $school = null;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Level $level = null;
+    /**
+     * Niveaux concernés par le frais. Vide => le frais s'applique à tous les
+     * niveaux de l'établissement.
+     *
+     * @var Collection<int, Level>
+     */
+    #[ORM\ManyToMany(targetEntity: Level::class)]
+    #[ORM\JoinTable(name: 'fee_level')]
+    #[ORM\OrderBy(['orderNumber' => 'ASC'])]
+    private Collection $levels;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\NotBlank(message: 'Le montant est obligatoire')]
@@ -84,6 +91,7 @@ class Fee
         $this->payments = new ArrayCollection();
         $this->studentFees = new ArrayCollection();
         $this->schedules = new ArrayCollection();
+        $this->levels = new ArrayCollection();
     }
 
     #[ORM\PreUpdate]
@@ -130,15 +138,50 @@ class Fee
         return $this;
     }
 
-    public function getLevel(): ?Level
+    /**
+     * @return Collection<int, Level>
+     */
+    public function getLevels(): Collection
     {
-        return $this->level;
+        return $this->levels;
     }
 
-    public function setLevel(?Level $level): static
+    public function addLevel(Level $level): static
     {
-        $this->level = $level;
+        if (!$this->levels->contains($level)) {
+            $this->levels->add($level);
+        }
         return $this;
+    }
+
+    public function removeLevel(Level $level): static
+    {
+        $this->levels->removeElement($level);
+        return $this;
+    }
+
+    /**
+     * Vrai lorsque le frais ne cible aucun niveau précis : il s'applique alors
+     * à tous les niveaux de l'établissement.
+     */
+    public function appliesToAllLevels(): bool
+    {
+        return $this->levels->isEmpty();
+    }
+
+    /**
+     * Libellé lisible des niveaux concernés (ou « Tous les niveaux »).
+     */
+    public function getLevelsLabel(): string
+    {
+        if ($this->levels->isEmpty()) {
+            return 'Tous les niveaux';
+        }
+
+        return implode(', ', array_map(
+            static fn (Level $level) => $level->getName(),
+            $this->levels->toArray()
+        ));
     }
 
     public function getAmount(): ?string

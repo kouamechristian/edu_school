@@ -116,47 +116,27 @@ class FeeController extends AbstractController
 
         $form = $this->createForm(FeeType::class, $fee, [
             'current_school' => $currentSchool,
-            'multi_level' => true,
         ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Niveaux sélectionnés (champ non mappé). Vide => un seul frais « tous niveaux ».
-            $selectedLevels = $form->get('levels')->getData();
-            $levels = is_iterable($selectedLevels) ? iterator_to_array($selectedLevels) : [];
-            if ($levels === []) {
-                $levels = [null];
-            }
+            // Un seul frais, éventuellement rattaché à plusieurs niveaux (ManyToMany).
+            $fee->setSchool($currentSchool);
+            $fee->setCode($this->generateFeeCode($fee, $feeRepository));
 
-            $assignedCount = 0;
-            $createdCount = 0;
+            $entityManager->persist($fee);
+            $entityManager->flush();
 
-            foreach ($levels as $index => $level) {
-                // Le premier niveau réutilise l'entité liée au formulaire ; les suivants
-                // sont des copies (mêmes attributs, niveau et code différents).
-                $feeForLevel = $index === 0 ? $fee : $this->duplicateFeeForLevel($fee);
-                $feeForLevel->setSchool($currentSchool);
-                $feeForLevel->setLevel($level);
-                $feeForLevel->setCode($this->generateFeeCode($feeForLevel, $feeRepository));
-
-                $entityManager->persist($feeForLevel);
+            if ($fee->getCategory() === 'scolarite') {
+                $assignedCount = $feeAssignmentService->assignScolariteFeeToAllStudents($fee);
                 $entityManager->flush();
 
-                if ($feeForLevel->getCategory() === 'scolarite') {
-                    $assignedCount += $feeAssignmentService->assignScolariteFeeToAllStudents($feeForLevel);
-                    $entityManager->flush();
+                if ($assignedCount > 0) {
+                    $this->addFlash('info', sprintf('Frais de scolarité automatiquement affecté à %d élève(s).', $assignedCount));
                 }
-
-                $createdCount++;
             }
 
-            if ($assignedCount > 0) {
-                $this->addFlash('info', sprintf('Frais de scolarité automatiquement affecté à %d élève(s).', $assignedCount));
-            }
-
-            $this->addFlash('success', $createdCount > 1
-                ? sprintf('%d frais ont été créés avec succès.', $createdCount)
-                : 'Le frais a été créé avec succès.');
+            $this->addFlash('success', 'Le frais a été créé avec succès.');
 
             return $this->redirectToRoute('admin_fee_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -282,13 +262,20 @@ class FeeController extends AbstractController
         FeeAssignmentService $feeAssignmentService,
         EntityManagerInterface $entityManager
     ): Response {
-        $levelId = $fee->getLevel()?->getId();
         $schoolId = $fee->getSchool()->getId();
 
-        // Élèves du niveau (ou de l'établissement si pas de niveau)
-        $students = $levelId
-            ? $studentRepository->findActiveBySchoolAndLevel($schoolId, $levelId)
-            : $studentRepository->findBySchool($schoolId);
+        // Élèves des niveaux ciblés (ou de tout l'établissement si aucun niveau).
+        if ($fee->appliesToAllLevels()) {
+            $students = $studentRepository->findBySchool($schoolId);
+        } else {
+            $students = [];
+            foreach ($fee->getLevels() as $level) {
+                foreach ($studentRepository->findActiveBySchoolAndLevel($schoolId, $level->getId()) as $student) {
+                    $students[$student->getId()] = $student;
+                }
+            }
+            $students = array_values($students);
+        }
 
         // Identifier les élèves déjà affectés
         $assignedStudentIds = [];
@@ -374,25 +361,6 @@ class FeeController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_fee_index', [], Response::HTTP_SEE_OTHER);
-    }
-
-    /**
-     * Crée une nouvelle entité Fee reprenant les attributs communs du frais saisi,
-     * pour l'affecter ensuite à un niveau distinct (l'établissement, le niveau et le
-     * code sont définis par l'appelant).
-     */
-    private function duplicateFeeForLevel(Fee $source): Fee
-    {
-        $fee = new Fee();
-        $fee->setName($source->getName());
-        $fee->setAmount($source->getAmount());
-        $fee->setCategory($source->getCategory());
-        $fee->setType($source->getType());
-        $fee->setFrequency($source->getFrequency());
-        $fee->setDescription($source->getDescription());
-        $fee->setIsActive($source->isActive());
-
-        return $fee;
     }
 
     private function generateFeeCode(Fee $fee, FeeRepository $feeRepository): string

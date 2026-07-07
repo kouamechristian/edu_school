@@ -19,7 +19,6 @@ class FeeType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $school = $options['current_school'];
-        $multiLevel = $options['multi_level'];
 
         $builder
             ->add('name', TextType::class, [
@@ -90,37 +89,23 @@ class FeeType extends AbstractType
             }
             : null;
 
-        if ($multiLevel) {
-            // Création : plusieurs niveaux à la fois (un frais sera créé par niveau).
-            // Champ non mappé — le contrôleur exploite les niveaux sélectionnés.
-            $builder->add('levels', EntityType::class, [
-                'class' => Level::class,
-                'label' => 'Niveaux concernés',
-                'help' => 'Laissez vide pour appliquer à tous les niveaux. Sélectionnez un ou plusieurs niveaux (un frais sera créé pour chacun).',
-                'choice_label' => 'name',
-                'required' => false,
-                'multiple' => true,
-                'expanded' => false,
-                'mapped' => false,
-                'query_builder' => $levelQueryBuilder,
-                'attr' => [
-                    'class' => 'form-select',
-                    'size' => 6,
-                ],
-            ]);
-        } else {
-            $builder->add('level', EntityType::class, [
-                'class' => Level::class,
-                'label' => 'Niveau (optionnel)',
-                'choice_label' => 'name',
-                'required' => false,
-                'placeholder' => 'Tous les niveaux',
-                'query_builder' => $levelQueryBuilder,
-                'attr' => [
-                    'class' => 'form-select'
-                ]
-            ]);
-        }
+        // Un frais peut concerner plusieurs niveaux à la fois (relation ManyToMany).
+        // Vide => le frais s'applique à tous les niveaux de l'établissement.
+        $builder->add('levels', EntityType::class, [
+            'class' => Level::class,
+            'label' => 'Niveaux concernés',
+            'help' => 'Laissez vide pour appliquer à tous les niveaux. Sélectionnez un ou plusieurs niveaux.',
+            'choice_label' => 'name',
+            'required' => false,
+            'multiple' => true,
+            'expanded' => false,
+            'by_reference' => false,
+            'query_builder' => $levelQueryBuilder,
+            'attr' => [
+                'class' => 'form-select',
+                'size' => 6,
+            ],
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -128,9 +113,6 @@ class FeeType extends AbstractType
         $resolver->setDefaults([
             'data_class' => Fee::class,
             'current_school' => null,
-            'multi_level' => false,
         ]);
-
-        $resolver->setAllowedTypes('multi_level', 'bool');
     }
 }

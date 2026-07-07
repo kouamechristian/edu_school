@@ -57,7 +57,7 @@ class FeeRepository extends ServiceEntityRepository
     public function findByLevel(Level $level): array
     {
         return $this->createQueryBuilder('f')
-            ->andWhere('f.level = :level')
+            ->andWhere(':level MEMBER OF f.levels')
             ->andWhere('f.isActive = :active')
             ->setParameter('level', $level)
             ->setParameter('active', true)
@@ -175,7 +175,7 @@ class FeeRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('f')
             ->where('f.school = :school')
-            ->andWhere('f.level = :level')
+            ->andWhere(':level MEMBER OF f.levels')
             ->andWhere('f.category = :category')
             ->andWhere('f.isActive = true')
             ->setParameter('school', $school)
@@ -192,7 +192,7 @@ class FeeRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('f')
             ->where('f.school = :school')
-            ->andWhere('f.level IS NULL')
+            ->andWhere('f.levels IS EMPTY')
             ->andWhere('f.category = :category')
             ->andWhere('f.isActive = true')
             ->setParameter('school', $school)

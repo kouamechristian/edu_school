@@ -30,7 +30,7 @@
                     <div class="row">
                         <div class="col-md-6"><div class="info-list">
                             <div class="info-row"><div class="info-label">Code</div><div class="info-value"><span class="badge badge-soft secondary">{{ fee.code }}</span></div></div>
-                            <div class="info-row"><div class="info-label">Niveau</div><div class="info-value">{{ fee.level ? fee.level.name : 'Tous les niveaux' }}</div></div>
+                            <div class="info-row"><div class="info-label">Niveaux</div><div class="info-value">{{ fee.levelsLabel }}</div></div>
                             <div class="info-row"><div class="info-label">Catégorie</div><div class="info-value"><span class="badge bg-{{ fee.categoryColor }}">{{ fee.categoryLabel }}</span></div></div>
                             <div class="info-row"><div class="info-label">Montant</div><div class="info-value fw-bold text-primary">{{ fee.amount|number_format(0, ',', ' ') }} FCFA</div></div>
                         </div></div>

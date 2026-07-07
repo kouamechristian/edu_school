@@ -127,16 +127,32 @@ class FeeTest extends TestCase
         $this->assertSame(50000.0, $this->fee->getSchedulesTotalAmount());
     }
 
-    public function testSetSchoolAndLevel(): void
+    public function testSetSchoolAndLevels(): void
     {
         $school = new School();
-        $level = new Level();
+        $level = (new Level())->setName('CP1');
 
         $this->fee->setSchool($school);
-        $this->fee->setLevel($level);
+        $this->fee->addLevel($level);
 
         $this->assertSame($school, $this->fee->getSchool());
-        $this->assertSame($level, $this->fee->getLevel());
+        $this->assertTrue($this->fee->getLevels()->contains($level));
+        $this->assertFalse($this->fee->appliesToAllLevels());
+    }
+
+    public function testAppliesToAllLevelsWhenNoLevel(): void
+    {
+        $this->assertTrue($this->fee->appliesToAllLevels());
+        $this->assertSame('Tous les niveaux', $this->fee->getLevelsLabel());
+    }
+
+    public function testRemoveLevel(): void
+    {
+        $level = (new Level())->setName('CP1');
+        $this->fee->addLevel($level);
+        $this->fee->removeLevel($level);
+
+        $this->assertTrue($this->fee->getLevels()->isEmpty());
     }
 
     public function testToStringReturnsName(): void

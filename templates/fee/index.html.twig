@@ -100,7 +100,7 @@
                         <thead>
                             <tr>
                                 <th>Code</th><th>Nom</th><th>Catégorie</th><th class="text-end">Montant</th>
-                                <th class="text-center">Échéances</th><th>Statut</th><th class="text-end">Actions</th>
+                                <th class="text-center">Échéances</th><th>Niveaux</th><th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -114,7 +114,13 @@
                                     <td><span class="badge bg-{{ fee.categoryColor }}">{{ fee.categoryLabel }}</span></td>
                                     <td class="text-end fw-bold">{{ fee.amount|number_format(0, ',', ' ') }} FCFA</td>
                                     <td class="text-center">{% if fee.schedules|length > 0 %}<span class="badge badge-soft info">{{ fee.schedules|length }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
-                                    <td><span class="badge badge-soft {{ fee.isActive ? 'success' : 'danger' }}">{{ fee.isActive ? 'Actif' : 'Inactif' }}</span></td>
+                                    <td>
+                                        {% if fee.appliesToAllLevels %}
+                                            <span class="badge badge-soft secondary">Tous les niveaux</span>
+                                        {% else %}
+                                            {% for level in fee.levels %}<span class="badge badge-soft primary me-1 mb-1">{{ level.name }}</span>{% endfor %}
+                                        {% endif %}
+                                    </td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
                                             <a href="{{ path('admin_fee_show', {'id': fee.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>

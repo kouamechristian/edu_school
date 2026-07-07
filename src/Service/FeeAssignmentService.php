@@ -247,15 +247,18 @@ class FeeAssignmentService
             return 0;
         }
 
-        $students = [];
+        $schoolId = $fee->getSchool()->getId();
 
-        if ($fee->getLevel()) {
-            $students = $this->studentRepository->findActiveBySchoolAndLevel(
-                $fee->getSchool()->getId(),
-                $fee->getLevel()->getId()
-            );
+        if ($fee->appliesToAllLevels()) {
+            $students = $this->studentRepository->findBySchool($schoolId);
         } else {
-            $students = $this->studentRepository->findBySchool($fee->getSchool()->getId());
+            // Union (dédupliquée) des élèves de chacun des niveaux ciblés.
+            $students = [];
+            foreach ($fee->getLevels() as $level) {
+                foreach ($this->studentRepository->findActiveBySchoolAndLevel($schoolId, $level->getId()) as $student) {
+                    $students[$student->getId()] = $student;
+                }
+            }
         }
 
         $count = 0;
