@@ -17,7 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: BulletinRepository::class)]
 #[ORM\Table(name: 'bulletin')]
 #[ORM\HasLifecycleCallbacks]
-class Bulletin
+class Bulletin implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

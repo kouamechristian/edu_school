@@ -9,7 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CycleRepository::class)]
-class Cycle
+class Cycle implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

@@ -17,7 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: SubjectEquivalentRepository::class)]
 #[ORM\Table(name: 'subject_equivalent')]
 #[ORM\HasLifecycleCallbacks]
-class SubjectEquivalent
+class SubjectEquivalent implements SchoolOwnedInterface
 {
     /**
      * Liste des matières disponibles pour le champ « matière parente » (subject_paren).

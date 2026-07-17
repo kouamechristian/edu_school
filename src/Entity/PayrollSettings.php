@@ -15,7 +15,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: PayrollSettingsRepository::class)]
 #[ORM\Table(name: 'payroll_settings')]
 #[ORM\HasLifecycleCallbacks]
-class PayrollSettings
+class PayrollSettings implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

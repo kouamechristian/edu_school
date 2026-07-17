@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PeriodRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-class Period
+class Period implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TimeSlotRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-class TimeSlot
+class TimeSlot implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

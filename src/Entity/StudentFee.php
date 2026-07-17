@@ -13,8 +13,13 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'student_fee')]
 #[ORM\UniqueConstraint(name: 'unique_student_fee', columns: ['student_id', 'fee_id'])]
 #[ORM\HasLifecycleCallbacks]
-class StudentFee
+class StudentFee implements SchoolOwnedInterface
 {
+    public function getSchool(): ?School
+    {
+        return $this->getStudent()?->getSchool();
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

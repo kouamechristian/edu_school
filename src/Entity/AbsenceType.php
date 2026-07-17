@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: AbsenceTypeRepository::class)]
 #[ORM\Table(name: 'absence_type')]
 #[ORM\HasLifecycleCallbacks]
-class AbsenceType
+class AbsenceType implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

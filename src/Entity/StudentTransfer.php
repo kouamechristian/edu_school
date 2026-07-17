@@ -13,8 +13,13 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity(repositoryClass: StudentTransferRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-class StudentTransfer
+class StudentTransfer implements SchoolOwnedInterface
 {
+    public function getSchool(): ?School
+    {
+        return $this->getStudent()?->getSchool();
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

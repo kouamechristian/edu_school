@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: SubjectRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-class Subject
+class Subject implements SchoolOwnedInterface
 {
     /** Langue vivante (LV). */
     public const LV_CHOICES = ['AUCUN', 'ALLEMAND', 'ESPAGNOLE'];

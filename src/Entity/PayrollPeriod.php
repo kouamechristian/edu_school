@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'payroll_period')]
 #[ORM\UniqueConstraint(name: 'uniq_period_school_month', columns: ['school_id', 'year', 'month'])]
 #[ORM\HasLifecycleCallbacks]
-class PayrollPeriod
+class PayrollPeriod implements SchoolOwnedInterface
 {
     public const STATUS_DRAFT = 'draft';
     public const STATUS_VALIDATED = 'validated';

@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'cash_register')]
 #[ORM\Index(columns: ['status'], name: 'idx_cash_register_status')]
 #[ORM\HasLifecycleCallbacks]
-class CashRegister
+class CashRegister implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

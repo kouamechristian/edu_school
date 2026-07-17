@@ -21,7 +21,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Index(columns: ['type'], name: 'idx_entry_type')]
 #[ORM\UniqueConstraint(name: 'uniq_entry_source', columns: ['source_type', 'source_id'])]
 #[ORM\HasLifecycleCallbacks]
-class AccountingEntry
+class AccountingEntry implements SchoolOwnedInterface
 {
     public const TYPE_RECETTE = 'recette';
     public const TYPE_DEPENSE = 'depense';

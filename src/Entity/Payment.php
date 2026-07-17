@@ -10,8 +10,13 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 #[ORM\Table(name: 'payment')]
 #[ORM\HasLifecycleCallbacks]
-class Payment
+class Payment implements SchoolOwnedInterface
 {
+    public function getSchool(): ?School
+    {
+        return $this->getStudent()?->getSchool();
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

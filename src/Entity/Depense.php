@@ -17,7 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: DepenseRepository::class)]
 #[ORM\Table(name: 'depense')]
 #[ORM\HasLifecycleCallbacks]
-class Depense
+class Depense implements SchoolOwnedInterface
 {
     public const CATEGORIES = [
         'salaire' => 'Salaire',

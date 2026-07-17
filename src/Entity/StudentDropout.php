@@ -12,8 +12,13 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity(repositoryClass: StudentDropoutRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-class StudentDropout
+class StudentDropout implements SchoolOwnedInterface
 {
+    public function getSchool(): ?School
+    {
+        return $this->getStudent()?->getSchool();
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

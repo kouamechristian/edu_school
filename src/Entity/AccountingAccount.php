@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'accounting_account')]
 #[ORM\UniqueConstraint(name: 'uniq_account_school_code', columns: ['school_id', 'code'])]
 #[ORM\HasLifecycleCallbacks]
-class AccountingAccount
+class AccountingAccount implements SchoolOwnedInterface
 {
     public const TYPE_RECETTE = 'recette';
     public const TYPE_DEPENSE = 'depense';

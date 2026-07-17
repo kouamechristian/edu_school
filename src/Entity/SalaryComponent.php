@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'salary_component')]
 #[ORM\UniqueConstraint(name: 'uniq_component_school_code', columns: ['school_id', 'code'])]
 #[ORM\HasLifecycleCallbacks]
-class SalaryComponent
+class SalaryComponent implements SchoolOwnedInterface
 {
     public const DIRECTION_GAIN = 'gain';
     public const DIRECTION_RETENUE = 'retenue';

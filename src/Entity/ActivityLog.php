@@ -23,7 +23,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(columns: ['created_at'], name: 'idx_activity_created_at')]
 #[ORM\Index(columns: ['action'], name: 'idx_activity_action')]
 #[ORM\Index(columns: ['entity_type'], name: 'idx_activity_entity_type')]
-class ActivityLog
+class ActivityLog implements SchoolOwnedInterface
 {
     public const ACTION_CREATE = 'create';
     public const ACTION_UPDATE = 'update';

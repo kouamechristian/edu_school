@@ -8,7 +8,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: RoundRepository::class)]
 #[ORM\Table(name: 'round')]
-class Round
+class Round implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

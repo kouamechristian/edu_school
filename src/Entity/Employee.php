@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: EmployeeRepository::class)]
 #[ORM\Table(name: 'employee')]
 #[ORM\HasLifecycleCallbacks]
-class Employee
+class Employee implements MultiSchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

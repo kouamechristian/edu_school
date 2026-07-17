@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: LevelRepository::class)]
-class Level
+class Level implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

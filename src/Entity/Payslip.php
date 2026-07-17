@@ -17,8 +17,13 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: PayslipRepository::class)]
 #[ORM\Table(name: 'payslip')]
 #[ORM\HasLifecycleCallbacks]
-class Payslip
+class Payslip implements MultiSchoolOwnedInterface
 {
+    public function getSchools(): iterable
+    {
+        return $this->getEmployee()?->getSchools() ?? [];
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

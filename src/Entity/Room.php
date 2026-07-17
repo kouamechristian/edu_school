@@ -14,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     fields: ['code', 'school'],
     message: 'Ce code de salle existe déjà pour cet établissement.'
 )]
-class Room
+class Room implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

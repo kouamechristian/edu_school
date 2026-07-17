@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'accounting_period_closure')]
 #[ORM\Index(columns: ['end_date'], name: 'idx_closure_end_date')]
 #[ORM\HasLifecycleCallbacks]
-class AccountingPeriodClosure
+class AccountingPeriodClosure implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

@@ -10,8 +10,13 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: ContractRepository::class)]
 #[ORM\Table(name: 'contract')]
 #[ORM\HasLifecycleCallbacks]
-class Contract
+class Contract implements MultiSchoolOwnedInterface
 {
+    public function getSchools(): iterable
+    {
+        return $this->getEmployee()?->getSchools() ?? [];
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
