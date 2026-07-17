@@ -24,11 +24,3 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
-
-    App\Service\AI\AIService:
-        arguments:
-            $apiKey: '%env(ANTHROPIC_API_KEY)%'
-            $model: '%env(AI_MODEL)%'
-            $maxTokens: '%env(int:AI_MAX_TOKENS)%'
-            $cacheTtl: '%env(int:AI_CACHE_TTL)%'
-            $enabled: '%env(bool:AI_ENABLED)%'

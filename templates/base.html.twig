@@ -1227,18 +1227,6 @@
                 </ul>
             </li>
             {% endif %}#}
-
-            {# Section Intelligence Artificielle — visible pour les admins 
-            {% if is_granted('ROLE_ADMIN') %}
-            <div class="nav-section">Intelligence Artificielle</div>
-            <li class="nav-item">
-                <a href="{{ path('ai_dashboard') }}" class="nav-link {% if app.request.attributes.get('_route') starts with 'ai_' %}active{% endif %}">
-                    <i class="fas fa-robot"></i>
-                    <span>Dashboard IA</span>
-                </a>
-            </li>
-            {% endif %}
-        </ul>#}
     </nav>
 
     {# ================================================================
@@ -1680,7 +1668,5 @@
 
     {% block javascripts %}{% endblock %}
 
-    {# Widget Chatbot IA — disponible sur toutes les pages #}
-    {% include 'ai/chatbot_widget.html.twig' %}
 </body>
 </html>

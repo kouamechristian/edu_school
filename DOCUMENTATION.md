@@ -430,7 +430,6 @@ Supervision multi-établissements.
 - `ReportController` — rapports de synthèse établissement.
 - `AcademicReportController` — statistiques académiques (répartition, majors, affectés/non affectés).
 - Exports **PDF** (Dompdf) et **Excel** (PhpSpreadsheet).
-- Synthèses pouvant être rédigées par IA (`ReportAIService`).
 
 ---
 
@@ -439,30 +438,6 @@ Supervision multi-établissements.
 - Gestionnaire de fichiers **elFinder** + éditeur **CKEditor** intégrés.
 - `DocumentType` définit les pièces exigées (préinscription, dossiers).
 - Upload géré par **VichUploaderBundle** (logos, cachets, photos, justificatifs, reçus).
-
----
-
-### Module — Intelligence Artificielle
-
-> Activable via `AI_ENABLED` ; nécessite `ANTHROPIC_API_KEY`. Modèle configuré par `AI_MODEL`.
-
-Intégration de l'**API Anthropic Claude** pour assister plusieurs modules.
-
-**Service de base — `AIService`** (`src/Service/AI/`)
-- Appelle l'API Claude (`https://api.anthropic.com/v1/messages`).
-- `ask()` (avec cache, TTL `AI_CACHE_TTL`) / `askWithoutCache()`.
-- `isEnabled()`, plafond `AI_MAX_TOKENS`.
-
-**Services spécialisés** :
-
-| Service | Usage | Module |
-|---------|-------|--------|
-| `BulletinAIService` | Génère l'appréciation d'un élève à partir de ses notes (ton adapté au niveau) | Notes & Évaluations |
-| `AttendanceAIService` | Analyse les absences d'un élève (stats + recommandations) | Absences |
-| `ReportAIService` | Rédige une synthèse de rapport d'établissement | Rapports |
-| `ChatbotAIService` | Assistant conversationnel contextualisé selon le type d'utilisateur | Assistant (`AIController`) |
-
-Contrôleur : `AIController` (routes `ai_*`).
 
 ---
 

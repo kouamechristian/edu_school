@@ -336,7 +336,7 @@ module_slide(10, "08 · ÉVALUATION", "Notes & Évaluations", "ROLE_ENSEIGNANT /
      ("GradeCalculationService :", 0),
      ("moyennes pondérées par coefficient", 1),
      ("rang de l'élève, bulletin officiel + mention", 1)],
-    [("Bulletins produits en PDF (Dompdf) ; appréciations pouvant être générées par IA (BulletinAIService).", 0)])
+    [("Bulletins produits en PDF (Dompdf).", 0)])
 
 # ── 11. Absences ──
 module_slide(11, "09 · ASSIDUITÉ", "Absences & Assiduité", "ROLE_EDUCATEUR",
@@ -449,36 +449,9 @@ module_slide(17, "15 · PILOTAGE", "Communication & Rapports", "Selon le rôle",
      ("notifyRole() — diffusion à tous les rôles ciblés", 1),
      ("ReportController · AcademicReportController", 0),
      ("Exports PDF (Dompdf) et Excel (PhpSpreadsheet)", 0)],
-    [("Les rapports peuvent être synthétisés par IA (ReportAIService) ; documents gérés via elFinder/CKEditor.", 0)])
+    [("Documents gérés via elFinder/CKEditor.", 0)])
 
-# ── 18. Intelligence Artificielle ──
-s = prs.slides.add_slide(BLANK)
-add_rect(s, 0, 0, SW, SH, WHITE)
-content_header(s, "16 · IA", "Intelligence Artificielle (API Claude)")
-add_text(s, Inches(0.7), Inches(1.4), Inches(12), Inches(0.5),
-         "Intégration de l'API Anthropic Claude — activable via AI_ENABLED, modèle configurable (AI_MODEL).",
-         14, SLATE)
-add_text(s, Inches(0.7), Inches(2.0), Inches(12), Inches(0.4), "Service de base — AIService", 16, NAVY, bold=True)
-bullets(s, Inches(0.7), Inches(2.45), Inches(12), Inches(1.0), [
-    ("Appelle l'API Claude · ask() avec cache (AI_CACHE_TTL) / askWithoutCache() · plafond AI_MAX_TOKENS.", 0),
-], size=13, gap=4)
-add_text(s, Inches(0.7), Inches(3.35), Inches(12), Inches(0.4), "Services spécialisés", 16, NAVY, bold=True)
-cards = [
-    ("BulletinAIService", "Appréciations de bulletin\nà partir des notes"),
-    ("AttendanceAIService", "Analyse des absences\n+ recommandations"),
-    ("ReportAIService", "Synthèse des rapports\nd'établissement"),
-    ("ChatbotAIService", "Assistant conversationnel\ncontextualisé par profil"),
-]
-x = Inches(0.7); y = Inches(3.85); cw = Inches(2.95); ch = Inches(2.0); g = Inches(0.13)
-for i, (t, d) in enumerate(cards):
-    bx = Emu(int(x) + i * (int(cw) + int(g)))
-    add_rect(s, bx, y, cw, ch, NAVY)
-    add_rect(s, bx, y, cw, Inches(0.12), EMERALD)
-    add_text(s, bx, y + Inches(0.35), cw, Inches(0.6), t, 14, EMERALD, bold=True, align=PP_ALIGN.CENTER)
-    add_text(s, bx, y + Inches(1.0), cw, Inches(0.9), d, 12, LIGHT, align=PP_ALIGN.CENTER)
-footer(s, 18)
-
-# ── 19. SLIDE DE CLÔTURE ──
+# ── 18. SLIDE DE CLÔTURE ──
 s = prs.slides.add_slide(BLANK)
 add_rect(s, 0, 0, SW, SH, NAVY)
 add_rect(s, 0, 0, Inches(0.35), SH, EMERALD)
