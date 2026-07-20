@@ -89,12 +89,16 @@
                         </thead>
                         <tbody>
                             {% for p in payments %}
+                                {# Détails de passerelle (opérateur, téléphone, référence) : ils ne
+                                   sont plus portés par Payment depuis la migration du 29/06, on les
+                                   reprend de la transaction OnlinePayment liée, si elle existe. #}
+                                {% set gw = gateway_details[p.id] | default(null) %}
                                 <tr>
                                     <td class="text-muted">{{ p.createdAt ? p.createdAt|date('d/m/Y H:i') : '—' }}</td>
                                     <td><span class="fw-semibold">{{ p.paymentNumber }}</span></td>
                                     <td>{{ p.student ? p.student.fullName : '—' }}</td>
                                     <td>
-                                        {% set mmPhone = p.payerPhone %}
+                                        {% set mmPhone = gw ? gw.phone : null %}
                                         {% set phone = mmPhone ?: (p.student ? (p.student.parentPhone ?: (p.recordedBy ? p.recordedBy.phone : null)) : null) %}
                                         {% if phone %}
                                             <i class="fas fa-phone text-muted me-1"></i>{{ phone }}
@@ -104,10 +108,17 @@
                                     <td>{{ p.student and p.student.school ? p.student.school.name : '—' }}</td>
                                     <td>{{ p.fee ? p.fee.name : '—' }}</td>
                                     <td class="text-end fw-bold">{{ p.amount|number_format(0, ',', ' ') }} F</td>
-                                    <td><small class="text-muted">{{ p.providerTransactionId ?: '—' }}</small></td>
                                     <td>
-                                        {% if p.provider %}
-                                            <span class="badge bg-info-subtle text-info-emphasis">{{ p.provider|capitalize }}</span>
+                                        <small class="text-muted">{{ (gw ? gw.reference : null) ?: (p.reference ?: '—') }}</small>
+                                    </td>
+                                    <td>
+                                        {% if gw %}
+                                            <span class="badge bg-info-subtle text-info-emphasis">
+                                                {{ gw.provider ? gw.provider|replace({'_': ' '})|capitalize : 'GeniusPay' }}
+                                            </span>
+                                            {% if gw.environment == 'sandbox' %}
+                                                <span class="badge bg-warning-subtle text-warning-emphasis" title="Transaction de test">sandbox</span>
+                                            {% endif %}
                                         {% else %}
                                             <span class="badge bg-secondary-subtle text-secondary-emphasis">Caisse</span>
                                         {% endif %}

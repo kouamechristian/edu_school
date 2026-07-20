@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\Payment;
+use App\Repository\OnlinePaymentRepository;
 use App\Repository\PaymentRepository;
 use App\Service\SchoolContextService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,6 +23,7 @@ class MobileMoneyLogController extends AbstractController
     public function index(
         Request $request,
         PaymentRepository $paymentRepository,
+        OnlinePaymentRepository $onlinePaymentRepository,
         SchoolContextService $contextService,
     ): Response {
         $currentSchool = $contextService->getCurrentSchool();
@@ -42,6 +45,7 @@ class MobileMoneyLogController extends AbstractController
 
         return $this->render('admin/mobile_money_log.html.twig', [
             'payments' => $payments,
+            'gateway_details' => $this->buildGatewayDetails($payments, $onlinePaymentRepository),
             'current_school' => $currentSchool,
             'current_status' => $status,
             'stats' => [
@@ -51,5 +55,44 @@ class MobileMoneyLogController extends AbstractController
                 'total_paid' => $totalPaid,
             ],
         ]);
+    }
+
+    /**
+     * Détails de passerelle par paiement : opérateur, téléphone du payeur,
+     * référence de transaction.
+     *
+     * Ces champs vivaient autrefois sur `Payment` (colonnes `provider`,
+     * `payer_phone`, `provider_transaction_id`…), supprimées par la migration
+     * du 29/06. Ils sont désormais reconstitués depuis `OnlinePayment` et la
+     * charge utile conservée du webhook.
+     *
+     * @param Payment[] $payments
+     *
+     * @return array<int, array{reference: ?string, phone: ?string, provider: ?string, environment: ?string}>
+     */
+    private function buildGatewayDetails(array $payments, OnlinePaymentRepository $onlinePaymentRepository): array
+    {
+        $ids = [];
+        foreach ($payments as $payment) {
+            if ($payment->getId() !== null) {
+                $ids[] = $payment->getId();
+            }
+        }
+
+        $details = [];
+
+        foreach ($onlinePaymentRepository->findIndexedByPaymentIds($ids) as $paymentId => $onlinePayment) {
+            $payload = json_decode((string) $onlinePayment->getLastPayload(), true);
+            $payload = is_array($payload) ? $payload : [];
+
+            $details[$paymentId] = [
+                'reference' => $onlinePayment->getReference(),
+                'phone' => $payload['customer_phone'] ?? $payload['customer']['phone'] ?? null,
+                'provider' => $payload['provider'] ?? $payload['payment_method'] ?? null,
+                'environment' => $onlinePayment->getEnvironment(),
+            ];
+        }
+
+        return $details;
     }
 }
