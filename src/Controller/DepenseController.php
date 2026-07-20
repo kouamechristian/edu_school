@@ -22,8 +22,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * Dépenses (sorties d'argent) effectuées depuis la caisse.
  *
- * Une dépense n'est possible que si la caisse du caissier est ouverte ET autorisée aux
- * dépenses par le fondateur (expenseAuthorized). Elle diminue immédiatement le solde.
+ * Le caissier enregistre une dépense depuis sa caisse ouverte ; elle est créée « en
+ * attente » et n'impacte le solde et la comptabilité qu'une fois approuvée par le
+ * fondateur (voir FondateurController::autorisations).
  */
 #[Route('/admin/depenses', name: 'admin_depense_')]
 #[IsGranted('ROLE_CAISSE')]
@@ -82,12 +83,8 @@ class DepenseController extends AbstractController
             return $this->redirectToRoute('admin_cash_register_index');
         }
 
-        if (!$cashRegister->isExpenseAuthorized()) {
-            $this->addFlash('warning', 'Le fondateur ne vous a pas (encore) autorisé à effectuer des dépenses depuis votre caisse.');
-            return $this->redirectToRoute('admin_cash_register_index');
-        }
-
         // Solde officiel de la caisse : versements déduits seulement une fois approuvés.
+        // Les dépenses en attente d'approbation ne sont pas encore déduites.
         $balance = (float) $cashRegister->getOpeningBalance()
             + $paymentRepository->getTotalAmountByCashRegister($cashRegister->getId())
             - $cashDepositRepository->getApprovedTotalByCashRegister($cashRegister->getId())
@@ -109,16 +106,15 @@ class DepenseController extends AbstractController
             $amount = (float) $depense->getAmount();
             $depense->setAmount((string) number_format($amount, 2, '.', ''))
                 ->setNumero($this->generateNumero())
-                ->setStatus('confirmée');
+                ->setStatus('en_attente');
 
             $this->entityManager->persist($depense);
             $this->entityManager->flush();
 
-            $newBalance = $balance - $amount;
-            $this->addFlash('success', sprintf('Dépense de %s F enregistrée. Nouveau solde : %s F.', number_format($amount, 0, ',', ' '), number_format($newBalance, 0, ',', ' ')));
-            if ($newBalance < 0) {
-                $this->addFlash('warning', 'Attention : le solde de la caisse est désormais négatif (la dépense dépasse l\'encaisse disponible).');
-            }
+            $this->addFlash('success', sprintf(
+                'Dépense de %s F enregistrée. Elle sera prise en compte (déduite du solde et portée en comptabilité) une fois approuvée par le fondateur.',
+                number_format($amount, 0, ',', ' ')
+            ));
 
             return $this->redirectToRoute('admin_depense_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -151,9 +147,17 @@ class DepenseController extends AbstractController
     public function cancel(Request $request, Depense $depense): Response
     {
         if ($this->isCsrfTokenValid('cancel' . $depense->getId(), $request->request->get('_token'))) {
-            $depense->setStatus($depense->getStatus() === 'annulée' ? 'confirmée' : 'annulée');
+            // Annuler une dépense la retire du solde/de la comptabilité. La réactiver
+            // la renvoie « en attente » : elle doit être ré-approuvée par le fondateur
+            // (on ne contourne jamais l'approbation).
+            $depense->setStatus($depense->getStatus() === 'annulée' ? 'en_attente' : 'annulée');
+            if (!$depense->isApproved()) {
+                $depense->setApprovedBy(null)->setApprovedAt(null);
+            }
             $this->entityManager->flush();
-            $this->addFlash('success', 'Le statut de la dépense a été mis à jour (le solde de la caisse est ajusté en conséquence).');
+            $this->addFlash('success', $depense->isPending()
+                ? 'La dépense est de nouveau en attente d\'approbation du fondateur.'
+                : 'La dépense a été annulée (retirée du solde et de la comptabilité).');
         }
 
         return $this->redirectToRoute('admin_depense_index', [], Response::HTTP_SEE_OTHER);

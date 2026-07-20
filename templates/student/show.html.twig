@@ -151,21 +151,36 @@
             <div class="card mb-4">
                 <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-user-friends me-2"></i>Parent / Tuteur</h6></div>
                 <div class="card-body">
+                    <div class="fw-semibold text-primary mb-2"><i class="fas fa-male me-2"></i>Père</div>
                     <div class="row">
                         <div class="col-md-6"><div class="info-list">
-                            <div class="info-row"><div class="info-label">Nom</div><div class="info-value">{{ student.parentName ?: '—' }}</div></div>
-                            <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">{{ student.parentPhone ?: '—' }}</div></div>
+                            <div class="info-row"><div class="info-label">Nom & prénom</div><div class="info-value">{{ student.fatherFullName ?: '—' }}</div></div>
+                            <div class="info-row"><div class="info-label">Contact</div><div class="info-value">{{ student.fatherPhone ?: '—' }}</div></div>
                         </div></div>
                         <div class="col-md-6"><div class="info-list">
-                            <div class="info-row"><div class="info-label">Email</div><div class="info-value">{{ student.parentEmail ?: '—' }}</div></div>
-                            <div class="info-row"><div class="info-label">Fonction</div><div class="info-value">{{ student.parentFunction ?: '—' }}</div></div>
+                            <div class="info-row"><div class="info-label">Fonction</div><div class="info-value">{{ student.fatherFunction ?: '—' }}</div></div>
+                            <div class="info-row"><div class="info-label">Domicile</div><div class="info-value">{{ student.fatherAddress ?: '—' }}</div></div>
                         </div></div>
                     </div>
-                    {% if student.parentAddress %}
-                    <div class="info-list mt-2">
-                        <div class="info-row"><div class="info-label">Domicile</div><div class="info-value">{{ student.parentAddress|nl2br }}</div></div>
+                    <div class="fw-semibold text-primary mb-2 mt-3"><i class="fas fa-female me-2"></i>Mère</div>
+                    <div class="row">
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Nom & prénom</div><div class="info-value">{{ student.motherFullName ?: '—' }}</div></div>
+                            <div class="info-row"><div class="info-label">Contact</div><div class="info-value">{{ student.motherPhone ?: '—' }}</div></div>
+                        </div></div>
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Fonction</div><div class="info-value">{{ student.motherFunction ?: '—' }}</div></div>
+                            <div class="info-row"><div class="info-label">Domicile</div><div class="info-value">{{ student.motherAddress ?: '—' }}</div></div>
+                        </div></div>
                     </div>
-                    {% endif %}
+                    <div class="row mt-2">
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Autorité parentale</div><div class="info-value">{{ student.parentalAuthorityLabel }}</div></div>
+                        </div></div>
+                        <div class="col-md-6"><div class="info-list">
+                            <div class="info-row"><div class="info-label">Email de contact</div><div class="info-value">{{ student.parentEmail ?: '—' }}</div></div>
+                        </div></div>
+                    </div>
                 </div>
             </div>
 

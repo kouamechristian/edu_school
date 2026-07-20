@@ -1,17 +1,17 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Autorisations de dépense{% endblock %}
+{% block title %}Approbation des dépenses{% endblock %}
 
 {% block body %}
 <div class="container-fluid">
     {% embed 'components/page_header.html.twig' with {
-        title: 'Autorisations de dépense',
-        subtitle: 'Autoriser une caisse à effectuer des dépenses',
-        icon: 'fa-key',
-        color: 'primary',
+        title: 'Approbation des dépenses',
+        subtitle: 'Approuver ou rejeter les dépenses enregistrées par les caissiers',
+        icon: 'fa-clipboard-check',
+        color: 'warning',
         breadcrumb: [
             { label: 'Espace Fondateur', path: path('fondateur_index') },
-            { label: 'Autorisations' }
+            { label: 'Approbation des dépenses' }
         ]
     } %}
         {% block actions %}<a href="{{ path('fondateur_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>{% endblock %}
@@ -20,38 +20,38 @@
     {% include '_flash.html.twig' %}
 
     <div class="card table-card">
-        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Caisses</h6></div>
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-hourglass-half me-2"></i>Dépenses en attente <span class="badge badge-soft ms-1">{{ depenses|length }}</span></h6></div>
         <div class="card-body">
-            {% if cash_registers|length > 0 %}
+            {% if depenses|length > 0 %}
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
-                            <tr><th>Caissier</th><th>Établissement</th><th>Statut caisse</th><th>Autorisation dépense</th><th class="text-end">Action</th></tr>
+                            <tr>
+                                <th>N°</th><th>Motif</th><th>Catégorie</th><th>Établissement</th><th>Caissier</th>
+                                <th class="text-end">Montant</th><th>Date</th><th class="text-end" width="200">Décision</th>
+                            </tr>
                         </thead>
                         <tbody>
-                            {% for cr in cash_registers %}
+                            {% for d in depenses %}
                                 <tr>
-                                    <td class="fw-bold">{{ cr.cashier ? cr.cashier.fullName : '—' }}</td>
-                                    <td>{{ cr.school ? cr.school.name : '—' }}</td>
-                                    <td><span class="badge bg-{{ cr.status == 'open' ? 'success' : 'secondary' }}">{{ cr.status == 'open' ? 'Ouverte' : 'Fermée' }}</span></td>
-                                    <td>
-                                        {% if cr.expenseAuthorized %}
-                                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Autorisée</span>
-                                            <small class="d-block text-muted">{{ cr.authorizedBy ? cr.authorizedBy.fullName : '' }} · {{ cr.authorizedAt ? cr.authorizedAt|date('d/m/Y') : '' }}</small>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Non autorisée</span>
-                                        {% endif %}
-                                    </td>
+                                    <td><span class="badge badge-soft secondary">{{ d.numero }}</span></td>
+                                    <td class="fw-semibold">{{ d.libelle }}{% if d.beneficiary %}<small class="d-block text-muted">Bénéf. : {{ d.beneficiary }}</small>{% endif %}</td>
+                                    <td><span class="badge badge-soft">{{ d.categoryLabel }}</span></td>
+                                    <td>{{ d.school ? d.school.name : '—' }}</td>
+                                    <td>{{ d.recordedBy ? d.recordedBy.fullName : '—' }}</td>
+                                    <td class="text-end fw-bold text-danger">{{ d.amount|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-muted">{{ d.depenseDate ? d.depenseDate|date('d/m/Y') : '—' }}</td>
                                     <td class="text-end">
-                                        <form method="post" action="{{ path('fondateur_autoriser_depense', {'id': cr.id}) }}" class="d-inline"
-                                              onsubmit="return confirm('Confirmer la modification de l’autorisation de dépense ?');">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('autoriser' ~ cr.id) }}">
-                                            {% if cr.expenseAuthorized %}
-                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-ban me-1"></i> Retirer</button>
-                                            {% else %}
-                                                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-key me-1"></i> Autoriser</button>
-                                            {% endif %}
+                                        <form method="post" action="{{ path('fondateur_decision_depense', {'id': d.id, 'decision': 'approuver'}) }}" class="d-inline"
+                                              onsubmit="return confirm('Approuver cette dépense ? Elle sera déduite du solde et portée en comptabilité.');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('depense' ~ d.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check me-1"></i> Approuver</button>
                                         </form>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal" data-bs-target="#rejectModal"
+                                                data-depense-id="{{ d.id }}" data-depense-label="{{ d.libelle }}">
+                                            <i class="fas fa-times me-1"></i> Rejeter
+                                        </button>
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -59,9 +59,50 @@
                     </table>
                 </div>
             {% else %}
-                <div class="text-center text-muted py-4"><i class="fas fa-info-circle me-1"></i> Aucune caisse.</div>
+                <div class="text-center text-muted py-4"><i class="fas fa-circle-check text-success me-1"></i> Aucune dépense en attente d'approbation.</div>
             {% endif %}
         </div>
     </div>
 </div>
+
+{# Modale de rejet (partagée) : action et libellé injectés par JS. #}
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" id="rejectForm">
+            <input type="hidden" name="_token" id="rejectToken">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-ban text-danger me-2"></i>Rejeter la dépense</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Dépense : <strong id="rejectLabel"></strong></p>
+                    <label class="form-label">Motif du rejet <span class="text-muted">(facultatif)</span></label>
+                    <textarea name="reason" class="form-control" rows="3" placeholder="Expliquez pourquoi la dépense est rejetée…"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-times me-1"></i> Confirmer le rejet</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var modal = document.getElementById('rejectModal');
+        if (!modal) return;
+        modal.addEventListener('show.bs.modal', function (event) {
+            var btn = event.relatedTarget;
+            var id = btn.getAttribute('data-depense-id');
+            document.getElementById('rejectForm').action = '{{ path('fondateur_decision_depense', {'id': '__ID__', 'decision': 'rejeter'}) }}'.replace('__ID__', id);
+            document.getElementById('rejectToken').value = window.__csrf ? (window.__csrf[id] || '') : '';
+            document.getElementById('rejectLabel').textContent = btn.getAttribute('data-depense-label');
+        });
+    })();
+    window.__csrf = {
+        {% for d in depenses %}'{{ d.id }}': '{{ csrf_token('depense' ~ d.id) }}'{% if not loop.last %},{% endif %}{% endfor %}
+    };
+</script>
 {% endblock %}

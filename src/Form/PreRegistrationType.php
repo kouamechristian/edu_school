@@ -49,18 +49,20 @@ class PreRegistrationType extends AbstractType
             ->add('dateOfBirth', DateType::class, [
                 'label' => 'Date de naissance',
                 'widget' => 'single_text',
-                'required' => false,
+                'required' => true,
                 'attr' => ['class' => 'form-control'],
+                'constraints' => [new NotBlank(message: 'La date de naissance est obligatoire.')],
             ])
             ->add('gender', ChoiceType::class, [
                 'label' => 'Genre',
-                'required' => false,
+                'required' => true,
                 'choices' => [
                     'Masculin' => 'M',
                     'Féminin' => 'F',
                 ],
                 'attr' => ['class' => 'form-select'],
                 'placeholder' => 'Sélectionnez',
+                'constraints' => [new NotBlank(message: 'Le genre est obligatoire.')],
             ])
             ->add('phone', TelType::class, [
                 'label' => 'Téléphone',
@@ -138,16 +140,19 @@ class PreRegistrationType extends AbstractType
                     ),
                 ],
             ])
-            ->add('parentName', TextType::class, [
-                'label' => 'Nom du parent/tuteur',
+            // ── Père ──
+            ->add('fatherLastName', TextType::class, [
+                'label' => 'Nom du père',
                 'required' => false,
-                'attr' => [
-                    'class' => 'form-control',
-                    'placeholder' => 'Nom du parent',
-                ],
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Nom du père'],
             ])
-            ->add('parentPhone', TelType::class, [
-                'label' => 'Téléphone du parent',
+            ->add('fatherFirstName', TextType::class, [
+                'label' => 'Prénom du père',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Prénom du père'],
+            ])
+            ->add('fatherPhone', TelType::class, [
+                'label' => 'Contact du père',
                 'required' => false,
                 'attr' => [
                     'class' => 'form-control',
@@ -158,27 +163,73 @@ class PreRegistrationType extends AbstractType
                     'title' => 'Exactement 10 chiffres',
                 ],
             ])
+            ->add('fatherFunction', TextType::class, [
+                'label' => 'Fonction du père',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: Commerçant, Enseignant...'],
+            ])
+            ->add('fatherAddress', TextareaType::class, [
+                'label' => 'Domicile du père',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'rows' => 2, 'placeholder' => 'Domicile du père'],
+            ])
+            // ── Mère ──
+            ->add('motherLastName', TextType::class, [
+                'label' => 'Nom de la mère',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Nom de la mère'],
+            ])
+            ->add('motherFirstName', TextType::class, [
+                'label' => 'Prénom de la mère',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Prénom de la mère'],
+            ])
+            ->add('motherPhone', TelType::class, [
+                'label' => 'Contact de la mère',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'maxlength' => 10,
+                    'inputmode' => 'numeric',
+                    'pattern' => '\d{10}',
+                    'placeholder' => '0700000000',
+                    'title' => 'Exactement 10 chiffres',
+                ],
+            ])
+            ->add('motherFunction', TextType::class, [
+                'label' => 'Fonction de la mère',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: Commerçante, Enseignante...'],
+            ])
+            ->add('motherAddress', TextareaType::class, [
+                'label' => 'Domicile de la mère',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'rows' => 2, 'placeholder' => 'Domicile de la mère'],
+            ])
+            ->add('parentalAuthority', ChoiceType::class, [
+                'label' => 'Autorité parentale',
+                'required' => false,
+                'choices' => [
+                    'Père' => 'father',
+                    'Mère' => 'mother',
+                    'Les deux parents' => 'both',
+                ],
+                'placeholder' => 'Sélectionnez',
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Parent détenant l\'autorité parentale (contact principal).',
+            ])
             ->add('parentEmail', EmailType::class, [
-                'label' => 'Email du parent',
+                'label' => 'Email de contact',
                 'required' => false,
                 'attr' => [
                     'class' => 'form-control',
                     'placeholder' => 'parent@exemple.com',
                 ],
-            ])
-            ->add('parentFunction', TextType::class, [
-                'label' => 'Fonction du parent/tuteur',
-                'required' => false,
-                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: Commerçant, Enseignant...'],
-            ])
-            ->add('parentAddress', TextareaType::class, [
-                'label' => 'Domicile du parent/tuteur',
-                'required' => false,
-                'attr' => ['class' => 'form-control', 'rows' => 2, 'placeholder' => 'Domicile du parent/tuteur'],
+                'help' => 'Sert au rattachement du compte parent (espace en ligne).',
             ])
             ->add('emergencyContact', TelType::class, [
                 'label' => 'Contact d\'urgence',
-                'required' => false,
+                'required' => true,
                 'attr' => [
                     'class' => 'form-control',
                     'maxlength' => 10,
@@ -187,6 +238,7 @@ class PreRegistrationType extends AbstractType
                     'placeholder' => '0700000000',
                     'title' => 'Exactement 10 chiffres',
                 ],
+                'constraints' => [new NotBlank(message: 'Le contact d\'urgence est obligatoire.')],
             ])
             ->add('emergencyPhone', TelType::class, [
                 'label' => 'Téléphone d\'urgence',

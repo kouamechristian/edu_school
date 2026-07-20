@@ -1,0 +1,22 @@
+{# Onglets de l'espace élève — le lien actif est déduit de la route courante. #}
+{% set route = app.request.attributes.get('_route') %}
+<nav class="pp-subnav pp-reveal">
+    <a href="{{ path('eleve_dashboard') }}" class="{{ route == 'eleve_dashboard' ? 'active' : '' }}">
+        <i class="fas fa-grip"></i> Tableau de bord
+    </a>
+    <a href="{{ path('eleve_grades') }}" class="{{ route == 'eleve_grades' ? 'active' : '' }}">
+        <i class="fas fa-clipboard-check"></i> Notes
+    </a>
+    <a href="{{ path('eleve_absences') }}" class="{{ route == 'eleve_absences' ? 'active' : '' }}">
+        <i class="fas fa-calendar-check"></i> Absences
+    </a>
+    <a href="{{ path('eleve_schedule') }}" class="{{ route == 'eleve_schedule' ? 'active' : '' }}">
+        <i class="fas fa-calendar-week"></i> Emploi du temps
+    </a>
+    <a href="{{ path('eleve_homework') }}" class="{{ route starts with 'eleve_homework' ? 'active' : '' }}">
+        <i class="fas fa-book-open"></i> Exercices de maison
+    </a>
+    <a href="{{ path('eleve_profile') }}" class="{{ route == 'eleve_profile' ? 'active' : '' }}">
+        <i class="fas fa-id-badge"></i> Mon profil
+    </a>
+</nav>

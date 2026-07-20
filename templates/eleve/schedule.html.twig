@@ -1,0 +1,11 @@
+{% extends 'eleve/base.html.twig' %}
+
+{% block title %}Mon emploi du temps{% endblock %}
+{% block page_title %}Mon emploi du temps{% endblock %}
+{% block page_subtitle %}{{ classroom ? 'Classe : ' ~ classroom.name : 'Aucune classe affectée' }}.{% endblock %}
+
+{% block body %}
+<section class="pp-card pp-reveal" style="padding:0;overflow:hidden;">
+    {% include 'parent/_schedule_grid.html.twig' with {classroom: classroom, schedule: schedule, time_slots: time_slots} %}
+</section>
+{% endblock %}

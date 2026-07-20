@@ -116,18 +116,35 @@
         </tr>
     </table>
 
-    <div class="section-title">PARENT / TUTEUR</div>
+    <div class="section-title">PÈRE</div>
     <table class="fields">
         <tr>
-            <td class="k">Nom du parent</td><td>{{ pr.parentName ?: '—' }}</td>
-            <td class="k">Fonction</td><td>{{ pr.parentFunction ?: '—' }}</td>
+            <td class="k">Nom &amp; prénom</td><td>{{ pr.fatherFullName ?: '—' }}</td>
+            <td class="k">Fonction</td><td>{{ pr.fatherFunction ?: '—' }}</td>
         </tr>
         <tr>
-            <td class="k">Téléphone</td><td>{{ pr.parentPhone ?: '—' }}</td>
-            <td class="k">Email</td><td>{{ pr.parentEmail ?: '—' }}</td>
+            <td class="k">Contact</td><td>{{ pr.fatherPhone ?: '—' }}</td>
+            <td class="k">Domicile</td><td>{{ pr.fatherAddress ?: '—' }}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">MÈRE</div>
+    <table class="fields">
+        <tr>
+            <td class="k">Nom &amp; prénom</td><td>{{ pr.motherFullName ?: '—' }}</td>
+            <td class="k">Fonction</td><td>{{ pr.motherFunction ?: '—' }}</td>
         </tr>
         <tr>
-            <td class="k">Domicile</td><td colspan="3">{{ pr.parentAddress ?: '—' }}</td>
+            <td class="k">Contact</td><td>{{ pr.motherPhone ?: '—' }}</td>
+            <td class="k">Domicile</td><td>{{ pr.motherAddress ?: '—' }}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">AUTORITÉ PARENTALE &amp; CONTACT</div>
+    <table class="fields">
+        <tr>
+            <td class="k">Autorité parentale</td><td>{{ pr.parentalAuthorityLabel }}</td>
+            <td class="k">Email de contact</td><td>{{ pr.parentEmail ?: '—' }}</td>
         </tr>
         <tr>
             <td class="k">Contact d'urgence</td><td>{{ pr.emergencyContact ?: '—' }}</td>

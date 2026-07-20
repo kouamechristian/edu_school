@@ -55,8 +55,12 @@ class UserController extends AbstractController
             $users = $userRepository->findBySchool($schoolId);
         }
 
-        // Statistiques filtrées par établissement
-        $stats = $userRepository->countByTypeInSchool($schoolId);
+        // Statistiques filtrées par établissement, en excluant les comptes des
+        // portails élève/parent (gérés dans leurs écrans dédiés).
+        $stats = array_values(array_filter(
+            $userRepository->countByTypeInSchool($schoolId),
+            static fn (array $row) => !\in_array($row['userType'] ?? null, ['parent', 'eleve'], true),
+        ));
 
         $users = $paginator->paginate($users, $request->query->getInt('page', 1), 50);
 
@@ -113,7 +117,41 @@ class UserController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'show', methods: ['GET'])]
+    /**
+     * Comptes Parents : liste des utilisateurs disposant du rôle ROLE_PARENT.
+     */
+    #[Route('/parents', name: 'parents', methods: ['GET'])]
+    public function parents(Request $request, UserRepository $userRepository, \Knp\Component\Pager\PaginatorInterface $paginator): Response
+    {
+        $search = $request->query->get('search');
+        $accounts = $userRepository->findAccountsByRole('ROLE_PARENT', $search);
+        $accounts = $paginator->paginate($accounts, $request->query->getInt('page', 1), 50);
+
+        return $this->render('user/accounts.html.twig', [
+            'accounts' => $accounts,
+            'kind' => 'parent',
+            'search_term' => $search,
+        ]);
+    }
+
+    /**
+     * Comptes Élèves : liste des utilisateurs disposant du rôle ROLE_ELEVE.
+     */
+    #[Route('/eleves', name: 'students', methods: ['GET'])]
+    public function students(Request $request, UserRepository $userRepository, \Knp\Component\Pager\PaginatorInterface $paginator): Response
+    {
+        $search = $request->query->get('search');
+        $accounts = $userRepository->findAccountsByRole('ROLE_ELEVE', $search);
+        $accounts = $paginator->paginate($accounts, $request->query->getInt('page', 1), 50);
+
+        return $this->render('user/accounts.html.twig', [
+            'accounts' => $accounts,
+            'kind' => 'eleve',
+            'search_term' => $search,
+        ]);
+    }
+
+    #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function show(User $user): Response
     {
         return $this->render('user/show.html.twig', [
@@ -121,7 +159,7 @@ class UserController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
+    #[Route('/{id}/edit', name: 'edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function edit(
         Request $request,
         User $user,
@@ -164,7 +202,7 @@ class UserController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'delete', methods: ['POST'])]
+    #[Route('/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function delete(Request $request, User $user, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$user->getId(), $request->request->get('_token'))) {
@@ -185,7 +223,7 @@ class UserController extends AbstractController
         return $this->redirectToRoute('admin_user_index', [], Response::HTTP_SEE_OTHER);
     }
 
-    #[Route('/{id}/toggle', name: 'toggle', methods: ['POST'])]
+    #[Route('/{id}/toggle', name: 'toggle', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function toggle(Request $request, User $user, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('toggle'.$user->getId(), $request->request->get('_token'))) {
@@ -205,7 +243,7 @@ class UserController extends AbstractController
         return $this->redirectToRoute('admin_user_index', [], Response::HTTP_SEE_OTHER);
     }
 
-    #[Route('/{id}/reset-password', name: 'reset_password', methods: ['POST'])]
+    #[Route('/{id}/reset-password', name: 'reset_password', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[IsGranted('ROLE_SUPER_ADMIN')]
     public function resetPassword(
         Request $request,

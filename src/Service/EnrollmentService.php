@@ -30,6 +30,7 @@ class EnrollmentService
         private RegistrationRepository $registrationRepository,
         private MatriculeGenerator $matriculeGenerator,
         private ArriereManager $arriereManager,
+        private StudentAccountManager $studentAccountManager,
     ) {
     }
 
@@ -106,6 +107,10 @@ class EnrollmentService
             $this->arriereManager->carryForwardPreviousBalance($registration);
         }
 
+        // Compte de connexion de l'élève (espace élève) : créé/rattaché à l'inscription
+        // dès lors que l'élève dispose d'un matricule national et d'une date de naissance.
+        $this->studentAccountManager->ensureAccount($student);
+
         return $registration;
     }
 
@@ -168,6 +173,17 @@ class EnrollmentService
         $student->setParentEmail($pre->getParentEmail());
         $student->setParentFunction($pre->getParentFunction());
         $student->setParentAddress($pre->getParentAddress());
+        $student->setFatherLastName($pre->getFatherLastName());
+        $student->setFatherFirstName($pre->getFatherFirstName());
+        $student->setFatherPhone($pre->getFatherPhone());
+        $student->setFatherFunction($pre->getFatherFunction());
+        $student->setFatherAddress($pre->getFatherAddress());
+        $student->setMotherLastName($pre->getMotherLastName());
+        $student->setMotherFirstName($pre->getMotherFirstName());
+        $student->setMotherPhone($pre->getMotherPhone());
+        $student->setMotherFunction($pre->getMotherFunction());
+        $student->setMotherAddress($pre->getMotherAddress());
+        $student->setParentalAuthority($pre->getParentalAuthority());
         $student->setEmergencyContact($pre->getEmergencyContact());
         $student->setEmergencyPhone($pre->getEmergencyPhone());
         $student->setMedicalInfo($pre->getMedicalInfo());

@@ -62,7 +62,7 @@
         {# ── Évolution mensuelle ── #}
         <div class="col-lg-8">
             <div class="card h-100">
-                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-chart-column me-2"></i>Évolution mensuelle {{ civil_year }}</h6></div>
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-chart-column me-2"></i>Évolution mensuelle{% if period_from and period_to %} <span class="small text-muted fw-normal">({{ period_from|date('m/Y') }} – {{ period_to|date('m/Y') }})</span>{% endif %}</h6></div>
                 <div class="card-body">
                     <canvas id="monthlyChart" height="120"></canvas>
                 </div>
@@ -136,7 +136,7 @@
         (function () {
             var ctx = document.getElementById('monthlyChart');
             if (!ctx || typeof Chart === 'undefined') return;
-            var labels = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+            var labels = {{ monthly.labels|json_encode|raw }};
             new Chart(ctx, {
                 type: 'bar',
                 data: {

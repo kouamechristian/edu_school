@@ -95,12 +95,23 @@
             <div class="card mb-4">
                 <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-user-friends me-2"></i>Parent / Tuteur</h6></div>
                 <div class="card-body">
+                    <div class="fw-semibold text-primary mb-2"><i class="fas fa-male me-2"></i>Père</div>
+                    <div class="info-list mb-3">
+                        <div class="info-row"><div class="info-label">Nom & prénom</div><div class="info-value">{{ pre_registration.fatherFullName ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Contact</div><div class="info-value">{{ pre_registration.fatherPhone ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Fonction</div><div class="info-value">{{ pre_registration.fatherFunction ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Domicile</div><div class="info-value">{{ pre_registration.fatherAddress ?: '—' }}</div></div>
+                    </div>
+                    <div class="fw-semibold text-primary mb-2"><i class="fas fa-female me-2"></i>Mère</div>
+                    <div class="info-list mb-3">
+                        <div class="info-row"><div class="info-label">Nom & prénom</div><div class="info-value">{{ pre_registration.motherFullName ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Contact</div><div class="info-value">{{ pre_registration.motherPhone ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Fonction</div><div class="info-value">{{ pre_registration.motherFunction ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Domicile</div><div class="info-value">{{ pre_registration.motherAddress ?: '—' }}</div></div>
+                    </div>
                     <div class="info-list">
-                        <div class="info-row"><div class="info-label">Nom</div><div class="info-value">{{ pre_registration.parentName ?: '—' }}</div></div>
-                        <div class="info-row"><div class="info-label">Téléphone</div><div class="info-value">{{ pre_registration.parentPhone ?: '—' }}</div></div>
-                        <div class="info-row"><div class="info-label">Email</div><div class="info-value">{{ pre_registration.parentEmail ?: '—' }}</div></div>
-                        <div class="info-row"><div class="info-label">Fonction</div><div class="info-value">{{ pre_registration.parentFunction ?: '—' }}</div></div>
-                        <div class="info-row"><div class="info-label">Domicile</div><div class="info-value">{{ pre_registration.parentAddress ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Autorité parentale</div><div class="info-value">{{ pre_registration.parentalAuthorityLabel }}</div></div>
+                        <div class="info-row"><div class="info-label">Email de contact</div><div class="info-value">{{ pre_registration.parentEmail ?: '—' }}</div></div>
                     </div>
                 </div>
             </div>

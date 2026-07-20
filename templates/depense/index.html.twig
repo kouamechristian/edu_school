@@ -45,7 +45,7 @@
                         </thead>
                         <tbody>
                             {% for d in depenses %}
-                            <tr class="{{ d.status == 'annulée' ? 'opacity-50' : '' }}">
+                            <tr class="{{ d.status in ['annulée', 'rejetée'] ? 'opacity-50' : '' }}">
                                 <td><span class="badge badge-soft secondary">{{ d.numero }}</span></td>
                                 <td class="fw-semibold">{{ d.libelle }}</td>
                                 <td><span class="badge badge-soft">{{ d.categoryLabel }}</span></td>
@@ -53,14 +53,19 @@
                                 <td class="text-end fw-bold text-danger">{{ d.amount|number_format(0, ',', ' ') }}</td>
                                 <td class="text-muted">{{ d.depenseDate ? d.depenseDate|date('d/m/Y') : '—' }}</td>
                                 <td>{{ d.paymentMethod }}</td>
-                                <td class="text-center"><span class="badge bg-{{ d.statusColor }}">{{ d.statusLabel }}</span></td>
+                                <td class="text-center">
+                                    <span class="badge bg-{{ d.statusColor }}">{{ d.statusLabel }}</span>
+                                    {% if d.isRejected and d.rejectionReason %}<small class="d-block text-muted" title="Motif du rejet">{{ d.rejectionReason }}</small>{% endif %}
+                                </td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ path('admin_depense_edit', {'id': d.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        {% if not d.isRejected %}
                                         <form method="post" action="{{ path('admin_depense_cancel', {'id': d.id}) }}" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ d.id) }}">
-                                            <button type="submit" class="btn btn-outline-secondary" title="{{ d.status == 'annulée' ? 'Réactiver' : 'Annuler' }}"><i class="fas fa-{{ d.status == 'annulée' ? 'rotate-left' : 'ban' }}"></i></button>
+                                            <button type="submit" class="btn btn-outline-secondary" title="{{ d.status == 'annulée' ? 'Renvoyer en approbation' : 'Annuler' }}"><i class="fas fa-{{ d.status == 'annulée' ? 'rotate-left' : 'ban' }}"></i></button>
                                         </form>
+                                        {% endif %}
                                         {% if is_granted('ROLE_ADMIN') %}
                                         <form method="post" action="{{ path('admin_depense_delete', {'id': d.id}) }}" onsubmit="return confirm('Supprimer définitivement cette dépense ?');" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ d.id) }}">

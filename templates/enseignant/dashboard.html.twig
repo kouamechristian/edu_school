@@ -1,0 +1,42 @@
+{% extends 'enseignant/base.html.twig' %}
+
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Bonjour {{ app.user.firstName|default(app.user.username) }} 👋{% endblock %}
+{% block page_subtitle %}Publiez et suivez les exercices de maison de vos classes.{% endblock %}
+
+{% block body %}
+<div class="pp-grid cols-2" style="align-items:start;">
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-chalkboard"></i> Mes classes</div>
+        {% if classrooms is empty %}
+            <div class="pp-empty" style="padding:1.2rem;"><i class="fas fa-inbox"></i><p>Aucune classe ne vous est affectée (via les cours).</p></div>
+        {% else %}
+            <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
+                {% for c in classrooms %}
+                    <span class="pp-badge navy" style="font-size:.85rem;"><i class="fas fa-users"></i> {{ c.name }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <a href="{{ path('enseignant_homework_new') }}" class="pp-btn pp-btn-primary" style="margin-top:1.2rem;"><i class="fas fa-plus"></i> Nouvel exercice</a>
+    </section>
+
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-book-open"></i> Derniers exercices</div>
+        {% if homeworks is empty %}
+            <div class="pp-empty" style="padding:1.2rem;"><i class="fas fa-inbox"></i><p>Aucun exercice publié.</p></div>
+        {% else %}
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:.55rem;">
+                {% for hw in homeworks %}
+                    <li>
+                        <a href="{{ path('enseignant_homework_show', {id: hw.id}) }}" style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.55rem .7rem;border:1px solid #eef1f6;border-radius:10px;text-decoration:none;color:#1e3a5f;">
+                            <span><strong>{{ hw.title }}</strong><br><small style="color:#5a6b80;">{{ hw.classroom ? hw.classroom.name : '—' }}{{ hw.subject ? ' · ' ~ hw.subject.name : '' }}</small></span>
+                            <span class="pp-badge {{ hw.upcoming ? 'green' : 'red' }}">{{ hw.dueDate|date('d/m') }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        <a href="{{ path('enseignant_homework_index') }}" class="pp-btn pp-btn-ghost" style="margin-top:1.2rem;"><i class="fas fa-list"></i> Tous mes exercices</a>
+    </section>
+</div>
+{% endblock %}

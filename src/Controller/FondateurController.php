@@ -53,7 +53,7 @@ class FondateurController extends AbstractController
             return $this->render('fondateur/index.html.twig', array_merge($schoolStatsScoped, [
                 'group' => null,
                 'caisses_a_valider' => $cashRegisterRepository->count(['isValidated' => false]),
-                'caisses_a_autoriser' => $cashRegisterRepository->count(['expenseAuthorized' => false]),
+                'depenses_en_attente' => $depenseRepository->countPending(),
                 'versements_en_attente' => $cashDepositRepository->countByStatus('en_attente'),
                 'school_stats' => [],
                 'totaux' => ['revenue' => 0, 'online' => 0, 'deposits' => 0, 'expenses' => 0, 'income' => 0, 'monthly_revenue' => 0],
@@ -103,7 +103,7 @@ class FondateurController extends AbstractController
         return $this->render('fondateur/index.html.twig', array_merge($schoolStatsScoped, [
             'group' => $group,
             'caisses_a_valider' => $cashRegisterRepository->countByBooleanForGroup('isValidated', false, $group),
-            'caisses_a_autoriser' => $cashRegisterRepository->countByBooleanForGroup('expenseAuthorized', false, $group),
+            'depenses_en_attente' => $depenseRepository->countPendingForGroup($group),
             'versements_en_attente' => $cashDepositRepository->countByStatusForGroup('en_attente', $group),
             'school_stats' => $schoolStats,
             'totaux' => [
@@ -151,8 +151,17 @@ class FondateurController extends AbstractController
     #[Route('/validations', name: 'validations', methods: ['GET'])]
     public function validations(CashRegisterRepository $cashRegisterRepository): Response
     {
+        /** @var User $user */
+        $user = $this->getUser();
+        $group = $user->getSchoolGroup();
+
+        // Le fondateur ne voit que les caisses des établissements de son groupe.
+        $cashRegisters = $group !== null
+            ? $cashRegisterRepository->findByGroup($group)
+            : $cashRegisterRepository->findBy([], ['createdAt' => 'DESC']);
+
         return $this->render('fondateur/validations.html.twig', [
-            'cash_registers' => $cashRegisterRepository->findBy([], ['createdAt' => 'DESC']),
+            'cash_registers' => $cashRegisters,
         ]);
     }
 
@@ -216,45 +225,80 @@ class FondateurController extends AbstractController
         return $this->redirectToRoute('fondateur_validations');
     }
 
+    /**
+     * Approbation des dépenses : liste des dépenses créées par les caissiers, en
+     * attente de la décision du fondateur. Une dépense n'est prise en compte (solde +
+     * comptabilité) qu'une fois approuvée ici.
+     */
     #[Route('/autorisations', name: 'autorisations', methods: ['GET'])]
-    public function autorisations(CashRegisterRepository $cashRegisterRepository): Response
+    public function autorisations(\App\Repository\DepenseRepository $depenseRepository): Response
     {
+        /** @var User $user */
+        $user = $this->getUser();
+        $group = $user->getSchoolGroup();
+
+        $pending = $group !== null
+            ? $depenseRepository->findPendingForGroup($group)
+            : $depenseRepository->findPending();
+
         return $this->render('fondateur/autorisations.html.twig', [
-            'cash_registers' => $cashRegisterRepository->findBy([], ['createdAt' => 'DESC']),
+            'depenses' => $pending,
         ]);
     }
 
-    #[Route('/caisse/{id}/autoriser', name: 'autoriser_depense', methods: ['POST'])]
-    public function autoriserDepense(
+    /**
+     * Décision du fondateur sur une dépense en attente : « approuver » la confirme
+     * (elle est alors déduite du solde et portée au journal comptable) ; « rejeter »
+     * l'écarte définitivement (motif facultatif). Le caissier est notifié.
+     */
+    #[Route('/depense/{id}/{decision}', name: 'decision_depense', methods: ['POST'], requirements: ['decision' => 'approuver|rejeter'])]
+    public function decisionDepense(
         Request $request,
-        CashRegister $cashRegister,
+        \App\Entity\Depense $depense,
+        string $decision,
         EntityManagerInterface $entityManager,
         \App\Service\NotificationService $notificationService
     ): Response {
-        if ($this->isCsrfTokenValid('autoriser'.$cashRegister->getId(), $request->request->get('_token'))) {
-            $authorize = !$cashRegister->isExpenseAuthorized();
-            $cashRegister->setExpenseAuthorized($authorize)
-                ->setAuthorizedBy($authorize ? $this->getUser() : null)
-                ->setAuthorizedAt($authorize ? new \DateTime() : null);
-
-            // Notifier le caissier de la décision d'autorisation.
-            if ($cashRegister->getCashier()) {
-                $notificationService->notify(
-                    $cashRegister->getCashier(),
-                    $authorize ? 'Autorisation de dépense accordée' : 'Autorisation de dépense retirée',
-                    $authorize
-                        ? 'Le fondateur vous autorise désormais à effectuer des dépenses depuis votre caisse.'
-                        : 'Le fondateur a retiré l\'autorisation d\'effectuer des dépenses depuis votre caisse.',
-                    $this->generateUrl('admin_cash_register_index'),
-                    $authorize ? 'fa-key' : 'fa-ban'
-                );
-            }
-
-            $entityManager->flush();
-            $this->addFlash('success', $authorize
-                ? 'La caisse est désormais autorisée à effectuer des dépenses. Le caissier a été notifié.'
-                : 'L\'autorisation de dépense a été retirée à la caisse. Le caissier a été notifié.');
+        if (!$this->isCsrfTokenValid('depense'.$depense->getId(), $request->request->get('_token'))) {
+            return $this->redirectToRoute('fondateur_autorisations');
         }
+
+        if (!$depense->isPending()) {
+            $this->addFlash('warning', 'Cette dépense a déjà été traitée.');
+            return $this->redirectToRoute('fondateur_autorisations');
+        }
+
+        $approved = $decision === 'approuver';
+        $depense->setStatus($approved ? 'confirmée' : 'rejetée')
+            ->setApprovedBy($this->getUser())
+            ->setApprovedAt(new \DateTime())
+            ->setRejectionReason($approved ? null : (trim((string) $request->request->get('reason')) ?: null));
+
+        // Le flush déclenche l'AccountingSubscriber : l'écriture comptable n'est créée
+        // que pour une dépense « confirmée » (rien pour une dépense rejetée).
+        $entityManager->flush();
+
+        // Notifier le caissier à l'origine de la dépense.
+        if ($depense->getRecordedBy()) {
+            $notificationService->notify(
+                $depense->getRecordedBy(),
+                $approved ? 'Dépense approuvée' : 'Dépense rejetée',
+                sprintf(
+                    'Votre dépense « %s » de %s F (%s) a été %s par le fondateur.%s',
+                    $depense->getLibelle(),
+                    number_format((float) $depense->getAmount(), 0, ',', ' '),
+                    $depense->getNumero(),
+                    $approved ? 'approuvée' : 'rejetée',
+                    $approved ? ' Elle est désormais déduite du solde de la caisse.' : ($depense->getRejectionReason() ? ' Motif : '.$depense->getRejectionReason() : '')
+                ),
+                $this->generateUrl('admin_depense_index'),
+                $approved ? 'fa-circle-check' : 'fa-circle-xmark'
+            );
+        }
+
+        $this->addFlash('success', $approved
+            ? 'La dépense a été approuvée. Elle est prise en compte (solde + comptabilité). Le caissier a été notifié.'
+            : 'La dépense a été rejetée. Le caissier a été notifié.');
 
         return $this->redirectToRoute('fondateur_autorisations');
     }
@@ -262,8 +306,17 @@ class FondateurController extends AbstractController
     #[Route('/versements', name: 'versements', methods: ['GET'])]
     public function versements(CashDepositRepository $cashDepositRepository): Response
     {
+        /** @var User $user */
+        $user = $this->getUser();
+        $group = $user->getSchoolGroup();
+
+        // Le fondateur ne voit que les versements des établissements de son groupe.
+        $deposits = $group !== null
+            ? $cashDepositRepository->findByStatusForGroup($group)
+            : $cashDepositRepository->findByStatus();
+
         return $this->render('fondateur/versements.html.twig', [
-            'deposits' => $cashDepositRepository->findByStatus(),
+            'deposits' => $deposits,
         ]);
     }
 
@@ -275,6 +328,17 @@ class FondateurController extends AbstractController
         EntityManagerInterface $entityManager,
         \App\Service\NotificationService $notificationService
     ): Response {
+        // Cloisonnement : un fondateur ne décide que des versements de son groupe.
+        // (CashDeposit n'étant pas couvert par le garde-fou anti-IDOR global, on
+        // vérifie ici son rattachement via la caisse → établissement → groupe.)
+        /** @var User $user */
+        $user = $this->getUser();
+        $group = $user->getSchoolGroup();
+        $depositGroup = $deposit->getCashRegister()?->getSchool()?->getSchoolGroup();
+        if ($group !== null && $depositGroup?->getId() !== $group->getId()) {
+            throw $this->createNotFoundException();
+        }
+
         if ($this->isCsrfTokenValid('versement'.$deposit->getId(), $request->request->get('_token'))) {
             $approved = $decision === 'approuver';
             $deposit->setStatus($approved ? 'approuvé' : 'rejeté')

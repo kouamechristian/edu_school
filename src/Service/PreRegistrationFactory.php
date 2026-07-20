@@ -39,6 +39,17 @@ class PreRegistrationFactory
         $preRegistration->setParentEmail($student->getParentEmail());
         $preRegistration->setParentFunction($student->getParentFunction());
         $preRegistration->setParentAddress($student->getParentAddress());
+        $preRegistration->setFatherLastName($student->getFatherLastName());
+        $preRegistration->setFatherFirstName($student->getFatherFirstName());
+        $preRegistration->setFatherPhone($student->getFatherPhone());
+        $preRegistration->setFatherFunction($student->getFatherFunction());
+        $preRegistration->setFatherAddress($student->getFatherAddress());
+        $preRegistration->setMotherLastName($student->getMotherLastName());
+        $preRegistration->setMotherFirstName($student->getMotherFirstName());
+        $preRegistration->setMotherPhone($student->getMotherPhone());
+        $preRegistration->setMotherFunction($student->getMotherFunction());
+        $preRegistration->setMotherAddress($student->getMotherAddress());
+        $preRegistration->setParentalAuthority($student->getParentalAuthority());
         $preRegistration->setEmergencyContact($student->getEmergencyContact());
         $preRegistration->setEmergencyPhone($student->getEmergencyPhone());
         $preRegistration->setMedicalInfo($student->getMedicalInfo());

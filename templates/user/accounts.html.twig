@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% set is_parent = kind == 'parent' %}
+{% set page_title = is_parent ? 'Comptes Parents' : 'Comptes Élèves' %}
+{% set page_icon = is_parent ? 'fa-user-friends' : 'fa-user-graduate' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: page_title,
+        subtitle: is_parent ? 'Utilisateurs disposant du rôle ROLE_PARENT' : 'Utilisateurs disposant du rôle ROLE_ELEVE',
+        icon: page_icon,
+        color: 'primary',
+        breadcrumb: [ { label: 'Administration' }, { label: page_title } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card table-card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas {{ page_icon }} me-2"></i>{{ page_title }} <span class="badge badge-soft ms-1">{{ accounts.getTotalItemCount }}</span></h6>
+            <form method="get" class="d-flex" style="max-width:320px;">
+                <input type="text" name="search" value="{{ search_term }}" class="form-control form-control-sm" placeholder="Rechercher (nom, identifiant, e-mail)…">
+                <button type="submit" class="btn btn-sm btn-primary ms-1"><i class="fas fa-search"></i></button>
+            </form>
+        </div>
+        <div class="card-body">
+            {% if accounts is empty %}
+                {{ empty_state(page_icon, 'Aucun compte', is_parent ? 'Aucun compte parent pour le moment.' : 'Les comptes élèves sont créés à l\'inscription (identifiant = matricule national).') }}
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>{{ is_parent ? 'Identifiant' : 'Matricule (identifiant)' }}</th>
+                                <th>E-mail</th>
+                                <th>{{ is_parent ? 'Enfants rattachés' : 'Téléphone' }}</th>
+                                <th class="text-center">Statut</th>
+                                <th class="text-end" width="150">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in accounts %}
+                            <tr class="{{ u.isActive ? '' : 'opacity-50' }}">
+                                <td class="fw-semibold">{{ u.fullName ?: '—' }}</td>
+                                <td><span class="badge badge-soft secondary">{{ u.username }}</span></td>
+                                <td>{{ u.email ?: '—' }}</td>
+                                <td>
+                                    {% if is_parent %}
+                                        <span class="badge badge-soft">{{ u.children|length }}</span>
+                                    {% else %}
+                                        {{ u.phone ?: '—' }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-{{ u.isActive ? 'success' : 'secondary' }}">{{ u.isActive ? 'Actif' : 'Inactif' }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('admin_user_show', {'id': u.id}) }}" class="btn btn-outline-secondary" title="Voir"><i class="fas fa-eye"></i></a>
+                                        <a href="{{ path('admin_user_edit', {'id': u.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
+                                        <form method="post" action="{{ path('admin_user_toggle', {'id': u.id}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ u.id) }}">
+                                            <button type="submit" class="btn btn-outline-{{ u.isActive ? 'warning' : 'success' }}" title="{{ u.isActive ? 'Désactiver' : 'Activer' }}"><i class="fas fa-{{ u.isActive ? 'user-slash' : 'user-check' }}"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% include '_pagination.html.twig' with { pagination: accounts } %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

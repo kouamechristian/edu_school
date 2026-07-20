@@ -61,16 +61,34 @@
                         {{ form_row(form.photoFile) }}
 
                         <hr class="my-4">
-                        <h6 class="text-muted mb-3"><i class="fas fa-user-friends me-2"></i>Informations du parent/tuteur</h6>
+                        <h6 class="text-muted mb-3"><i class="fas fa-user-friends me-2"></i>Informations sur le parent / tuteur</h6>
+
+                        <div class="fw-semibold text-primary mb-2"><i class="fas fa-male me-2"></i>Père</div>
                         <div class="row">
-                            <div class="col-md-6">{{ form_row(form.parentName) }}</div>
-                            <div class="col-md-6">{{ form_row(form.parentPhone) }}</div>
+                            <div class="col-md-6">{{ form_row(form.fatherLastName) }}</div>
+                            <div class="col-md-6">{{ form_row(form.fatherFirstName) }}</div>
                         </div>
                         <div class="row">
+                            <div class="col-md-6">{{ form_row(form.fatherPhone) }}</div>
+                            <div class="col-md-6">{{ form_row(form.fatherFunction) }}</div>
+                        </div>
+                        {{ form_row(form.fatherAddress) }}
+
+                        <div class="fw-semibold text-primary mb-2 mt-3"><i class="fas fa-female me-2"></i>Mère</div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.motherLastName) }}</div>
+                            <div class="col-md-6">{{ form_row(form.motherFirstName) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form_row(form.motherPhone) }}</div>
+                            <div class="col-md-6">{{ form_row(form.motherFunction) }}</div>
+                        </div>
+                        {{ form_row(form.motherAddress) }}
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">{{ form_row(form.parentalAuthority) }}</div>
                             <div class="col-md-6">{{ form_row(form.parentEmail) }}</div>
-                            <div class="col-md-6">{{ form_row(form.parentFunction) }}</div>
                         </div>
-                        {{ form_row(form.parentAddress) }}
 
                         <hr class="my-4">
                         <h6 class="text-muted mb-3"><i class="fas fa-phone-alt me-2"></i>Contact d'urgence</h6>

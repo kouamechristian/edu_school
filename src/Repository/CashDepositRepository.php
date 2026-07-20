@@ -112,6 +112,28 @@ class CashDepositRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * Versements des établissements d'un groupe scolaire (lien via la caisse),
+     * éventuellement filtrés par statut, les plus récents d'abord.
+     *
+     * @return CashDeposit[]
+     */
+    public function findByStatusForGroup(SchoolGroup $group, ?string $status = null): array
+    {
+        $qb = $this->createQueryBuilder('d')
+            ->join('d.cashRegister', 'cr')
+            ->join('cr.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->setParameter('group', $group)
+            ->orderBy('d.depositDate', 'DESC');
+
+        if ($status !== null) {
+            $qb->andWhere('d.status = :status')->setParameter('status', $status);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function countByStatus(string $status): int
     {
         return (int) $this->createQueryBuilder('d')

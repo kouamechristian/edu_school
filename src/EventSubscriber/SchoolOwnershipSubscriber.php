@@ -47,7 +47,11 @@ final class SchoolOwnershipSubscriber implements EventSubscriberInterface
     {
         // Le portail parent a sa propre logique d'autorisation (ChildVoter) et un
         // contexte d'établissement différent : on ne l'assujettit pas à ce garde-fou.
-        if (str_starts_with($event->getRequest()->getPathInfo(), '/parent')) {
+        // L'espace élève (/eleve) est de même borné par la logique du contrôleur
+        // (sa propre fiche / sa propre classe) et l'élève n'est pas rattaché à un
+        // établissement au sens User::getSchools().
+        $path = $event->getRequest()->getPathInfo();
+        if (str_starts_with($path, '/parent') || str_starts_with($path, '/eleve')) {
             return;
         }
 

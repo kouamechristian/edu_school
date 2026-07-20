@@ -61,24 +61,31 @@ class AccountingController extends AbstractController
         }
 
         $year = $this->context->getCurrentSchoolYear();
-        $from = $year?->getStartDate();
         $to = $year?->getEndDate();
-        $civilYear = (int) ($to?->format('Y') ?? date('Y'));
+        // La fenêtre comptable d'une année inclut le trimestre de pré-rentrée : les
+        // frais d'inscription sont souvent encaissés avant le début officiel des cours.
+        // On remonte donc de 3 mois avant le début académique (calé sur le 1er du mois).
+        $from = $year?->getStartDate()
+            ? \DateTimeImmutable::createFromInterface($year->getStartDate())->modify('first day of this month')->modify('-3 months')
+            : null;
 
         $totals = $this->entryRepository->totalsByType($schoolId, $from, $to);
         $result = $totals['recette'] - $totals['depense'];
-        $monthly = $this->entryRepository->monthlyTotals($schoolId, $civilYear);
+        $monthly = ($from && $to)
+            ? $this->entryRepository->monthlySeries($schoolId, $from, $to)
+            : ['labels' => [], 'recette' => [], 'depense' => []];
 
         return $this->render('accounting/dashboard.html.twig', [
             'current_school' => $school,
             'school_year' => $year,
+            'period_from' => $from,
+            'period_to' => $to,
             'totals' => $totals,
             'net_result' => $result,
             'cash_balance' => $totals['recette'] - $totals['depense'] - $totals['versement'],
             'top_recettes' => $this->entryRepository->totalsByAccount($schoolId, AccountingEntry::TYPE_RECETTE, $from, $to),
             'top_depenses' => $this->entryRepository->totalsByAccount($schoolId, AccountingEntry::TYPE_DEPENSE, $from, $to),
             'monthly' => $monthly,
-            'civil_year' => $civilYear,
             'recent_entries' => \array_slice($this->entryRepository->findJournal($schoolId), 0, 8),
         ]);
     }

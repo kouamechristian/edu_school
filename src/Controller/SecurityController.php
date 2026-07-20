@@ -44,6 +44,25 @@ class SecurityController extends AbstractController
         ]);
     }
 
+    /**
+     * Page de connexion dédiée à l'espace élève.
+     *
+     * L'élève se connecte avec son matricule national et sa date de naissance. Le
+     * POST est intercepté par StudentAuthenticator ; en cas d'échec, il revient ici.
+     */
+    #[Route(path: '/eleve/connexion', name: 'eleve_login', methods: ['GET', 'POST'])]
+    public function eleveLogin(AuthenticationUtils $authenticationUtils): Response
+    {
+        if ($this->getUser()) {
+            return $this->redirectToRoute('eleve_dashboard');
+        }
+
+        return $this->render('security/eleve_login.html.twig', [
+            'last_username' => $authenticationUtils->getLastUsername(),
+            'error' => $authenticationUtils->getLastAuthenticationError(),
+        ]);
+    }
+
     #[Route(path: '/logout', name: 'app_logout')]
     public function logout(): void
     {

@@ -34,6 +34,68 @@ class DepenseRepository extends ServiceEntityRepository
     }
 
     /**
+     * Dépenses en attente d'approbation du fondateur (toutes écoles), les plus récentes d'abord.
+     *
+     * @return Depense[]
+     */
+    public function findPending(): array
+    {
+        return $this->createQueryBuilder('d')
+            ->andWhere('d.status = :status')
+            ->setParameter('status', 'en_attente')
+            ->orderBy('d.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Dépenses en attente d'approbation pour les établissements d'un groupe.
+     *
+     * @return Depense[]
+     */
+    public function findPendingForGroup(SchoolGroup $group): array
+    {
+        return $this->createQueryBuilder('d')
+            ->join('d.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->andWhere('d.status = :status')
+            ->setParameter('group', $group)
+            ->setParameter('status', 'en_attente')
+            ->orderBy('d.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Nombre de dépenses en attente d'approbation (toutes écoles).
+     */
+    public function countPending(): int
+    {
+        return (int) $this->createQueryBuilder('d')
+            ->select('COUNT(d.id)')
+            ->andWhere('d.status = :status')
+            ->setParameter('status', 'en_attente')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Nombre de dépenses en attente d'approbation pour un groupe scolaire.
+     */
+    public function countPendingForGroup(SchoolGroup $group): int
+    {
+        return (int) $this->createQueryBuilder('d')
+            ->select('COUNT(d.id)')
+            ->join('d.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->andWhere('d.status = :status')
+            ->setParameter('group', $group)
+            ->setParameter('status', 'en_attente')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
      * Total des dépenses confirmées d'une caisse (sert au calcul du solde).
      */
     public function getTotalByCashRegister(int $cashRegisterId): float

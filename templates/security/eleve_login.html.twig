@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espace Élève — Connexion — EDU-SCHOOL</title>
+
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-edu-school.png') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --navy: #1e3a5f; --navy-dark: #14273f; --sky: #2f5a8a; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 20px; background: #0a152a; position: relative; overflow: hidden;
+        }
+        body::before, body::after { content: ""; position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; z-index: 0; }
+        body::before { width: 480px; height: 480px; background: #2f5a8a; top: -120px; left: -120px; opacity: 0.5; }
+        body::after  { width: 420px; height: 420px; background: #1e3a5f; bottom: -140px; right: -100px; }
+
+        .login-container {
+            position: relative; z-index: 1; background: #fff; border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); overflow: hidden;
+            max-width: 920px; width: 100%; display: flex; animation: rise 0.6s ease-out;
+        }
+        @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+        .login-left {
+            flex: 1; background: linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 100%);
+            padding: 56px 44px; color: #fff; display: flex; flex-direction: column;
+            justify-content: center; position: relative;
+        }
+        .login-left::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 80% 10%, rgba(255,255,255,0.18), transparent 45%); }
+        .login-left > * { position: relative; z-index: 1; }
+        .brand { font-family: 'Poppins', sans-serif; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 12px; }
+        .brand .brand-logo { width: 110px; height: auto; object-fit: contain; }
+        .badge-space { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 999px; padding: 4px 14px; font-size: 0.8rem; font-weight: 600; margin-bottom: 1rem; }
+        .tagline { font-size: 1.05rem; opacity: 0.92; margin-bottom: 2.25rem; line-height: 1.5; }
+        .features { list-style: none; }
+        .features li { margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 14px; font-size: 0.95rem; opacity: 0.96; }
+        .features li i { color: #fff; font-size: 1.05rem; flex-shrink: 0; margin-top: 3px; }
+
+        .login-right { flex: 1; padding: 56px 48px; display: flex; flex-direction: column; justify-content: center; }
+        .login-title { font-family: 'Poppins', sans-serif; font-size: 1.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--navy); }
+        .login-subtitle { color: #94a3b8; margin-bottom: 2rem; font-size: 0.95rem; }
+
+        .form-label { font-weight: 500; color: #1e293b; font-size: 0.85rem; margin-bottom: 0.4rem; }
+        .input-group-text { background: #f8fafc; border: 1.5px solid #e2e8f0; border-right: none; border-radius: 12px 0 0 12px; color: #94a3b8; }
+        .form-control { height: 50px; border-radius: 12px; border: 1.5px solid #e2e8f0; padding: 0 18px; font-size: 0.95rem; }
+        .input-group .form-control { border-left: none; border-radius: 0 12px 12px 0; }
+        .form-control:focus { border-color: var(--sky); box-shadow: none; }
+        .input-group:focus-within .input-group-text { border-color: var(--sky); }
+
+        .btn-login {
+            height: 50px; border-radius: 12px;
+            background: linear-gradient(135deg, var(--sky) 0%, var(--navy) 100%);
+            border: none; color: #fff; font-weight: 600; font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s; width: 100%;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(30,58,95,0.35); color: #fff; }
+
+        .staff-link { display: block; margin-top: 1.5rem; text-align: center; font-size: 0.82rem; }
+        .staff-link a { color: var(--navy); text-decoration: none; font-weight: 500; }
+        .staff-link a:hover { color: var(--sky); }
+
+        .alert { border-radius: 12px; border: none; border-left: 4px solid; font-size: 0.9rem; }
+        .alert-danger { background: rgba(239,68,68,0.08); border-left-color: #ef4444; color: #991b1b; }
+
+        @media (max-width: 768px) {
+            .login-left { display: none; }
+            .login-container { max-width: 460px; }
+            .login-right { padding: 44px 32px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-left">
+            <div class="brand">
+                <img class="brand-logo" src="{{ asset('images/logo-edu-school.png') }}" alt="EDU-SCHOOL">
+            </div>
+            <span class="badge-space"><i class="fas fa-user-graduate me-1"></i> Espace Élève</span>
+            <p class="tagline">Consulte ta scolarité et reçois tes exercices de maison.</p>
+            <ul class="features">
+                <li><i class="fas fa-chart-line"></i><span>Tes notes et ta moyenne par matière</span></li>
+                <li><i class="fas fa-calendar-week"></i><span>Ton emploi du temps</span></li>
+                <li><i class="fas fa-user-clock"></i><span>Tes absences</span></li>
+                <li><i class="fas fa-book-open"></i><span>Les exercices de maison de tes enseignants</span></li>
+            </ul>
+        </div>
+
+        <div class="login-right">
+            <h2 class="login-title">Connexion Élève</h2>
+            <p class="login-subtitle">Connecte-toi avec ton matricule national et ta date de naissance</p>
+
+            {% if error %}
+                <div class="alert alert-danger fade show mb-3" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ error.messageKey|trans(error.messageData, 'security') }}
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ path('eleve_login') }}">
+                <div class="mb-3">
+                    <label for="matricule" class="form-label">Matricule national</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                        <input type="text" value="{{ last_username }}" name="matricule" id="matricule"
+                               class="form-control" required autofocus placeholder="Ton matricule national">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="date_of_birth" class="form-label">Date de naissance</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-cake-candles"></i></span>
+                        <input type="date" name="date_of_birth" id="date_of_birth"
+                               class="form-control" required>
+                    </div>
+                </div>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                <button class="btn-login" type="submit">
+                    <i class="fas fa-sign-in-alt"></i> Se connecter
+                </button>
+            </form>
+
+            <div class="staff-link">
+                <a href="{{ path('app_login') }}"><i class="fas fa-briefcase me-1"></i> Personnel / Parent ? Connexion ici</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

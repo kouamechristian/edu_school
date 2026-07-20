@@ -1,0 +1,43 @@
+{% extends 'enseignant/base.html.twig' %}
+
+{% block title %}{{ homework.id ? 'Modifier' : 'Nouvel' }} exercice{% endblock %}
+{% block page_title %}{{ homework.id ? 'Modifier l\'exercice' : 'Nouvel exercice de maison' }}{% endblock %}
+{% block page_subtitle %}Publiez un exercice à l'une de vos classes.{% endblock %}
+
+{% block body %}
+<section class="pp-card pp-reveal" style="max-width:760px;margin:0 auto;">
+    {{ form_start(form) }}
+        <div class="pp-grid cols-2" style="align-items:start;gap:1rem;">
+            <div>{{ form_row(form.classroom) }}</div>
+            <div>{{ form_row(form.subject) }}</div>
+        </div>
+        {{ form_row(form.title) }}
+        {{ form_row(form.dueDate) }}
+        {{ form_row(form.instructions) }}
+        {{ form_row(form.attachmentFile) }}
+
+        {% if homework.hasAttachment %}
+            <p style="font-size:.85rem;color:#5a6b80;margin-top:.4rem;">
+                <i class="fas fa-paperclip"></i> Pièce jointe actuelle :
+                <a href="{{ path('enseignant_homework_download', {id: homework.id}) }}">télécharger</a>.
+                Téléverser un nouveau fichier la remplacera.
+            </p>
+        {% endif %}
+
+        <div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:1.4rem;">
+            <a href="{{ path('enseignant_homework_index') }}" class="pp-btn pp-btn-ghost">Annuler</a>
+            <button type="submit" class="pp-btn pp-btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+</section>
+
+<style>
+    .pp-card form label { display:block; font-weight:600; color:#1e3a5f; font-size:.88rem; margin:.9rem 0 .35rem; }
+    .pp-card form .form-control, .pp-card form .form-select {
+        width:100%; border:1.5px solid #e3e8f0; border-radius:10px; padding:.6rem .8rem; font-size:.95rem; color:#1e293b;
+    }
+    .pp-card form .form-control:focus, .pp-card form .form-select:focus { border-color:#2f5a8a; outline:none; }
+    .pp-card form .form-help, .pp-card form small { color:#8a97a8; font-size:.8rem; }
+    .pp-card form .invalid-feedback, .pp-card form .form-error-message { color:#ef4444; font-size:.82rem; margin-top:.25rem; }
+</style>
+{% endblock %}

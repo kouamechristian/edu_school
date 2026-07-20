@@ -179,14 +179,12 @@ class PayrollController extends AbstractController
             return $this->redirectToRoute('admin_payroll_period_show', ['id' => $period->getId()]);
         }
 
-        // La dépense passe par la caisse ouverte et autorisée du caissier courant.
+        // La dépense passe par la caisse ouverte du caissier courant. Le paiement des
+        // salaires est un acte d'administrateur sur une période validée : la dépense est
+        // directement confirmée (pas de circuit d'approbation par dépense).
         $cashRegister = $cashRegisterRepository->findOpenForCashier($school, $cashier);
         if (!$cashRegister) {
             $this->addFlash('warning', 'Vous devez ouvrir votre caisse avant de payer les salaires.');
-            return $this->redirectToRoute('admin_cash_register_index');
-        }
-        if (!$cashRegister->isExpenseAuthorized()) {
-            $this->addFlash('warning', 'Le fondateur ne vous a pas autorisé à effectuer des dépenses depuis votre caisse.');
             return $this->redirectToRoute('admin_cash_register_index');
         }
 

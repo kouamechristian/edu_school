@@ -1,0 +1,39 @@
+{% extends 'eleve/base.html.twig' %}
+
+{% block title %}Exercices de maison{% endblock %}
+{% block page_title %}Exercices de maison{% endblock %}
+{% block page_subtitle %}{{ classroom ? 'Classe : ' ~ classroom.name : 'Aucune classe affectée' }}.{% endblock %}
+
+{% block body %}
+{% if homeworks is empty %}
+    <div class="pp-card pp-reveal">
+        <div class="pp-empty"><i class="fas fa-inbox"></i><p>Aucun exercice de maison pour le moment.</p></div>
+    </div>
+{% else %}
+    <div class="pp-grid cols-2" style="align-items:start;">
+        {% for hw in homeworks %}
+            <section class="pp-card pp-reveal">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.8rem;">
+                    <div>
+                        <div class="pp-card-title">{{ hw.title }}</div>
+                        {% if hw.subject %}<span class="pp-badge sky">{{ hw.subject.name }}</span>{% endif %}
+                        {% if hw.hasAttachment %}<span class="pp-badge navy"><i class="fas fa-paperclip"></i> Pièce jointe</span>{% endif %}
+                    </div>
+                    <span class="pp-badge {{ hw.upcoming ? 'green' : 'red' }}" title="Date de remise">
+                        <i class="fas fa-calendar-day"></i> {{ hw.dueDate|date('d/m/Y') }}
+                    </span>
+                </div>
+                {% if hw.instructions %}
+                    <p style="color:#5a6b80;margin-top:.8rem;font-size:.9rem;">{{ hw.instructions|length > 160 ? hw.instructions|slice(0, 160) ~ '…' : hw.instructions }}</p>
+                {% endif %}
+                <div style="margin-top:1rem;display:flex;gap:.5rem;">
+                    <a href="{{ path('eleve_homework_show', {id: hw.id}) }}" class="pp-btn pp-btn-primary"><i class="fas fa-eye"></i> Consulter</a>
+                    {% if hw.hasAttachment %}
+                        <a href="{{ path('eleve_homework_download', {id: hw.id}) }}" class="pp-btn pp-btn-ghost"><i class="fas fa-download"></i> Télécharger</a>
+                    {% endif %}
+                </div>
+            </section>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

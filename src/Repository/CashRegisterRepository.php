@@ -50,6 +50,22 @@ class CashRegisterRepository extends ServiceEntityRepository
     }
 
     /**
+     * Caisses des établissements d'un groupe scolaire, les plus récentes d'abord.
+     *
+     * @return CashRegister[]
+     */
+    public function findByGroup(SchoolGroup $group): array
+    {
+        return $this->createQueryBuilder('c')
+            ->join('c.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->setParameter('group', $group)
+            ->orderBy('c.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Nombre de caisses d'un groupe filtrées sur un champ booléen
      * (ex. isValidated = false → en attente de validation).
      */

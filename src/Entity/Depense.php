@@ -10,9 +10,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Dépense (sortie d'argent) effectuée depuis une caisse.
  *
- * Une dépense est rattachée à la caisse du caissier : elle n'est possible que si la
- * caisse est ouverte ET autorisée aux dépenses par le fondateur (expenseAuthorized).
- * Elle diminue immédiatement le solde de la caisse.
+ * Une dépense créée par un caissier est d'abord « en attente » : elle n'impacte NI le
+ * solde de la caisse NI la comptabilité tant que le fondateur ne l'a pas approuvée
+ * (statut « confirmée »). Le fondateur peut aussi la rejeter (statut « rejetée »).
+ * Seule une dépense confirmée est prise en compte.
  */
 #[ORM\Entity(repositoryClass: DepenseRepository::class)]
 #[ORM\Table(name: 'depense')]
@@ -80,13 +81,26 @@ class Depense implements SchoolOwnedInterface
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
 
-    #[ORM\Column(length: 20, options: ['default' => 'confirmée'])]
-    #[Assert\Choice(choices: ['confirmée', 'annulée'])]
-    private string $status = 'confirmée';
+    #[ORM\Column(length: 20, options: ['default' => 'en_attente'])]
+    #[Assert\Choice(choices: ['en_attente', 'confirmée', 'rejetée', 'annulée'])]
+    private string $status = 'en_attente';
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $recordedBy = null;
+
+    /**
+     * Fondateur ayant approuvé (ou rejeté) la dépense, et l'horodatage de la décision.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $approvedBy = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $approvedAt = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $rejectionReason = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
@@ -263,7 +277,9 @@ class Depense implements SchoolOwnedInterface
     public function getStatusLabel(): string
     {
         return match ($this->status) {
-            'confirmée' => 'Confirmée',
+            'en_attente' => 'En attente',
+            'confirmée' => 'Approuvée',
+            'rejetée' => 'Rejetée',
             'annulée' => 'Annulée',
             default => $this->status,
         };
@@ -272,10 +288,27 @@ class Depense implements SchoolOwnedInterface
     public function getStatusColor(): string
     {
         return match ($this->status) {
+            'en_attente' => 'warning',
             'confirmée' => 'success',
-            'annulée' => 'danger',
+            'rejetée' => 'danger',
+            'annulée' => 'secondary',
             default => 'secondary',
         };
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'en_attente';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === 'confirmée';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejetée';
     }
 
     public function getRecordedBy(): ?User
@@ -286,6 +319,39 @@ class Depense implements SchoolOwnedInterface
     public function setRecordedBy(?User $recordedBy): static
     {
         $this->recordedBy = $recordedBy;
+        return $this;
+    }
+
+    public function getApprovedBy(): ?User
+    {
+        return $this->approvedBy;
+    }
+
+    public function setApprovedBy(?User $approvedBy): static
+    {
+        $this->approvedBy = $approvedBy;
+        return $this;
+    }
+
+    public function getApprovedAt(): ?\DateTimeInterface
+    {
+        return $this->approvedAt;
+    }
+
+    public function setApprovedAt(?\DateTimeInterface $approvedAt): static
+    {
+        $this->approvedAt = $approvedAt;
+        return $this;
+    }
+
+    public function getRejectionReason(): ?string
+    {
+        return $this->rejectionReason;
+    }
+
+    public function setRejectionReason(?string $rejectionReason): static
+    {
+        $this->rejectionReason = $rejectionReason;
         return $this;
     }
 

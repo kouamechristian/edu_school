@@ -1,0 +1,54 @@
+{% extends 'eleve/base.html.twig' %}
+
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Bonjour {{ student.firstName }} 👋{% endblock %}
+{% block page_subtitle %}{{ student.classroom ? 'Classe : ' ~ student.classroom.name : 'Aucune classe affectée' }}{{ period ? ' — ' ~ period.name : '' }}.{% endblock %}
+
+{% block body %}
+{% set avg = academic.general_average %}
+{% set ring = avg is not null ? (avg / 20 * 100)|round : 0 %}
+{% set ring_color = avg is null ? '#94a3b8' : (avg >= 14 ? '#10b981' : (avg >= 10 ? '#f59e0b' : '#ef4444')) %}
+
+<div class="pp-grid cols-3" style="align-items:start;">
+    <section class="pp-card pp-reveal" style="text-align:center;">
+        <div class="pp-card-title" style="justify-content:center;margin-bottom:1rem;"><i class="fas fa-star"></i> Moyenne générale</div>
+        <div class="pp-ring" style="--val:{{ ring }};--ring-color:{{ ring_color }};width:140px;height:140px;">
+            <div class="pp-ring-label">
+                <div class="num" style="font-size:1.6rem;">{{ avg is not null ? avg : '—' }}</div>
+                <div class="unit">/ 20</div>
+            </div>
+        </div>
+        <a href="{{ path('eleve_grades') }}" class="pp-btn pp-btn-ghost" style="margin-top:1rem;"><i class="fas fa-clipboard-check"></i> Voir mes notes</a>
+    </section>
+
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-user-clock"></i> Absences</div>
+        <div class="pp-stats" style="grid-template-columns:repeat(2,1fr);gap:.7rem;">
+            <div class="pp-stat"><div class="v">{{ attendance.total }}</div><div class="l">Total</div></div>
+            <div class="pp-stat"><div class="v good">{{ attendance.justified }}</div><div class="l">Justifiées</div></div>
+            <div class="pp-stat"><div class="v warn">{{ attendance.pending }}</div><div class="l">En attente</div></div>
+            <div class="pp-stat"><div class="v bad">{{ attendance.unjustified }}</div><div class="l">Injustifiées</div></div>
+        </div>
+        <a href="{{ path('eleve_absences') }}" class="pp-btn pp-btn-ghost" style="margin-top:1rem;"><i class="fas fa-calendar-check"></i> Détail</a>
+    </section>
+
+    <section class="pp-card pp-reveal">
+        <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-book-open"></i> Prochains exercices</div>
+        {% if homework is empty %}
+            <div class="pp-empty" style="padding:1.2rem;"><i class="fas fa-inbox"></i><p>Aucun exercice à venir.</p></div>
+        {% else %}
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:.55rem;">
+                {% for hw in homework|slice(0, 5) %}
+                    <li>
+                        <a href="{{ path('eleve_homework_show', {id: hw.id}) }}" style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.55rem .7rem;border:1px solid #eef1f6;border-radius:10px;text-decoration:none;color:#1e3a5f;">
+                            <span><strong>{{ hw.title }}</strong>{% if hw.subject %}<br><small style="color:#5a6b80;">{{ hw.subject.name }}</small>{% endif %}</span>
+                            <span class="pp-badge navy">{{ hw.dueDate|date('d/m') }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        <a href="{{ path('eleve_homework') }}" class="pp-btn pp-btn-ghost" style="margin-top:1rem;"><i class="fas fa-list"></i> Tous les exercices</a>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'eleve/base.html.twig' %}
+
+{% block title %}{{ homework.title }}{% endblock %}
+{% block page_title %}{{ homework.title }}{% endblock %}
+{% block page_subtitle %}
+    {{ homework.subject ? homework.subject.name ~ ' — ' : '' }}À remettre le {{ homework.dueDate|date('d/m/Y') }}.
+{% endblock %}
+
+{% block body %}
+<section class="pp-card pp-reveal">
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
+        {% if homework.subject %}<span class="pp-badge sky">{{ homework.subject.name }}</span>{% endif %}
+        <span class="pp-badge {{ homework.upcoming ? 'green' : 'red' }}"><i class="fas fa-calendar-day"></i> Remise : {{ homework.dueDate|date('d/m/Y') }}</span>
+        {% if homework.teacher %}<span class="pp-badge navy"><i class="fas fa-chalkboard-user"></i> {{ homework.teacher.fullName ?: homework.teacher.username }}</span>{% endif %}
+    </div>
+
+    <div class="pp-card-title" style="margin-bottom:.6rem;"><i class="fas fa-list-ul"></i> Consignes</div>
+    {% if homework.instructions %}
+        <div style="color:#2b3a4d;line-height:1.6;white-space:pre-line;">{{ homework.instructions }}</div>
+    {% else %}
+        <p style="color:#8a97a8;">Aucune consigne écrite.</p>
+    {% endif %}
+
+    {% if homework.hasAttachment %}
+        <div style="margin-top:1.4rem;padding-top:1.2rem;border-top:1px solid #eef1f6;">
+            <a href="{{ path('eleve_homework_download', {id: homework.id}) }}" class="pp-btn pp-btn-primary">
+                <i class="fas fa-download"></i> Télécharger la pièce jointe
+            </a>
+        </div>
+    {% endif %}
+
+    <div style="margin-top:1.4rem;">
+        <a href="{{ path('eleve_homework') }}" class="pp-btn pp-btn-ghost"><i class="fas fa-arrow-left"></i> Retour aux exercices</a>
+    </div>
+</section>
+{% endblock %}

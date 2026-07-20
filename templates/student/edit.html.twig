@@ -149,26 +149,94 @@
                     </div>
 
                     <hr class="my-4">
-                    <h6 class="text-primary">Informations du parent/tuteur</h6>
+                    <h6 class="text-primary">Informations sur le parent / tuteur</h6>
 
+                    <div class="fw-semibold text-primary mb-2"><i class="fas fa-male me-2"></i>Père</div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                {{ form_label(form.parentName) }}
-                                {{ form_widget(form.parentName) }}
-                                {{ form_errors(form.parentName) }}
+                                {{ form_label(form.fatherLastName) }}
+                                {{ form_widget(form.fatherLastName) }}
+                                {{ form_errors(form.fatherLastName) }}
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                {{ form_label(form.parentPhone) }}
-                                {{ form_widget(form.parentPhone) }}
-                                {{ form_errors(form.parentPhone) }}
+                                {{ form_label(form.fatherFirstName) }}
+                                {{ form_widget(form.fatherFirstName) }}
+                                {{ form_errors(form.fatherFirstName) }}
                             </div>
                         </div>
                     </div>
-
                     <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.fatherPhone) }}
+                                {{ form_widget(form.fatherPhone) }}
+                                {{ form_errors(form.fatherPhone) }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.fatherFunction) }}
+                                {{ form_widget(form.fatherFunction) }}
+                                {{ form_errors(form.fatherFunction) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        {{ form_label(form.fatherAddress) }}
+                        {{ form_widget(form.fatherAddress) }}
+                        {{ form_errors(form.fatherAddress) }}
+                    </div>
+
+                    <div class="fw-semibold text-primary mb-2 mt-3"><i class="fas fa-female me-2"></i>Mère</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.motherLastName) }}
+                                {{ form_widget(form.motherLastName) }}
+                                {{ form_errors(form.motherLastName) }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.motherFirstName) }}
+                                {{ form_widget(form.motherFirstName) }}
+                                {{ form_errors(form.motherFirstName) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.motherPhone) }}
+                                {{ form_widget(form.motherPhone) }}
+                                {{ form_errors(form.motherPhone) }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.motherFunction) }}
+                                {{ form_widget(form.motherFunction) }}
+                                {{ form_errors(form.motherFunction) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        {{ form_label(form.motherAddress) }}
+                        {{ form_widget(form.motherAddress) }}
+                        {{ form_errors(form.motherAddress) }}
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_label(form.parentalAuthority) }}
+                                {{ form_widget(form.parentalAuthority) }}
+                                {{ form_errors(form.parentalAuthority) }}
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 {{ form_label(form.parentEmail) }}
@@ -176,18 +244,6 @@
                                 {{ form_errors(form.parentEmail) }}
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form_label(form.parentFunction) }}
-                                {{ form_widget(form.parentFunction) }}
-                                {{ form_errors(form.parentFunction) }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        {{ form_label(form.parentAddress) }}
-                        {{ form_widget(form.parentAddress) }}
-                        {{ form_errors(form.parentAddress) }}
                     </div>
 
                     <hr class="my-4">

@@ -79,16 +79,31 @@
             </div>
             <div>{{ form_label(form.address) }}{{ form_widget(form.address) }}{{ form_errors(form.address) }}</div>
 
-            <div class="pp-section-title"><i class="fas fa-user-shield"></i> Parent / tuteur & urgence</div>
+            <div class="pp-section-title"><i class="fas fa-male"></i> Père</div>
             <div class="row-grid">
-                <div>{{ form_label(form.parentName) }}{{ form_widget(form.parentName) }}{{ form_errors(form.parentName) }}</div>
-                <div>{{ form_label(form.parentFunction) }}{{ form_widget(form.parentFunction) }}{{ form_errors(form.parentFunction) }}</div>
-                <div>{{ form_label(form.parentPhone) }}{{ form_widget(form.parentPhone) }}{{ form_errors(form.parentPhone) }}</div>
+                <div>{{ form_label(form.fatherLastName) }}{{ form_widget(form.fatherLastName) }}{{ form_errors(form.fatherLastName) }}</div>
+                <div>{{ form_label(form.fatherFirstName) }}{{ form_widget(form.fatherFirstName) }}{{ form_errors(form.fatherFirstName) }}</div>
+                <div>{{ form_label(form.fatherPhone) }}{{ form_widget(form.fatherPhone) }}{{ form_errors(form.fatherPhone) }}</div>
+                <div>{{ form_label(form.fatherFunction) }}{{ form_widget(form.fatherFunction) }}{{ form_errors(form.fatherFunction) }}</div>
+            </div>
+            <div>{{ form_label(form.fatherAddress) }}{{ form_widget(form.fatherAddress) }}{{ form_errors(form.fatherAddress) }}</div>
+
+            <div class="pp-section-title"><i class="fas fa-female"></i> Mère</div>
+            <div class="row-grid">
+                <div>{{ form_label(form.motherLastName) }}{{ form_widget(form.motherLastName) }}{{ form_errors(form.motherLastName) }}</div>
+                <div>{{ form_label(form.motherFirstName) }}{{ form_widget(form.motherFirstName) }}{{ form_errors(form.motherFirstName) }}</div>
+                <div>{{ form_label(form.motherPhone) }}{{ form_widget(form.motherPhone) }}{{ form_errors(form.motherPhone) }}</div>
+                <div>{{ form_label(form.motherFunction) }}{{ form_widget(form.motherFunction) }}{{ form_errors(form.motherFunction) }}</div>
+            </div>
+            <div>{{ form_label(form.motherAddress) }}{{ form_widget(form.motherAddress) }}{{ form_errors(form.motherAddress) }}</div>
+
+            <div class="pp-section-title"><i class="fas fa-user-shield"></i> Autorité parentale & urgence</div>
+            <div class="row-grid">
+                <div>{{ form_label(form.parentalAuthority) }}{{ form_widget(form.parentalAuthority) }}{{ form_errors(form.parentalAuthority) }}</div>
                 <div>{{ form_label(form.parentEmail) }}{{ form_widget(form.parentEmail) }}{{ form_errors(form.parentEmail) }}</div>
                 <div>{{ form_label(form.emergencyContact) }}{{ form_widget(form.emergencyContact) }}{{ form_errors(form.emergencyContact) }}</div>
                 <div>{{ form_label(form.emergencyPhone) }}{{ form_widget(form.emergencyPhone) }}{{ form_errors(form.emergencyPhone) }}</div>
             </div>
-            <div>{{ form_label(form.parentAddress) }}{{ form_widget(form.parentAddress) }}{{ form_errors(form.parentAddress) }}</div>
 
             <div class="pp-section-title"><i class="fas fa-notes-medical"></i> Informations complémentaires</div>
             <div>{{ form_label(form.medicalInfo) }}{{ form_widget(form.medicalInfo) }}{{ form_errors(form.medicalInfo) }}</div>

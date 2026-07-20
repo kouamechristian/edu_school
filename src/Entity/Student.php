@@ -87,6 +87,47 @@ class Student implements SchoolOwnedInterface
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $parentAddress = null;
 
+    // ── Père ──
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $fatherLastName = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $fatherFirstName = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Regex(pattern: '/^(\d{10})?$/', message: 'Le numéro de téléphone du père doit contenir exactement 10 chiffres.')]
+    private ?string $fatherPhone = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $fatherFunction = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $fatherAddress = null;
+
+    // ── Mère ──
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $motherLastName = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $motherFirstName = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Regex(pattern: '/^(\d{10})?$/', message: 'Le numéro de téléphone de la mère doit contenir exactement 10 chiffres.')]
+    private ?string $motherPhone = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $motherFunction = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $motherAddress = null;
+
+    /**
+     * Parent détenant l'autorité parentale : 'father', 'mother' ou 'both'.
+     */
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Choice(choices: ['father', 'mother', 'both'], message: 'Autorité parentale invalide.')]
+    private ?string $parentalAuthority = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Regex(pattern: '/^(\d{10})?$/', message: 'Le numéro de contact d\'urgence doit contenir exactement 10 chiffres.')]
     private ?string $emergencyContact = null;
@@ -132,6 +173,14 @@ class Student implements SchoolOwnedInterface
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'children')]
     #[ORM\JoinColumn(name: 'parent_user_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?User $parentUser = null;
+
+    /**
+     * Compte de connexion de l'élève (espace élève). Créé à l'inscription, ou à la
+     * volée à la première connexion par matricule national + date de naissance.
+     */
+    #[ORM\OneToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'student_user_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $studentUser = null;
 
     #[ORM\OneToMany(mappedBy: 'student', targetEntity: Grade::class)]
     private Collection $grades;
@@ -372,6 +421,171 @@ class Student implements SchoolOwnedInterface
         return $this;
     }
 
+    public function getFatherLastName(): ?string
+    {
+        return $this->fatherLastName;
+    }
+
+    public function setFatherLastName(?string $fatherLastName): static
+    {
+        $this->fatherLastName = $fatherLastName;
+        return $this;
+    }
+
+    public function getFatherFirstName(): ?string
+    {
+        return $this->fatherFirstName;
+    }
+
+    public function setFatherFirstName(?string $fatherFirstName): static
+    {
+        $this->fatherFirstName = $fatherFirstName;
+        return $this;
+    }
+
+    public function getFatherPhone(): ?string
+    {
+        return $this->fatherPhone;
+    }
+
+    public function setFatherPhone(?string $fatherPhone): static
+    {
+        $this->fatherPhone = $fatherPhone;
+        return $this;
+    }
+
+    public function getFatherFunction(): ?string
+    {
+        return $this->fatherFunction;
+    }
+
+    public function setFatherFunction(?string $fatherFunction): static
+    {
+        $this->fatherFunction = $fatherFunction;
+        return $this;
+    }
+
+    public function getFatherAddress(): ?string
+    {
+        return $this->fatherAddress;
+    }
+
+    public function setFatherAddress(?string $fatherAddress): static
+    {
+        $this->fatherAddress = $fatherAddress;
+        return $this;
+    }
+
+    public function getFatherFullName(): string
+    {
+        return trim(($this->fatherFirstName ?? '') . ' ' . ($this->fatherLastName ?? ''));
+    }
+
+    public function getMotherLastName(): ?string
+    {
+        return $this->motherLastName;
+    }
+
+    public function setMotherLastName(?string $motherLastName): static
+    {
+        $this->motherLastName = $motherLastName;
+        return $this;
+    }
+
+    public function getMotherFirstName(): ?string
+    {
+        return $this->motherFirstName;
+    }
+
+    public function setMotherFirstName(?string $motherFirstName): static
+    {
+        $this->motherFirstName = $motherFirstName;
+        return $this;
+    }
+
+    public function getMotherPhone(): ?string
+    {
+        return $this->motherPhone;
+    }
+
+    public function setMotherPhone(?string $motherPhone): static
+    {
+        $this->motherPhone = $motherPhone;
+        return $this;
+    }
+
+    public function getMotherFunction(): ?string
+    {
+        return $this->motherFunction;
+    }
+
+    public function setMotherFunction(?string $motherFunction): static
+    {
+        $this->motherFunction = $motherFunction;
+        return $this;
+    }
+
+    public function getMotherAddress(): ?string
+    {
+        return $this->motherAddress;
+    }
+
+    public function setMotherAddress(?string $motherAddress): static
+    {
+        $this->motherAddress = $motherAddress;
+        return $this;
+    }
+
+    public function getMotherFullName(): string
+    {
+        return trim(($this->motherFirstName ?? '') . ' ' . ($this->motherLastName ?? ''));
+    }
+
+    public function getParentalAuthority(): ?string
+    {
+        return $this->parentalAuthority;
+    }
+
+    public function setParentalAuthority(?string $parentalAuthority): static
+    {
+        $this->parentalAuthority = $parentalAuthority;
+        return $this;
+    }
+
+    public function getParentalAuthorityLabel(): string
+    {
+        return match ($this->parentalAuthority) {
+            'father' => 'Père',
+            'mother' => 'Mère',
+            'both' => 'Les deux parents',
+            default => '—',
+        };
+    }
+
+    /**
+     * Renseigne les champs hérités « parent/tuteur » à partir du parent détenant
+     * l'autorité parentale (voir PreRegistration::syncGuardianContact).
+     */
+    #[ORM\PreFlush]
+    public function syncGuardianContact(): void
+    {
+        $preferMother = $this->parentalAuthority === 'mother'
+            || (\in_array($this->parentalAuthority, [null, 'both'], true)
+                && $this->getFatherFullName() === '' && $this->getMotherFullName() !== '');
+
+        if ($preferMother) {
+            $this->parentName = $this->getMotherFullName() ?: null;
+            $this->parentPhone = $this->motherPhone;
+            $this->parentFunction = $this->motherFunction;
+            $this->parentAddress = $this->motherAddress;
+        } elseif ($this->getFatherFullName() !== '' || $this->getMotherFullName() !== '') {
+            $this->parentName = $this->getFatherFullName() ?: null;
+            $this->parentPhone = $this->fatherPhone;
+            $this->parentFunction = $this->fatherFunction;
+            $this->parentAddress = $this->fatherAddress;
+        }
+    }
+
     public function getParentName(): ?string
     {
         return $this->parentName;
@@ -554,6 +768,17 @@ class Student implements SchoolOwnedInterface
     public function setParentUser(?User $parentUser): static
     {
         $this->parentUser = $parentUser;
+        return $this;
+    }
+
+    public function getStudentUser(): ?User
+    {
+        return $this->studentUser;
+    }
+
+    public function setStudentUser(?User $studentUser): static
+    {
+        $this->studentUser = $studentUser;
         return $this;
     }
 

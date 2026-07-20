@@ -158,16 +158,22 @@ class AccountingEntryRepository extends ServiceEntityRepository
     }
 
     /**
-     * Séries mensuelles (recettes / dépenses) sur une année civile.
-     * Listes de 12 valeurs (janvier → décembre), ré-indexées à partir de 0
-     * pour être directement exploitables par un graphique.
+     * Séries mensuelles (recettes / dépenses) sur une période quelconque [from, to].
+     * Renvoie des libellés de mois (MM/AA) et deux listes de valeurs alignées, prêtes
+     * pour un graphique — la période pouvant chevaucher deux années civiles.
      *
-     * @return array{recette:list<float>,depense:list<float>}
+     * @return array{labels:list<string>,recette:list<float>,depense:list<float>}
      */
-    public function monthlyTotals(int $schoolId, int $year): array
+    public function monthlySeries(int $schoolId, \DateTimeInterface $from, \DateTimeInterface $to): array
     {
-        $from = new \DateTime(sprintf('%d-01-01', $year));
-        $to = new \DateTime(sprintf('%d-12-31', $year));
+        // Un compartiment par mois de la période (clé Y-m), dans l'ordre chronologique.
+        $buckets = [];
+        $cursor = new \DateTimeImmutable($from->format('Y-m-01'));
+        $last = new \DateTimeImmutable($to->format('Y-m-01'));
+        while ($cursor <= $last) {
+            $buckets[$cursor->format('Y-m')] = ['label' => $cursor->format('m/y'), 'recette' => 0.0, 'depense' => 0.0];
+            $cursor = $cursor->modify('+1 month');
+        }
 
         // MONTH() n'est pas une fonction DQL standard : on agrège par mois côté PHP.
         $rows = $this->journalQb($schoolId, ['from' => $from, 'to' => $to])
@@ -175,21 +181,26 @@ class AccountingEntryRepository extends ServiceEntityRepository
             ->getQuery()
             ->getScalarResult();
 
-        $recette = array_fill(1, 12, 0.0);
-        $depense = array_fill(1, 12, 0.0);
         foreach ($rows as $row) {
             $date = $row['entryDate'] instanceof \DateTimeInterface
                 ? $row['entryDate']
                 : new \DateTime((string) $row['entryDate']);
-            $m = (int) $date->format('n');
+            $key = $date->format('Y-m');
+            if (!isset($buckets[$key])) {
+                continue;
+            }
             if ($row['type'] === AccountingEntry::TYPE_RECETTE) {
-                $recette[$m] += (float) $row['amount'];
+                $buckets[$key]['recette'] += (float) $row['amount'];
             } elseif ($row['type'] === AccountingEntry::TYPE_DEPENSE) {
-                $depense[$m] += (float) $row['amount'];
+                $buckets[$key]['depense'] += (float) $row['amount'];
             }
         }
 
-        return ['recette' => array_values($recette), 'depense' => array_values($depense)];
+        return [
+            'labels' => array_values(array_column($buckets, 'label')),
+            'recette' => array_values(array_column($buckets, 'recette')),
+            'depense' => array_values(array_column($buckets, 'depense')),
+        ];
     }
 
     /**
