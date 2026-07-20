@@ -1,0 +1,16 @@
+{# Sommaire des modules d'aide, partagé par l'accueil et les pages module. #}
+<aside class="card sup-toc collapse" id="supToc">
+    <div class="card-body p-2">
+        <a href="{{ path('app_support') }}" class="sup-toc__link {{ current_route == 'app_support' ? 'active' : '' }}">
+            <i class="fas fa-house"></i><span>Accueil de l'aide</span>
+        </a>
+        {% for item in modules %}
+            <a href="{{ path('app_support_module', {'slug': item.slug}) }}"
+               class="sup-toc__link {{ (module is defined and module.slug == item.slug) ? 'active' : '' }}">
+                <i class="fas {{ item.icon }}"></i>
+                <span>{{ item.title }}</span>
+                <span class="sup-toc__badge">{{ item.task_count }}</span>
+            </a>
+        {% endfor %}
+    </div>
+</aside>

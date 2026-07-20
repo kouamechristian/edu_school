@@ -104,8 +104,9 @@ security:
     # Note: Only the *first* access control that matches will be used
     access_control:
          - { path: ^/login$, roles: PUBLIC_ACCESS }
-         # Documentation : page autonome et publique, consultable sans connexion.
+         # Documentation et centre d'aide : pages autonomes et publiques.
          - { path: ^/documentation, roles: PUBLIC_ACCESS }
+         - { path: ^/support, roles: PUBLIC_ACCESS }
          # Webhook GeniusPay : appelé par la passerelle, pas par un utilisateur.
          # Sa sécurité repose entièrement sur la signature HMAC vérifiée dans le
          # contrôleur — surtout ne pas y ajouter d'exigence de rôle.

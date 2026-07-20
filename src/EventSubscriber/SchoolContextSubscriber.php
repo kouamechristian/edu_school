@@ -27,10 +27,12 @@ class SchoolContextSubscriber implements EventSubscriberInterface
 
     public function onKernelController(ControllerEvent $event): void
     {
-        // La documentation est une page publique et autonome : elle n'affiche ni
-        // établissement ni année. Résoudre le contexte ici démarrerait une session
-        // et interrogerait la base pour un visiteur anonyme, sans aucun usage.
-        if (str_starts_with((string) $event->getRequest()->attributes->get('_route'), 'app_documentation')) {
+        // La documentation et le centre d'aide sont des pages publiques et
+        // autonomes : elles n'affichent ni établissement ni année. Résoudre le
+        // contexte ici démarrerait une session et interrogerait la base pour un
+        // visiteur anonyme, sans aucun usage.
+        $route = (string) $event->getRequest()->attributes->get('_route');
+        if (str_starts_with($route, 'app_documentation') || str_starts_with($route, 'app_support')) {
             return;
         }
 
