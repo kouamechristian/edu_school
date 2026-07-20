@@ -1,0 +1,87 @@
+<h2 id="chaine">La chaîne financière</h2>
+<pre><code>Frais du niveau  →  Frais de l'élève  →  Paiement (caisse)  →  Reçu
+                                              ↓
+                        Solde de caisse  →  Versement bancaire  →  Approbation fondateur
+                                              ↓
+                                          Dépense  →  Autorisation fondateur</code></pre>
+
+<h2 id="frais">Frais de scolarité</h2>
+<p>
+    <em>Configuration → Frais à payer</em>. Un frais est défini pour un <strong>niveau</strong> et une
+    <strong>année scolaire</strong> : libellé (inscription, scolarité 1ᵉʳ versement, cantine…), montant,
+    échéance, caractère obligatoire ou non.
+</p>
+<p>
+    À la validation d'une inscription, les frais du niveau sont automatiquement rattachés à l'élève. Vous pouvez
+    ensuite les ajuster individuellement : remise, exonération, ou statut <strong>boursier</strong> qui applique
+    une réduction sur les frais concernés.
+</p>
+
+<h2 id="caisse">Ma caisse</h2>
+<p>
+    Chaque encaisseur travaille sur <strong>sa</strong> caisse. Le cycle quotidien est le suivant :
+</p>
+<ol class="doc-steps">
+    <li><strong>Ouverture</strong> — <em>Finances → Ma caisse</em>. Saisissez le fonds de caisse initial.</li>
+    <li><strong>Encaissements</strong> — les paiements de la journée s'y rattachent automatiquement.</li>
+    <li><strong>Clôture</strong> — en fin de journée, saisissez le montant physiquement compté. L'application affiche l'écart éventuel avec le théorique.</li>
+    <li><strong>Validation</strong> — le fondateur contrôle et valide la caisse clôturée (<em>Espace Fondateur → Valider les caisses</em>).</li>
+</ol>
+<div class="doc-note warning">
+    <div class="doc-note__title"><i class="fas fa-triangle-exclamation me-1"></i> Caisse fermée</div>
+    Aucun paiement ne peut être enregistré sans caisse ouverte. Si le bouton d'encaissement est indisponible,
+    c'est presque toujours la cause.
+</div>
+
+<h2 id="paiements">Paiements</h2>
+<p><em>Finances → Paiements</em>. Pour encaisser :</p>
+<ol class="doc-steps">
+    <li>Recherchez l'élève par nom ou matricule.</li>
+    <li>Sa situation s'affiche : frais dus, déjà réglés, solde restant.</li>
+    <li>Choisissez le frais à régler, le montant et le mode de paiement (espèces, Mobile Money, chèque, virement).</li>
+    <li>Validez : le reçu numéroté est généré en PDF, imprimable ou envoyable au parent.</li>
+</ol>
+<p>
+    Les paiements partiels sont acceptés : le solde reste dû et apparaît dans le module Recouvrement.
+</p>
+
+<h3 id="annulation">Annulation</h3>
+<p>
+    Un paiement erroné ne se supprime pas : il s'annule. Le paiement bascule dans <em>Paiements annulés</em>
+    avec son motif, l'écriture comptable est contre-passée, et la trace reste consultable. Cette opération est
+    réservée aux rôles administrateur.
+</p>
+
+<h3 id="mobile-money">Mobile Money</h3>
+<p>
+    Les paiements par Mobile Money sont journalisés séparément (<em>Administration → Logs Mobile Money</em>) :
+    référence de la transaction, opérateur, statut. Utile pour rapprocher les encaissements en cas de litige.
+</p>
+
+<h2 id="depenses">Dépenses</h2>
+<p>
+    <em>Finances → Dépenses</em>. Une dépense sort de la caisse : libellé, catégorie, montant, bénéficiaire,
+    justificatif. Au-delà d'un certain montant, ou selon le paramétrage, elle requiert l'<strong>autorisation
+    du fondateur</strong> (<em>Espace Fondateur → Dépenses à approuver</em>) avant d'être décaissée.
+</p>
+
+<h2 id="versements">Versements bancaires</h2>
+<p>
+    <em>Finances → Versements bancaires</em>. Pour ne pas conserver d'espèces, l'encaisseur déclare un versement
+    en banque : montant, banque, date, bordereau. Le fondateur approuve ensuite le versement
+    (<em>Espace Fondateur → Approuver les versements</em>).
+</p>
+
+<h2 id="solde">Comment se calcule le solde de caisse</h2>
+<div class="doc-note success">
+    <strong>Solde = Paiements encaissés − Versements approuvés − Dépenses</strong><br>
+    Un versement déclaré mais non encore approuvé ne diminue donc pas le solde : c'est volontaire, l'argent
+    n'est réputé sorti qu'une fois le versement confirmé.
+</div>
+
+<h2 id="controles">Contrôles quotidiens conseillés</h2>
+<ul>
+    <li>Clôturer la caisse chaque soir, sans exception.</li>
+    <li>Faire approuver versements et dépenses au fil de l'eau, pour éviter les arriérés de validation.</li>
+    <li>Consulter le tableau de bord comptable en fin de semaine pour repérer les écarts tôt.</li>
+</ul>

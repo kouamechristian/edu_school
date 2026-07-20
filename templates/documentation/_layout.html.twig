@@ -1,0 +1,110 @@
+{# ==========================================================================
+   EDU-SCHOOL — Documentation : gabarit commun
+
+   Sommaire à gauche, contenu à droite. Les pages filles remplissent
+   `doc_header` (en-tête) et `doc_content` (corps de la rubrique).
+
+   Étend le gabarit autonome de la documentation, pas celui de l'application :
+   la doc est une page publique, sans sidebar ni contexte établissement/année.
+   ========================================================================== #}
+{% extends 'documentation/base.html.twig' %}
+
+{% block stylesheets %}
+<style>
+    .doc-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+    @media (max-width: 991.98px) { .doc-layout { grid-template-columns: 1fr; } }
+
+    .doc-toc { position: sticky; top: 4.75rem; max-height: calc(100vh - 6rem); overflow-y: auto; }
+    /* Sous 992px le sommaire se replie derrière le bouton burger de l'en-tête. */
+    @media (max-width: 991.98px) {
+        .doc-toc { position: static; max-height: none; }
+        .doc-toc:not(.show) { display: none; }
+    }
+    @media (min-width: 992px) { .doc-toc { display: block !important; } }
+
+    .doc-toc__group { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700;
+                      color: var(--secondary-color); padding: .9rem .25rem .35rem; }
+    .doc-toc__link { display: flex; align-items: center; gap: .6rem; padding: .45rem .65rem; border-radius: .5rem;
+                     color: inherit; text-decoration: none; font-size: .9rem; border-left: 3px solid transparent; }
+    .doc-toc__link:hover { background: rgba(30, 58, 95, .06); }
+    .doc-toc__link.active { background: rgba(30, 58, 95, .09); border-left-color: var(--primary-color);
+                            color: var(--primary-color); font-weight: 600; }
+    [data-bs-theme="dark"] .doc-toc__link:hover,
+    [data-bs-theme="dark"] .doc-toc__link.active { background: rgba(255, 255, 255, .07); color: inherit; }
+    .doc-toc__link i { width: 1.1rem; text-align: center; color: var(--secondary-color); }
+    .doc-toc__link.active i { color: var(--primary-color); }
+
+    .doc-article h2 { font-family: 'Poppins', sans-serif; font-size: 1.3rem; font-weight: 600; margin: 2rem 0 .75rem;
+                      padding-bottom: .5rem; border-bottom: 1px solid rgba(148, 163, 184, .3); scroll-margin-top: 90px; }
+    .doc-article h2:first-child { margin-top: 0; }
+    .doc-article h3 { font-family: 'Poppins', sans-serif; font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 .5rem; }
+    .doc-article p, .doc-article li { line-height: 1.7; }
+    .doc-article ul, .doc-article ol { padding-left: 1.35rem; }
+    .doc-article li { margin-bottom: .35rem; }
+    .doc-article code { background: rgba(148, 163, 184, .18); padding: .12rem .38rem; border-radius: .3rem;
+                        font-size: .85em; color: inherit; }
+    .doc-article pre { background: #0f1729; color: #e2e8f0; padding: 1rem 1.15rem; border-radius: .6rem;
+                       overflow-x: auto; font-size: .85rem; line-height: 1.6; }
+    .doc-article pre code { background: none; padding: 0; color: inherit; }
+    .doc-article table { width: 100%; font-size: .9rem; }
+    .doc-article .table > :not(caption) > * > * { padding: .55rem .7rem; }
+
+    .doc-steps { list-style: none; counter-reset: doc-step; padding-left: 0; }
+    .doc-steps > li { counter-increment: doc-step; position: relative; padding-left: 2.5rem; margin-bottom: 1rem; }
+    .doc-steps > li::before { content: counter(doc-step); position: absolute; left: 0; top: -.1rem;
+                              width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--primary-color);
+                              color: #fff; font-size: .8rem; font-weight: 600; display: flex;
+                              align-items: center; justify-content: center; }
+
+    .doc-note { border-left: 4px solid var(--info-color); background: rgba(14, 165, 233, .08);
+                padding: .85rem 1rem; border-radius: .4rem; margin: 1rem 0; }
+    .doc-note.warning { border-left-color: var(--warning-color); background: rgba(245, 158, 11, .1); }
+    .doc-note.danger  { border-left-color: var(--danger-color);  background: rgba(239, 68, 68, .09); }
+    .doc-note.success { border-left-color: var(--success-color); background: rgba(16, 185, 129, .1); }
+    .doc-note__title { font-weight: 600; margin-bottom: .2rem; }
+
+    .doc-card-link { display: block; height: 100%; text-decoration: none; color: inherit; border-radius: .75rem;
+                     transition: transform .15s ease, box-shadow .15s ease; }
+    .doc-card-link:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1.5rem rgba(15, 23, 41, .12); }
+
+    @media print {
+        .sidebar, .topbar, .footer, .doc-toc, .doc-nav, .page-header__actions { display: none !important; }
+        .content-wrapper { margin-left: 0 !important; }
+        .doc-layout { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+{# `current_route` de base.html.twig est local à la sidebar : on le redéfinit ici. #}
+{% set current_route = app.request.attributes.get('_route') ?? '' %}
+<div class="container-fluid">
+    {% block doc_header %}{% endblock %}
+
+    <div class="doc-layout">
+        {# ── Sommaire ── #}
+        <aside class="card doc-toc collapse" id="docToc">
+            <div class="card-body p-2">
+                <a href="{{ path('app_documentation') }}"
+                   class="doc-toc__link {{ current_route == 'app_documentation' ? 'active' : '' }}">
+                    <i class="fas fa-house"></i><span>Accueil de la documentation</span>
+                </a>
+                {% for group, sections in summary %}
+                    <div class="doc-toc__group">{{ group }}</div>
+                    {% for item in sections %}
+                        <a href="{{ path('app_documentation_section', {'slug': item.slug}) }}"
+                           class="doc-toc__link {{ (section is defined and section.slug == item.slug) ? 'active' : '' }}">
+                            <i class="fas {{ item.icon }}"></i><span>{{ item.title }}</span>
+                        </a>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </aside>
+
+        {# ── Contenu ── #}
+        <div>
+            {% block doc_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

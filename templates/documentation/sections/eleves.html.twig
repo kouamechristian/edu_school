@@ -1,0 +1,81 @@
+<h2 id="modele">Élève, préinscription, inscription</h2>
+<p>Trois notions distinctes, souvent confondues :</p>
+<ul>
+    <li><strong>Élève</strong> — l'identité de la personne : nom, prénoms, sexe, date et lieu de naissance,
+        matricule, photo, parents. Ces données ne dépendent pas de l'année.</li>
+    <li><strong>Préinscription</strong> — une demande d'admission en attente de validation, avec ses pièces jointes.</li>
+    <li><strong>Inscription</strong> — le rattachement d'un élève à une année scolaire : classe, niveau, statut
+        (affecté / non affecté), bourse éventuelle, frais dus.</li>
+</ul>
+<div class="doc-note">
+    Un élève qui reste cinq ans dans l'établissement a <strong>une fiche élève</strong> et
+    <strong>cinq inscriptions</strong>. La liste « Base de données » montre tous les élèves, toutes années
+    confondues ; les écrans de préinscription et d'inscription ne montrent que l'année sélectionnée.
+</div>
+
+<h2 id="parcours">Le parcours complet</h2>
+<ol class="doc-steps">
+    <li>
+        <strong>Préinscription</strong> — <em>Élèves → Préinscriptions → Nouvelle</em>.<br>
+        Deux cas : un <em>nouvel élève</em> (saisie complète de l'identité) ou un <em>ancien élève</em>
+        (recherche par matricule, la fiche existante est réutilisée sans duplication).
+        Les parents peuvent aussi déposer eux-mêmes la demande depuis leur espace.
+    </li>
+    <li>
+        <strong>Dépôt des pièces</strong> — extrait de naissance, photo, bulletin de l'année précédente…
+        La liste des pièces exigées se paramètre dans <em>Configuration → Types de Documents</em>.
+    </li>
+    <li>
+        <strong>Validation</strong> — l'administration vérifie le dossier et valide. La validation déclenche
+        automatiquement : la création (ou la réutilisation) de la fiche élève, la génération du matricule,
+        la création de l'inscription et le rattachement des frais correspondant au niveau. Le parent est notifié.
+    </li>
+    <li>
+        <strong>Affectation en classe</strong> — <em>Élèves → Affectation dans une classe</em>.
+        Les inscrits sans classe apparaissent ici ; l'affectation peut se faire en masse.
+    </li>
+    <li>
+        <strong>Suivi</strong> — la fiche élève regroupe ensuite scolarité, notes, absences et situation financière.
+    </li>
+</ol>
+
+<h2 id="ecrans">Les écrans du module</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Écran</th><th>Usage</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Tableau de bord</strong></td><td>Effectifs par niveau et par classe, répartition par sexe et par statut.</td></tr>
+            <tr><td><strong>Base de données</strong></td><td>Référentiel de tous les élèves, toutes années. Recherche, import/export Excel, fiche détaillée.</td></tr>
+            <tr><td><strong>Préinscriptions</strong></td><td>Demandes en attente, validées ou rejetées, avec leurs pièces jointes.</td></tr>
+            <tr><td><strong>Inscrits</strong></td><td>Liste des élèves inscrits pour l'année en cours.</td></tr>
+            <tr><td><strong>Affectation dans une classe</strong></td><td>Répartition des inscrits dans les classes.</td></tr>
+            <tr><td><strong>Transferts</strong></td><td>Changement de classe en cours d'année, ou départ vers un autre établissement.</td></tr>
+            <tr><td><strong>Exclusion</strong></td><td>Enregistrement d'un abandon ou d'une exclusion, avec motif et date.</td></tr>
+            <tr><td><strong>Archives</strong></td><td>Élèves des années antérieures, consultables sans encombrer les listes courantes.</td></tr>
+            <tr><td><strong>Rapports</strong></td><td>États d'effectifs, listes de classe, exports pour les autorités de tutelle.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="matricule">Matricules</h2>
+<p>
+    Le matricule interne est généré automatiquement à la création de l'élève, selon un format propre à
+    l'établissement. Il sert d'identifiant dans toute l'application : connexion à l'espace élève, recherche
+    d'un ancien élève à la réinscription, et prise de photo via l'application mobile.
+</p>
+<p>
+    Le <strong>matricule national</strong>, lorsqu'il existe, est saisi séparément. Il permet notamment à un
+    parent de retrouver son enfant lors de l'auto-inscription en ligne.
+</p>
+
+<h2 id="import">Import en masse</h2>
+<p>
+    La base élèves accepte un import depuis un fichier Excel, utile lors de la reprise de données d'un ancien
+    système. Téléchargez le modèle depuis l'écran d'import, remplissez-le, puis déposez-le : l'application
+    contrôle les doublons de matricule et affiche un rapport ligne par ligne avant validation.
+</p>
+<div class="doc-note warning">
+    <div class="doc-note__title"><i class="fas fa-triangle-exclamation me-1"></i> Attention</div>
+    Un élève importé au référentiel n'est pas pour autant inscrit : il n'apparaîtra pas dans les effectifs de
+    l'année tant qu'une inscription n'aura pas été créée pour lui.
+</div>

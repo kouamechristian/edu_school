@@ -1,0 +1,66 @@
+<h2 id="structure">La structure pédagogique</h2>
+<p>Elle se construit de haut en bas ; chaque niveau s'appuie sur le précédent.</p>
+<pre><code>Cycle          (Maternelle, Primaire, Collège, Lycée…)
+ └── Niveau     (CP1, 6ᵉ, Terminale…)
+      ├── Filière / Série   (Scientifique, Littéraire… si applicable)
+      ├── Classe            (6ᵉ A, 6ᵉ B…)
+      └── Matière           (rattachée au niveau)</code></pre>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Élément</th><th>Rôle</th><th>Où</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Cycle</strong></td><td>Grand découpage de l'établissement.</td><td>Configuration → Cycles</td></tr>
+            <tr><td><strong>Niveau</strong></td><td>Année d'études. Porte les frais de scolarité et les matières. L'ordre d'affichage est réglable.</td><td>Configuration → Niveaux</td></tr>
+            <tr><td><strong>Filière</strong> / <strong>Série</strong></td><td>Spécialisation, pour les établissements qui en ont.</td><td>Configuration → Filières / Séries</td></tr>
+            <tr><td><strong>Classe</strong></td><td>Groupe d'élèves d'un niveau, pour une année donnée, avec un effectif maximum et un professeur principal.</td><td>Configuration → Classes</td></tr>
+            <tr><td><strong>Salle</strong></td><td>Local physique, avec sa capacité. Sert à détecter les conflits d'emploi du temps.</td><td>Configuration → Salles</td></tr>
+            <tr><td><strong>Plage horaire</strong></td><td>Créneau type de la journée (8h–9h, 9h–10h…).</td><td>Configuration → Plages Horaires</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="matieres">Matières</h2>
+<p>
+    Chaque matière appartient à un <strong>type de matière</strong>, qui porte le coefficient et le mode de prise
+    en compte dans la moyenne. Créez donc les types avant les matières.
+</p>
+<ul>
+    <li><em>Académique → Types de Matière</em> : définit coefficient et catégorie.</li>
+    <li><em>Académique → Matières</em> : la matière elle-même, rattachée à un niveau.</li>
+    <li><em>Configuration → Matières équivalentes</em> : déclare que deux matières de niveaux ou filières
+        différents doivent être considérées comme une seule (utile pour les bulletins et les transferts).</li>
+</ul>
+
+<h2 id="emploi-du-temps">Emplois du temps</h2>
+<p>
+    Un <strong>cours</strong> relie une classe, une matière, un enseignant, une salle et une plage horaire, pour
+    un jour donné. L'ensemble des cours d'une classe forme son emploi du temps.
+</p>
+<ol class="doc-steps">
+    <li>Vérifiez que salles et plages horaires sont créées.</li>
+    <li>Allez dans <em>Académique → Emplois du Temps</em> et choisissez la classe.</li>
+    <li>Ajoutez les cours créneau par créneau.</li>
+    <li>L'application signale les conflits : même enseignant, même salle ou même classe sur un créneau déjà pris.</li>
+</ol>
+<p>
+    L'emploi du temps est ensuite visible par l'enseignant (<em>Espace Enseignant → Mes Cours</em>), par l'élève
+    et par ses parents. Il est imprimable en PDF.
+</p>
+
+<h2 id="enseignants">Enseignants</h2>
+<p>
+    <em>Académique → Enseignants</em> gère le corps enseignant : identité, matières enseignées, classes prises
+    en charge. Un enseignant peut être relié à un compte utilisateur (<code>ROLE_ENSEIGNANT</code>) : il accède
+    alors à son espace personnel pour saisir notes, devoirs et absences.
+</p>
+<div class="doc-note">
+    Un enseignant est aussi souvent un <strong>employé</strong> au sens RH. Les deux fiches sont distinctes :
+    la fiche enseignant sert au pédagogique, la fiche employé au contrat et à la paie.
+</div>
+
+<h2 id="rapports">Rapports académiques</h2>
+<p>
+    <em>Académique → Rapports</em> produit les états de synthèse : effectifs par classe et par matière, charge
+    horaire des enseignants, taux d'occupation des salles. Tous sont exportables en PDF ou en Excel.
+</p>

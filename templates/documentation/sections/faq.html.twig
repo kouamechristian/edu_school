@@ -1,0 +1,119 @@
+<h2 id="general">Général</h2>
+
+<h3 id="une-liste-est-vide-alors-que-les-donnees">Une liste est vide alors que les données existent</h3>
+<p>
+    Neuf fois sur dix, c'est le <strong>contexte</strong> : l'établissement ou l'année scolaire sélectionnés en
+    haut de page ne correspondent pas aux données recherchées. Changez de contexte et rechargez.
+</p>
+
+<h3 id="une-entree-du-menu-a-disparu">Une entrée du menu a disparu</h3>
+<p>
+    Le menu latéral s'adapte aux rôles. Si une section manque, le compte ne dispose pas du rôle correspondant.
+    Voir <a href="{{ path('app_documentation_section', {'slug': 'roles'}) }}">Rôles et permissions</a>.
+</p>
+
+<h3 id="un-changement-de-role-ne-prend-pas-effet">Un changement de rôle ne prend pas effet</h3>
+<p>
+    Après modification de la hiérarchie des rôles dans la configuration, il faut vider le cache :
+    <code>php bin/console cache:clear</code>. Une modification des rôles d'un utilisateur, en revanche, prend
+    effet à sa prochaine connexion.
+</p>
+
+<h2 id="eleves">Élèves et inscriptions</h2>
+
+<h3 id="un-eleve-existe-mais-n-apparait-pas-dans">Un élève existe mais n'apparaît pas dans les effectifs</h3>
+<p>
+    Il est présent au référentiel sans être <strong>inscrit</strong> pour l'année en cours. Créez son
+    inscription : les effectifs comptent les inscriptions, pas les fiches élèves.
+</p>
+
+<h3 id="comment-reinscrire-un-ancien-eleve-sans-le-dupliquer">Comment réinscrire un ancien élève sans le dupliquer</h3>
+<p>
+    À la création de la préinscription, choisissez « ancien élève » et recherchez-le par matricule. La fiche
+    existante est réutilisée et une nouvelle inscription lui est ajoutée. Le parent peut aussi faire la
+    démarche depuis son espace.
+</p>
+
+<h3 id="les-frais-ne-sont-pas-rattaches-a-un">Les frais ne sont pas rattachés à un élève inscrit</h3>
+<p>
+    Vérifiez qu'un frais est bien défini pour son <strong>niveau</strong> et l'<strong>année</strong> concernés
+    dans <em>Configuration → Frais à payer</em>. Le rattachement automatique n'a lieu qu'à la validation de
+    l'inscription ; pour un élève déjà inscrit, ajoutez les frais manuellement depuis sa fiche.
+</p>
+
+<h2 id="notes">Notes et bulletins</h2>
+
+<h3 id="un-parent-ne-voit-pas-les-notes-que">Un parent ne voit pas les notes que l'administration voit</h3>
+<p>
+    Les évaluations sont <em>validées</em> mais pas encore <em>publiées</em>. La publication est l'acte qui les
+    rend visibles aux familles.
+</p>
+
+<h3 id="une-moyenne-semble-fausse">Une moyenne semble fausse</h3>
+<p>Vérifiez, dans l'ordre :</p>
+<ul>
+    <li>Les évaluations restées en brouillon ne comptent pas.</li>
+    <li>Le coefficient se règle sur le <strong>type de matière</strong>, pas sur la matière.</li>
+    <li>La note maximale de l'évaluation : les notes sont ramenées sur la base de notation du bulletin.</li>
+    <li>Une matière sans aucune note est exclue du calcul, elle ne compte pas zéro.</li>
+</ul>
+
+<h3 id="un-eleve-est-absent-du-bulletin-de-classe">Un élève est absent du bulletin de classe</h3>
+<p>Il n'est probablement pas affecté à une classe. Vérifiez dans <em>Élèves → Affectation dans une classe</em>.</p>
+
+<h2 id="finances">Finances</h2>
+
+<h3 id="impossible-d-enregistrer-un-paiement">Impossible d'enregistrer un paiement</h3>
+<p>La caisse n'est pas ouverte. Ouvrez-la depuis <em>Finances → Ma caisse</em>.</p>
+
+<h3 id="comment-corriger-un-paiement-errone">Comment corriger un paiement erroné</h3>
+<p>
+    On n'efface pas un paiement : on l'<strong>annule</strong>, avec un motif. L'écriture comptable est
+    contre-passée et la trace est conservée. L'opération est réservée aux administrateurs.
+</p>
+
+<h3 id="le-solde-de-caisse-ne-correspond-pas-a">Le solde de caisse ne correspond pas à mes calculs</h3>
+<p>
+    Le solde vaut <strong>paiements − versements approuvés − dépenses</strong>. Un versement déclaré mais non
+    encore approuvé par le fondateur n'est pas déduit. Vérifiez les validations en attente.
+</p>
+
+<h3 id="encaisser-un-arriere-gonfle-t-il-les-recettes">Encaisser un arriéré gonfle-t-il les recettes de l'année ?</h3>
+<p>
+    Non. Les arriérés d'années antérieures sont payables et recouvrables, mais restent exclus du chiffre
+    d'affaires de l'exercice courant.
+</p>
+
+<h2 id="acces">Accès et comptes</h2>
+
+<h3 id="compte-bloque-apres-plusieurs-tentatives">Compte bloqué après plusieurs tentatives</h3>
+<p>La limitation autorise 3 essais par tranche de 2 minutes. Attendez, ou faites réinitialiser le mot de passe par un administrateur.</p>
+
+<h3 id="un-parent-n-arrive-pas-a-se-connecter">Un parent n'arrive pas à se connecter</h3>
+<ul>
+    <li>Il doit passer par <code>/parent/connexion</code>, pas par la page du personnel.</li>
+    <li>L'identifiant est son <strong>numéro de téléphone</strong>.</li>
+    <li>S'il n'a pas de compte, il peut en créer un sur <code>/parent/inscription</code> avec le matricule national de son enfant.</li>
+</ul>
+
+<h3 id="un-eleve-n-arrive-pas-a-se-connecter">Un élève n'arrive pas à se connecter</h3>
+<p>L'accès se fait sur <code>/eleve/connexion</code> avec le <strong>matricule</strong>. Vérifiez que le compte élève a bien été créé depuis <em>Administration → Comptes Élèves</em>.</p>
+
+<h2 id="suppression">Suppressions</h2>
+
+<h3 id="le-bouton-supprimer-n-apparait-pas">Le bouton Supprimer n'apparaît pas</h3>
+<p>La suppression est réservée aux rôles administrateur, fondateur et super-administrateur.</p>
+
+<h3 id="cet-element-est-utilise-et-ne-peut-pas">« Cet élément est utilisé et ne peut pas être supprimé »</h3>
+<p>
+    L'enregistrement est référencé ailleurs — un niveau utilisé par des classes, une matière utilisée par des
+    évaluations. Supprimez ou réaffectez d'abord les éléments liés. Souvent, il vaut mieux le
+    <strong>désactiver</strong> que le supprimer : il disparaît des listes de choix sans casser l'historique.
+</p>
+
+<h2 id="aide">Besoin d'aide ?</h2>
+<p>
+    Des notes techniques plus détaillées, module par module, sont disponibles dans le dossier
+    <code>docs/</code> du projet. Pour toute question non couverte ici, contactez l'administrateur de votre
+    établissement.
+</p>

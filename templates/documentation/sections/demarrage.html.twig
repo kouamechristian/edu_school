@@ -1,0 +1,78 @@
+<p>
+    Cette rubrique décrit l'ordre dans lequel paramétrer un établissement neuf. L'ordre compte : chaque étape
+    s'appuie sur les données créées à l'étape précédente.
+</p>
+
+<h2 id="etapes">Paramétrage initial, dans l'ordre</h2>
+<ol class="doc-steps">
+    <li>
+        <strong>Groupe d'établissements</strong> (facultatif) — <em>Administration → Groupes d'Établissements</em>.<br>
+        Utile seulement si plusieurs écoles partagent une direction commune.
+    </li>
+    <li>
+        <strong>Établissement</strong> — <em>Administration → Établissements</em>.<br>
+        Nom, type, logo, coordonnées. Ces informations apparaissent sur les bulletins, reçus et états imprimés.
+    </li>
+    <li>
+        <strong>Année scolaire</strong> — <em>Administration → Années Scolaires</em>.<br>
+        Créez l'année en cours et marquez-la comme active : elle deviendra le contexte par défaut.
+    </li>
+    <li>
+        <strong>Structure pédagogique</strong> — <em>Configuration</em>.<br>
+        Dans cet ordre : <code>Cycles</code> → <code>Niveaux</code> → <code>Filières</code> et <code>Séries</code>
+        (si votre établissement en utilise) → <code>Classes</code>.
+    </li>
+    <li>
+        <strong>Salles et plages horaires</strong> — <em>Configuration</em>.<br>
+        Indispensables pour construire les emplois du temps sans conflit.
+    </li>
+    <li>
+        <strong>Matières</strong> — <em>Académique → Types de Matière, puis Matières</em>.<br>
+        Le type porte le coefficient et le mode de calcul ; la matière est rattachée à un niveau.
+    </li>
+    <li>
+        <strong>Frais de scolarité</strong> — <em>Configuration → Frais à payer</em>.<br>
+        Définissez les frais par niveau et par année. Ils seront automatiquement rattachés aux élèves inscrits.
+    </li>
+    <li>
+        <strong>Périodes d'évaluation</strong> — <em>Notes &amp; Évaluations → Périodes</em>.<br>
+        Trimestres ou semestres, avec leurs dates de début et de fin.
+    </li>
+    <li>
+        <strong>Utilisateurs et rôles</strong> — <em>Administration → Utilisateurs et Rôle</em>.<br>
+        Créez les comptes du personnel et attribuez les rôles adaptés.
+    </li>
+    <li>
+        <strong>Types de documents</strong> — <em>Configuration → Types de Documents</em>.<br>
+        Liste des pièces exigées à l'inscription (extrait de naissance, photo, bulletin précédent…).
+    </li>
+</ol>
+
+<div class="doc-note">
+    <div class="doc-note__title"><i class="fas fa-lightbulb me-1"></i> Astuce</div>
+    Le paramétrage n'est à faire qu'une fois. Au passage à l'année suivante, il suffit de créer la nouvelle
+    année scolaire, puis de dupliquer classes et frais : les cycles, niveaux et matières restent en place.
+</div>
+
+<h2 id="rentree">Le cycle d'une année scolaire</h2>
+<ol class="doc-steps">
+    <li><strong>Préinscriptions</strong> — saisies au guichet ou déposées en ligne par les parents.</li>
+    <li><strong>Validation</strong> — l'administration contrôle le dossier et les pièces, puis valide.</li>
+    <li><strong>Inscription</strong> — la validation crée l'inscription et rattache automatiquement les frais du niveau.</li>
+    <li><strong>Affectation en classe</strong> — les inscrits sont répartis dans les classes.</li>
+    <li><strong>Vie scolaire</strong> — emplois du temps, absences, évaluations, paiements.</li>
+    <li><strong>Bulletins</strong> — à chaque fin de période, après validation des évaluations.</li>
+    <li><strong>Clôture</strong> — clôture comptable des périodes, archivage, préparation de l'année suivante.</li>
+</ol>
+
+<h2 id="premiere-connexion">Première connexion</h2>
+<ul>
+    <li>Le personnel se connecte sur <code>/login</code> (identifiant <em>ou</em> adresse e-mail, plus mot de passe).</li>
+    <li>Les parents disposent d'une page dédiée : <code>/parent/connexion</code>, avec leur numéro de téléphone.</li>
+    <li>Les élèves se connectent sur <code>/eleve/connexion</code> avec leur matricule.</li>
+</ul>
+<div class="doc-note warning">
+    <div class="doc-note__title"><i class="fas fa-triangle-exclamation me-1"></i> Sécurité</div>
+    La connexion est limitée à 3 tentatives par tranche de 2 minutes. Changez le mot de passe par défaut du
+    super-administrateur dès la première connexion, via le menu utilisateur en haut à droite.
+</div>

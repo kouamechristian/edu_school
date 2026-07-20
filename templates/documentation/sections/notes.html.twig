@@ -1,0 +1,72 @@
+<h2 id="chaine">De la note au bulletin</h2>
+<pre><code>Période  →  Évaluation  →  Notes  →  Validation  →  Moyennes  →  Bulletin  →  Publication</code></pre>
+
+<h2 id="periodes">1. Périodes</h2>
+<p>
+    <em>Notes &amp; Évaluations → Périodes</em>. Une période (trimestre, semestre) appartient à une année
+    scolaire et possède des dates de début et de fin. Toute évaluation est rattachée à une période : sans
+    période, pas de saisie de notes.
+</p>
+
+<h2 id="evaluations">2. Évaluations</h2>
+<p>
+    <em>Notes &amp; Évaluations → Évaluations</em>. Une évaluation cible une classe et une matière, pour une
+    période. Vous précisez son type (devoir, composition, interrogation), sa date, sa note maximale et son
+    coefficient propre.
+</p>
+<p>
+    La saisie des notes se fait ensuite en une seule grille, élève par élève. Les enseignants créent et
+    saisissent leurs propres évaluations depuis leur espace.
+</p>
+
+<h2 id="validation">3. Validation et publication</h2>
+<p>Une évaluation traverse trois états, et cette distinction est importante :</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>État</th><th>Signification</th><th>Visible par</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-soft secondary">Brouillon</span></td><td>Saisie en cours, modifiable.</td><td>L'enseignant seul</td></tr>
+            <tr><td><span class="badge badge-soft info">Validée</span></td><td>Notes vérifiées, prises en compte dans les moyennes administratives.</td><td>Administration, direction</td></tr>
+            <tr><td><span class="badge badge-soft success">Publiée</span></td><td>Diffusée aux familles.</td><td>Parents et élèves</td></tr>
+        </tbody>
+    </table>
+</div>
+<div class="doc-note">
+    <div class="doc-note__title"><i class="fas fa-circle-info me-1"></i> Conséquence pratique</div>
+    Les bulletins et bilans consultés côté <strong>administration</strong> reposent sur les évaluations
+    <em>validées</em> ; ceux consultés par les <strong>parents et élèves</strong> reposent sur les évaluations
+    <em>publiées</em>. Un écart entre les deux vues signifie simplement que des évaluations validées n'ont pas
+    encore été publiées.
+</div>
+
+<h2 id="moyennes">4. Calcul des moyennes</h2>
+<p>La moyenne se construit par agrégations successives :</p>
+<ol>
+    <li><strong>Moyenne d'une matière</strong> — moyenne des notes de la période, pondérée par le coefficient
+        de chaque évaluation, puis ramenée sur la base de notation (20 le plus souvent).</li>
+    <li><strong>Moyenne générale</strong> — moyenne des moyennes de matières, pondérée par le coefficient
+        porté par le type de matière.</li>
+    <li><strong>Rang</strong> — calculé au sein de la classe à partir de la moyenne générale.</li>
+</ol>
+<p>Un élève sans note dans une matière n'est pas pénalisé : la matière est exclue du calcul plutôt que comptée zéro.</p>
+
+<h2 id="bulletins">5. Bulletins</h2>
+<p>
+    <em>Notes &amp; Évaluations → Bulletins</em>. Un <strong>modèle de bulletin</strong> se définit une fois :
+    libellé, niveau concerné, période, et base de notation sur laquelle ramener les moyennes.
+</p>
+<ol class="doc-steps">
+    <li>Créez le bulletin (libellé, niveau, période, moyenne sur 20 ou autre).</li>
+    <li>Ouvrez-le : la liste des élèves du niveau s'affiche, avec leurs moyennes recalculées sur la base choisie.</li>
+    <li>Complétez les appréciations si nécessaire.</li>
+    <li>Générez les PDF, individuellement ou pour toute la classe en une fois.</li>
+</ol>
+<p>Le bulletin imprimé reprend l'en-tête de l'établissement, le détail par matière, la moyenne générale, le rang et les appréciations.</p>
+
+<h2 id="conseils">Points de vigilance</h2>
+<ul>
+    <li>Les coefficients se règlent sur le <strong>type de matière</strong>, pas sur la matière.</li>
+    <li>Une évaluation restée en brouillon n'entre dans aucun calcul.</li>
+    <li>Changer un coefficient recalcule les moyennes de toutes les périodes concernées : à faire avant l'édition des bulletins.</li>
+    <li>Vérifiez que chaque élève est bien affecté à une classe : les non-affectés n'apparaissent pas dans les bulletins de classe.</li>
+</ul>

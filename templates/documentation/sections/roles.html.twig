@@ -1,0 +1,123 @@
+<p>
+    Les droits d'accès reposent sur des <strong>rôles hiérarchisés</strong> : un rôle peut en hériter d'autres,
+    et reçoit alors automatiquement toutes leurs permissions. Un compte peut cumuler plusieurs rôles.
+</p>
+
+<h2 id="liste">Les rôles disponibles</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr><th>Rôle</th><th>Périmètre</th><th>Hérite de</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>ROLE_SUPER_ADMIN</code></td>
+                <td>Accès total, tous établissements. Administration technique.</td>
+                <td><code>ROLE_FONDATEUR</code></td>
+            </tr>
+            <tr>
+                <td><code>ROLE_FONDATEUR</code></td>
+                <td>Supervision de ses établissements : validation des caisses, approbation des dépenses et des versements.</td>
+                <td><code>ROLE_ADMIN</code></td>
+            </tr>
+            <tr>
+                <td><code>ROLE_ADMIN</code></td>
+                <td>Administration complète d'un établissement. Seul rôle (avec les deux précédents) autorisé à <strong>supprimer</strong>.</td>
+                <td>Directeur, Caisse, Inscription, Correspondant fichier, RH, Recouvrement</td>
+            </tr>
+            <tr>
+                <td><code>ROLE_DIRECTEUR</code></td>
+                <td>Académique, notes &amp; évaluations, absences.</td>
+                <td><code>ROLE_ENSEIGNANT</code>, <code>ROLE_EDUCATEUR</code></td>
+            </tr>
+            <tr>
+                <td><code>ROLE_CAISSE</code></td>
+                <td>Gestion financière : caisse, paiements, frais, bourses, dépenses, versements.</td>
+                <td><code>ROLE_INSCRIPTION</code>, <code>ROLE_COMPTABLE</code></td>
+            </tr>
+            <tr>
+                <td><code>ROLE_COMPTABLE</code></td>
+                <td>Comptabilité : journal, grand livre, plan comptable, rapports, rapprochement, clôtures.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>ROLE_RECOUVREMENT</code></td>
+                <td>Suivi des soldes impayés, relances, arriérés.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>ROLE_RH</code></td>
+                <td>Employés, contrats, paie.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>ROLE_INSCRIPTION</code></td>
+                <td>Gestion des élèves uniquement : préinscriptions, inscriptions, affectations.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>ROLE_CORRESPONDANT_FICHIER</code></td>
+                <td>Ses documents, plus la gestion des élèves.</td>
+                <td><code>ROLE_INSCRIPTION</code></td>
+            </tr>
+            <tr>
+                <td><code>ROLE_ENSEIGNANT</code></td>
+                <td>Espace enseignant : ses cours, ses élèves, ses évaluations, ses devoirs.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>ROLE_EDUCATEUR</code></td>
+                <td>Vie scolaire, saisie des absences.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>ROLE_PARENT</code></td>
+                <td>Espace parent : ses enfants, notes, absences, paiements, préinscriptions en ligne.</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td><code>ROLE_ELEVE</code></td>
+                <td>Espace élève, en lecture seule : notes, emploi du temps, devoirs.</td>
+                <td>—</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="heritage">Comment lire l'héritage</h2>
+<p>
+    Attribuer <code>ROLE_ADMIN</code> à un compte lui donne aussi, en cascade, la caisse, la comptabilité, le
+    recouvrement, les RH et la gestion des élèves. Inutile donc de cocher chaque rôle un à un : choisissez le
+    rôle le plus élevé correspondant à la fonction réelle de la personne.
+</p>
+<pre><code>ROLE_SUPER_ADMIN
+ └── ROLE_FONDATEUR
+      └── ROLE_ADMIN
+           ├── ROLE_DIRECTEUR ── ROLE_ENSEIGNANT, ROLE_EDUCATEUR
+           ├── ROLE_CAISSE ───── ROLE_INSCRIPTION, ROLE_COMPTABLE
+           ├── ROLE_RH
+           ├── ROLE_RECOUVREMENT
+           └── ROLE_CORRESPONDANT_FICHIER ── ROLE_INSCRIPTION</code></pre>
+
+<h2 id="suppression">Règle de suppression</h2>
+<div class="doc-note danger">
+    <div class="doc-note__title"><i class="fas fa-trash-can me-1"></i> Suppression réservée</div>
+    Les actions de suppression sont réservées aux rôles <code>ROLE_ADMIN</code>, <code>ROLE_FONDATEUR</code> et
+    <code>ROLE_SUPER_ADMIN</code>. Pour les autres, le bouton n'apparaît simplement pas. Par ailleurs, un
+    enregistrement référencé ailleurs (un niveau utilisé par des classes, par exemple) ne peut pas être supprimé :
+    l'application affiche un message explicatif plutôt que de casser les données liées.
+</div>
+
+<h2 id="isolation">Cloisonnement des établissements</h2>
+<p>
+    Un utilisateur est rattaché à un ou plusieurs établissements. Les listes ne montrent que les données de
+    l'établissement sélectionné dans la barre supérieure. Le fondateur voit l'ensemble de ses établissements,
+    le super-administrateur les voit tous.
+</p>
+
+<h2 id="pratique">En pratique</h2>
+<ul>
+    <li><strong>Créer un compte</strong> : <em>Administration → Utilisateurs et Rôle → Nouveau</em>.</li>
+    <li><strong>Comptes parents</strong> et <strong>comptes élèves</strong> ont leurs propres écrans dédiés dans le menu Administration.</li>
+    <li><strong>Tracer les actions</strong> : <em>Administration → Mouchard</em> journalise les opérations sensibles (qui, quoi, quand).</li>
+</ul>

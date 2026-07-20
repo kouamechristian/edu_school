@@ -1,0 +1,413 @@
+{# ==========================================================================
+   EDU-SCHOOL — Documentation : gabarit racine autonome
+
+   Page publique, indépendante de `base.html.twig` : pas de sidebar applicative,
+   pas de barre de contexte établissement/année, aucune dépendance à un
+   utilisateur connecté. Elle reprend seulement la charte graphique.
+   ========================================================================== #}
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Documentation{% endblock %} — EDU-SCHOOL</title>
+
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-edu-school.png') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+    {# Charte partagée avec l'application (variables, cartes, page-header, badges…) #}
+    <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f4f6f9; }
+        [data-bs-theme="dark"] body { background-color: var(--es-body-bg, #0f1729); }
+
+        /* ── En-tête propre à la documentation ── */
+        .doc-topbar { position: sticky; top: 0; z-index: 1030; background: var(--primary-color, #1e3a5f);
+                      color: #fff; box-shadow: 0 .125rem .5rem rgba(15, 23, 41, .18); }
+        .doc-topbar__inner { display: flex; align-items: center; gap: 1rem; padding: .7rem 1.25rem; }
+        .doc-topbar__brand { display: flex; align-items: center; gap: .65rem; color: #fff;
+                             text-decoration: none; font-family: 'Poppins', sans-serif; font-weight: 600; }
+        .doc-topbar__brand img { height: 34px; width: auto; }
+        .doc-topbar__brand small { display: block; font-family: 'Inter', sans-serif; font-weight: 400;
+                                   font-size: .72rem; opacity: .75; letter-spacing: .02em; }
+        .doc-topbar__actions { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+        .doc-topbar__btn { color: #fff; background: rgba(255, 255, 255, .12); border: 0; border-radius: .5rem;
+                           padding: .4rem .75rem; font-size: .85rem; text-decoration: none; line-height: 1.4; }
+        .doc-topbar__btn:hover { background: rgba(255, 255, 255, .22); color: #fff; }
+
+        .doc-shell { max-width: 1400px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+        .doc-footer { border-top: 1px solid rgba(148, 163, 184, .3); margin-top: 2.5rem;
+                      padding: 1.25rem 0; font-size: .85rem; color: var(--secondary-color, #94a3b8); }
+
+        /* Le bouton burger n'apparaît qu'en petit écran, où le sommaire se replie. */
+        .doc-toc-toggle { display: none; }
+        @media (max-width: 991.98px) { .doc-toc-toggle { display: inline-block; } }
+
+        /* ── Recherche ── */
+        .doc-search { position: relative; flex: 1 1 auto; max-width: 460px; margin-left: 1rem; }
+        .doc-search__field { position: relative; display: flex; align-items: center; }
+        .doc-search__icon { position: absolute; left: .7rem; font-size: .85rem; color: rgba(255, 255, 255, .6); pointer-events: none; }
+        .doc-search__input { width: 100%; padding: .45rem 2.4rem .45rem 2.1rem; border: 1px solid rgba(255, 255, 255, .2);
+                             border-radius: .5rem; background: rgba(255, 255, 255, .12); color: #fff; font-size: .875rem; }
+        .doc-search__input::placeholder { color: rgba(255, 255, 255, .6); }
+        .doc-search__input:focus { outline: none; background: rgba(255, 255, 255, .2);
+                                   border-color: rgba(255, 255, 255, .45); }
+        /* La croix native de <input type=search> jure avec le fond sombre. */
+        .doc-search__input::-webkit-search-cancel-button { -webkit-appearance: none; }
+        .doc-search__kbd { position: absolute; right: .6rem; font-size: .7rem; padding: .05rem .35rem;
+                           border-radius: .25rem; background: rgba(255, 255, 255, .18); color: rgba(255, 255, 255, .8); }
+        .doc-search__input:focus ~ .doc-search__kbd { display: none; }
+
+        .doc-search__results { position: absolute; top: calc(100% + .4rem); left: 0; right: 0; z-index: 1040;
+                               background: #fff; border-radius: .6rem; box-shadow: 0 .75rem 2rem rgba(15, 23, 41, .25);
+                               max-height: min(70vh, 560px); overflow-y: auto; padding: .35rem; }
+        [data-bs-theme="dark"] .doc-search__results { background: var(--es-card-bg, #1a2438); }
+
+        .doc-search__hit { display: block; padding: .55rem .7rem; border-radius: .45rem; text-decoration: none;
+                           color: inherit; border: 0; background: none; width: 100%; text-align: left; }
+        .doc-search__hit:hover, .doc-search__hit.is-active { background: rgba(30, 58, 95, .09); }
+        [data-bs-theme="dark"] .doc-search__hit:hover,
+        [data-bs-theme="dark"] .doc-search__hit.is-active { background: rgba(255, 255, 255, .08); }
+        .doc-search__crumb { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
+                             color: var(--secondary-color, #94a3b8); }
+        .doc-search__heading { font-weight: 600; font-size: .9rem; margin: .1rem 0; }
+        .doc-search__excerpt { font-size: .8rem; color: var(--secondary-color, #94a3b8); line-height: 1.5; }
+        .doc-search__hit mark, .doc-article mark { background: rgba(245, 158, 11, .35); color: inherit;
+                                                   padding: 0 .1em; border-radius: .15rem; }
+        .doc-search__empty { padding: 1rem .75rem; font-size: .85rem; color: var(--secondary-color, #94a3b8); }
+
+        @media (max-width: 767.98px) {
+            .doc-search { margin-left: .5rem; }
+            .doc-search__kbd { display: none; }
+            .doc-topbar__btn span { display: none; }
+        }
+    </style>
+
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+
+<header class="doc-topbar">
+    <div class="doc-topbar__inner">
+        <a href="{{ path('app_documentation') }}" class="doc-topbar__brand">
+            <img src="{{ asset('images/logo-edu-school.png') }}" alt="EDU-SCHOOL">
+            <span>
+                EDU-SCHOOL
+                <small>Documentation</small>
+            </span>
+        </a>
+
+        {# ── Recherche ── #}
+        <div class="doc-search" id="docSearch">
+            <div class="doc-search__field">
+                <i class="fas fa-magnifying-glass doc-search__icon"></i>
+                <input type="search" id="docSearchInput" class="doc-search__input"
+                       placeholder="Rechercher dans la documentation…"
+                       autocomplete="off" role="combobox" aria-expanded="false"
+                       aria-controls="docSearchResults" aria-label="Rechercher dans la documentation">
+                <kbd class="doc-search__kbd">/</kbd>
+            </div>
+            <div class="doc-search__results" id="docSearchResults" role="listbox" hidden></div>
+        </div>
+
+        <div class="doc-topbar__actions">
+            <button type="button" class="doc-topbar__btn doc-toc-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#docToc" aria-expanded="false"
+                    aria-controls="docToc" aria-label="Afficher le sommaire">
+                <i class="fas fa-list"></i>
+            </button>
+            <button type="button" class="doc-topbar__btn" id="docThemeToggle" aria-label="Basculer le thème">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="{{ path('app_home') }}" class="doc-topbar__btn">
+                <i class="fas fa-arrow-right-to-bracket me-1"></i>Accéder à l'application
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="doc-shell">
+    {% block body %}{% endblock %}
+
+    <footer class="doc-footer">
+        &copy; {{ "now"|date("Y") }} EDU-SCHOOL — Système de Gestion Scolaire · Documentation
+    </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Thème clair/sombre, mémorisé localement. Clé partagée avec l'application.
+    (function () {
+        var root = document.documentElement;
+        var toggle = document.getElementById('docThemeToggle');
+        var icon = toggle.querySelector('i');
+
+        function apply(theme) {
+            root.setAttribute('data-bs-theme', theme);
+            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+
+        apply(localStorage.getItem('edu-school-theme') || 'light');
+
+        toggle.addEventListener('click', function () {
+            var next = root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('edu-school-theme', next);
+            apply(next);
+        });
+    })();
+</script>
+<script>
+    // ── Recherche dans la documentation ─────────────────────────────────────
+    // L'index est chargé une seule fois, au premier usage du champ.
+    (function () {
+        var INDEX_URL = '{{ path('app_documentation_search') }}';
+        var box = document.getElementById('docSearch');
+        var input = document.getElementById('docSearchInput');
+        var panel = document.getElementById('docSearchResults');
+        if (!box || !input || !panel) { return; }
+
+        var index = null;
+        var loading = null;
+        var hits = [];
+        var active = -1;
+
+        // Repli des accents, caractère par caractère : « élève » doit matcher
+        // « eleve ». Le traitement char-by-char garde les positions alignées,
+        // ce dont dépend la mise en surbrillance.
+        function fold(text) {
+            var out = '';
+            for (var i = 0; i < text.length; i++) {
+                var c = text[i];
+                // On retire les marques combinantes (U+0300 à U+036F) sans
+                // classe de caractères littérale : la source reste en ASCII.
+                var d = c.normalize('NFD');
+                var n = '';
+                for (var k = 0; k < d.length; k++) {
+                    var cp = d.charCodeAt(k);
+                    if (cp < 0x300 || cp > 0x36f) { n += d[k]; }
+                }
+                out += (n.length === 1 ? n : c);
+            }
+            return out.toLowerCase();
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        function load() {
+            if (index) { return Promise.resolve(index); }
+            if (!loading) {
+                loading = fetch(INDEX_URL, { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        index = data.map(function (e) {
+                            e._h = fold(e.heading);
+                            e._t = fold(e.text);
+                            e._s = fold(e.title);
+                            return e;
+                        });
+                        return index;
+                    })
+                    .catch(function () { index = []; return index; });
+            }
+            return loading;
+        }
+
+        // Tous les termes doivent être présents (ET). Le score privilégie les
+        // correspondances de titre, puis de rubrique, puis de corps de texte.
+        function search(query) {
+            var terms = fold(query).split(/\s+/).filter(Boolean);
+            if (!terms.length) { return []; }
+
+            var results = [];
+            for (var i = 0; i < index.length; i++) {
+                var e = index[i];
+                var score = 0;
+                var ok = true;
+
+                for (var t = 0; t < terms.length; t++) {
+                    var term = terms[t];
+                    var inHeading = e._h.indexOf(term);
+                    var inTitle = e._s.indexOf(term);
+                    var inText = e._t.indexOf(term);
+
+                    if (inHeading === -1 && inTitle === -1 && inText === -1) { ok = false; break; }
+
+                    if (inHeading !== -1) { score += inHeading === 0 ? 120 : 80; }
+                    if (inTitle !== -1) { score += 40; }
+                    if (inText !== -1) { score += 12; }
+                }
+
+                if (ok) {
+                    // Un titre de niveau 2 est un point d'entrée plus naturel qu'un h3.
+                    score += e.level === 2 ? 6 : 0;
+                    results.push({ entry: e, score: score, term: terms[0] });
+                }
+            }
+
+            results.sort(function (a, b) { return b.score - a.score; });
+            return results.slice(0, 12);
+        }
+
+        function excerpt(entry, term) {
+            var text = entry.text;
+            if (!text) { return ''; }
+
+            var pos = entry._t.indexOf(term);
+            if (pos === -1) { pos = 0; }
+
+            var start = Math.max(0, pos - 60);
+            var slice = text.slice(start, start + 170);
+            var html = escapeHtml((start > 0 ? '…' : '') + slice + (start + 170 < text.length ? '…' : ''));
+
+            // Surbrillance sur la version repliée, pour rester insensible aux accents.
+            var folded = fold(html);
+            var at = folded.indexOf(term);
+            if (at !== -1) {
+                html = html.slice(0, at) + '<mark>' + html.slice(at, at + term.length) + '</mark>' + html.slice(at + term.length);
+            }
+            return html;
+        }
+
+        function render(results, query) {
+            hits = results;
+            active = -1;
+
+            if (!query.trim()) { close(); return; }
+
+            if (!results.length) {
+                panel.innerHTML = '<div class="doc-search__empty">Aucun résultat pour « ' + escapeHtml(query) + ' ».</div>';
+                open();
+                return;
+            }
+
+            panel.innerHTML = results.map(function (r, i) {
+                var e = r.entry;
+                // L'ancre se place après la query string, jamais avant.
+                var url = '{{ path('app_documentation') }}/' + e.slug
+                        + '?q=' + encodeURIComponent(query)
+                        + (e.anchor ? '#' + e.anchor : '');
+
+                return '<a class="doc-search__hit" role="option" data-i="' + i + '" href="' + url + '">'
+                     + '<div class="doc-search__crumb">' + escapeHtml(e.group) + ' · ' + escapeHtml(e.title) + '</div>'
+                     + '<div class="doc-search__heading">' + escapeHtml(e.heading) + '</div>'
+                     + '<div class="doc-search__excerpt">' + excerpt(e, r.term) + '</div>'
+                     + '</a>';
+            }).join('');
+            open();
+        }
+
+        function open() { panel.hidden = false; input.setAttribute('aria-expanded', 'true'); }
+        function close() { panel.hidden = true; input.setAttribute('aria-expanded', 'false'); active = -1; }
+
+        function highlight(i) {
+            var nodes = panel.querySelectorAll('.doc-search__hit');
+            nodes.forEach(function (n) { n.classList.remove('is-active'); });
+            if (i >= 0 && nodes[i]) {
+                nodes[i].classList.add('is-active');
+                nodes[i].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        var timer;
+        input.addEventListener('input', function () {
+            var q = input.value;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                load().then(function () { render(search(q), q); });
+            }, 120);
+        });
+
+        input.addEventListener('focus', load);
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { input.value = ''; close(); input.blur(); return; }
+            if (panel.hidden || !hits.length) { return; }
+
+            if (e.key === 'ArrowDown') { e.preventDefault(); active = (active + 1) % hits.length; highlight(active); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); active = (active - 1 + hits.length) % hits.length; highlight(active); }
+            else if (e.key === 'Enter' && active >= 0) {
+                e.preventDefault();
+                var node = panel.querySelector('.doc-search__hit[data-i="' + active + '"]');
+                if (node) { window.location.href = node.getAttribute('href'); }
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!box.contains(e.target)) { close(); }
+        });
+
+        // « / » et Ctrl+K placent le curseur dans la recherche.
+        document.addEventListener('keydown', function (e) {
+            var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+            if ((e.key === '/' && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {
+                e.preventDefault();
+                input.focus();
+                input.select();
+            }
+        });
+
+        // ── Surbrillance sur la page d'arrivée ──
+        var q = new URLSearchParams(window.location.search).get('q');
+        if (q) {
+            input.value = q;
+            var terms = fold(q).split(/\s+/).filter(Boolean);
+            var article = document.querySelector('.doc-article');
+
+            if (article && terms.length) {
+                var walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
+                var nodes = [];
+                while (walker.nextNode()) { nodes.push(walker.currentNode); }
+
+                nodes.forEach(function (node) {
+                    if (node.parentNode.closest('pre, code, mark')) { return; }
+                    var folded = fold(node.nodeValue);
+                    var ranges = [];
+
+                    terms.forEach(function (term) {
+                        var from = 0, at;
+                        while ((at = folded.indexOf(term, from)) !== -1) {
+                            ranges.push([at, at + term.length]);
+                            from = at + term.length;
+                        }
+                    });
+                    if (!ranges.length) { return; }
+
+                    ranges.sort(function (a, b) { return a[0] - b[0]; });
+                    var frag = document.createDocumentFragment();
+                    var cursor = 0;
+                    ranges.forEach(function (r) {
+                        if (r[0] < cursor) { return; }   // chevauchement : on ignore
+                        frag.appendChild(document.createTextNode(node.nodeValue.slice(cursor, r[0])));
+                        var mark = document.createElement('mark');
+                        mark.textContent = node.nodeValue.slice(r[0], r[1]);
+                        frag.appendChild(mark);
+                        cursor = r[1];
+                    });
+                    frag.appendChild(document.createTextNode(node.nodeValue.slice(cursor)));
+                    node.parentNode.replaceChild(frag, node);
+                });
+            }
+
+            // Le navigateur a déjà tenté de sauter à l'ancre avant nos <mark> :
+            // on repositionne une fois la surbrillance posée.
+            if (window.location.hash) {
+                var target = document.getElementById(window.location.hash.slice(1));
+                if (target) { target.scrollIntoView(); }
+            }
+        }
+    })();
+</script>
+{% block javascripts %}{% endblock %}
+</body>
+</html>

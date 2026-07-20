@@ -1,0 +1,113 @@
+<h2 id="stack">Stack technique</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Couche</th><th>Technologie</th></tr></thead>
+        <tbody>
+            <tr><td>Langage</td><td>PHP 8.1 ou supérieur</td></tr>
+            <tr><td>Framework</td><td>Symfony 6.4 LTS</td></tr>
+            <tr><td>ORM</td><td>Doctrine ORM 3 + Doctrine Migrations</td></tr>
+            <tr><td>Base de données</td><td>MySQL / MariaDB</td></tr>
+            <tr><td>Vues</td><td>Twig, Bootstrap 5.3, Font Awesome 6</td></tr>
+            <tr><td>Assets</td><td>Symfony AssetMapper (pas de build Node requis), Stimulus, Turbo</td></tr>
+            <tr><td>PDF</td><td>Dompdf — bulletins, reçus, états</td></tr>
+            <tr><td>Excel</td><td>PhpSpreadsheet — imports et exports</td></tr>
+            <tr><td>Pagination</td><td>KnpPaginatorBundle — 50 lignes par page sur toutes les listes</td></tr>
+            <tr><td>Fichiers</td><td>VichUploaderBundle, elFinder (gestionnaire de fichiers), CKEditor</td></tr>
+            <tr><td>Divers</td><td>QR codes (endroid), PHPMailer, Guzzle</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="arborescence">Organisation du code</h2>
+<pre><code>src/
+ ├── Controller/          Contrôleurs HTTP (un par module)
+ │    ├── Api/            API mobile REST (ed_photo)
+ │    ├── Portal/         Portails parent et élève
+ │    └── Concern/        Traits partagés entre contrôleurs
+ ├── Entity/              Entités Doctrine (modèle de données)
+ ├── Repository/          Requêtes métier
+ ├── Form/                Types de formulaires
+ ├── Service/             Logique métier réutilisable
+ ├── Security/            Authentificateurs et voteurs
+ └── Twig/                Extensions Twig
+
+templates/                Vues, une arborescence par module
+ ├── base.html.twig       Layout principal (sidebar, topbar, footer)
+ ├── components/          Composants réutilisables (page_header, macros…)
+ └── documentation/       Cette documentation
+
+config/                   Configuration (packages, routes, services)
+migrations/               Migrations Doctrine
+public/                   Racine web
+docs/                     Notes techniques détaillées par module</code></pre>
+
+<h2 id="modele">Modèle de données — les entités centrales</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Entité</th><th>Rôle</th></tr></thead>
+        <tbody>
+            <tr><td><code>School</code>, <code>SchoolGroup</code></td><td>Établissement et regroupement d'établissements.</td></tr>
+            <tr><td><code>SchoolYear</code></td><td>Année scolaire ; borne la quasi-totalité des données.</td></tr>
+            <tr><td><code>Student</code></td><td>Référentiel d'identité de l'élève. Ne porte aucune donnée de scolarité.</td></tr>
+            <tr><td><code>Registration</code></td><td>Inscription : élève × année. Porte classe, niveau, statut, bourse, frais.</td></tr>
+            <tr><td><code>PreRegistration</code></td><td>Demande d'admission, avec ses <code>PreRegistrationDocument</code>.</td></tr>
+            <tr><td><code>Cycle</code>, <code>Level</code>, <code>Faculty</code>, <code>Round</code>, <code>Classroom</code></td><td>Structure pédagogique.</td></tr>
+            <tr><td><code>Subject</code>, <code>SubjectType</code>, <code>Course</code>, <code>TimeSlot</code>, <code>Room</code></td><td>Matières et emplois du temps.</td></tr>
+            <tr><td><code>Period</code>, <code>Evaluation</code>, <code>Grade</code></td><td>Périodes, évaluations et notes.</td></tr>
+            <tr><td><code>Bulletin</code>, <code>BulletinLine</code></td><td>Bulletins scolaires.</td></tr>
+            <tr><td><code>Absence</code>, <code>AbsenceType</code></td><td>Absences et assiduité.</td></tr>
+            <tr><td><code>Fee</code>, <code>StudentFee</code>, <code>FeeSchedule</code></td><td>Frais du niveau, frais dus par l'élève, échéanciers.</td></tr>
+            <tr><td><code>Payment</code>, <code>CashRegister</code>, <code>CashDeposit</code>, <code>Depense</code></td><td>Encaissements, caisses, versements bancaires, dépenses.</td></tr>
+            <tr><td><code>AccountingAccount</code>, <code>AccountingEntry</code>, <code>AccountingPeriodClosure</code>, <code>BankReconciliation</code></td><td>Comptabilité.</td></tr>
+            <tr><td><code>Employee</code>, <code>Contract</code>, <code>SalaryComponent</code>, <code>PayrollPeriod</code>, <code>Payslip</code></td><td>RH et paie.</td></tr>
+            <tr><td><code>User</code></td><td>Compte de connexion et rôles.</td></tr>
+            <tr><td><code>Notification</code>, <code>ActivityLog</code></td><td>Notifications internes et journal d'activité.</td></tr>
+        </tbody>
+    </table>
+</div>
+<p>
+    Les entités rattachées à un établissement implémentent <code>SchoolOwnedInterface</code> (ou
+    <code>MultiSchoolOwnedInterface</code> quand elles en concernent plusieurs) : c'est ce marqueur qui pilote
+    le filtrage par contexte.
+</p>
+
+<h2 id="services">Services métier</h2>
+<p>La logique non triviale est extraite des contrôleurs dans <code>src/Service/</code> :</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Service</th><th>Responsabilité</th></tr></thead>
+        <tbody>
+            <tr><td><code>SchoolContextService</code></td><td>Établissement et année courants ; socle du filtrage.</td></tr>
+            <tr><td><code>EnrollmentService</code>, <code>RegistrationManager</code></td><td>Transformation d'une préinscription validée en inscription, sans duplication d'élève.</td></tr>
+            <tr><td><code>FeeAssignmentService</code></td><td>Rattachement automatique des frais du niveau à l'élève inscrit.</td></tr>
+            <tr><td><code>GradeCalculationService</code></td><td>Moyennes pondérées, rangs, données des bulletins.</td></tr>
+            <tr><td><code>AttendanceService</code></td><td>Taux d'assiduité et détection des élèves à risque.</td></tr>
+            <tr><td><code>AccountingService</code></td><td>Génération automatique des écritures comptables.</td></tr>
+            <tr><td><code>PayrollService</code></td><td>Calcul des bulletins de salaire (CNPS, ITS, rubriques).</td></tr>
+            <tr><td><code>RecouvrementService</code>, <code>ArriereManager</code>, <code>ArriereImporter</code></td><td>Soldes, relances, arriérés et leur import.</td></tr>
+            <tr><td><code>PaymentReceiptService</code></td><td>Génération des reçus PDF.</td></tr>
+            <tr><td><code>MatriculeGenerator</code>, <code>CodeGenerator</code></td><td>Matricules élèves et codes de référence.</td></tr>
+            <tr><td><code>NotificationService</code>, <code>ActivityLogger</code></td><td>Notifications internes et traçabilité des actions.</td></tr>
+            <tr><td><code>ParentPortalService</code>, <code>ParentContextService</code></td><td>Données et contexte de l'espace parent.</td></tr>
+            <tr><td><code>StudentAccountManager</code>, <code>UserEmployeeService</code></td><td>Comptes élèves ; liaison compte utilisateur ↔ employé.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="securite">Sécurité</h2>
+<ul>
+    <li><strong>Pare-feu <code>main</code></strong> — deux authentificateurs : <code>MainAuthenticator</code>
+        (personnel et parents, par identifiant ou e-mail) et <code>StudentAuthenticator</code> (élèves, par matricule).</li>
+    <li><strong>Pare-feu <code>api</code></strong> — sans état, <code>ApiTokenAuthenticator</code> sur jeton porteur.</li>
+    <li><strong>Limitation</strong> — 3 tentatives de connexion par 2 minutes.</li>
+    <li><strong>Rôles hiérarchisés</strong> — voir la rubrique <a href="{{ path('app_documentation_section', {'slug': 'roles'}) }}">Rôles et permissions</a>.</li>
+    <li><strong>CSRF</strong> — jeton exigé sur les formulaires et les actions sensibles.</li>
+</ul>
+<h2 id="conventions">Conventions de développement</h2>
+<ul>
+    <li>Les listes paginent à 50 éléments via KnpPaginator, avec le partial <code>_pagination.html.twig</code>.</li>
+    <li>Les en-têtes de page utilisent le composant <code>components/page_header.html.twig</code>.</li>
+    <li>Les suppressions passent par le trait <code>HandlesEntityDeletion</code>, qui intercepte les contraintes de clé étrangère et affiche un message clair.</li>
+    <li>Les confirmations de suppression s'appuient sur SweetAlert2 via l'attribut <code>data-confirm</code>.</li>
+    <li>Charte graphique : navy <code>#1e3a5f</code> et émeraude <code>#10b981</code>, thèmes clair et sombre.</li>
+</ul>

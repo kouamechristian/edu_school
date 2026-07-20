@@ -1,0 +1,65 @@
+<h2 id="objet">À quoi sert EDU-SCHOOL</h2>
+<p>
+    EDU-SCHOOL est une plateforme web de gestion d'établissements scolaires. Elle centralise dans une seule
+    application le parcours complet d'un élève — de sa préinscription à l'édition de son bulletin — ainsi que
+    la gestion financière, comptable et administrative de l'établissement.
+</p>
+<p>
+    L'application est <strong>multi-établissements</strong> : un même déploiement peut héberger plusieurs écoles,
+    éventuellement regroupées en <em>groupes scolaires</em>. Chaque utilisateur travaille dans le contexte d'un
+    établissement et d'une année scolaire, sélectionnés dans la barre supérieure ; toutes les listes et
+    statistiques sont filtrées en conséquence.
+</p>
+
+<h2 id="modules">Les modules</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr><th>Module</th><th>Contenu</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Gestion des élèves</strong></td><td>Base de données élèves, préinscriptions, inscriptions, affectation en classe, transferts, exclusions, archives, rapports.</td></tr>
+            <tr><td><strong>Académique</strong></td><td>Cycles, niveaux, filières, séries, classes, matières, emplois du temps, enseignants, salles, plages horaires.</td></tr>
+            <tr><td><strong>Notes &amp; évaluations</strong></td><td>Périodes, évaluations, saisie des notes, moyennes pondérées, bulletins scolaires en PDF.</td></tr>
+            <tr><td><strong>Absences</strong></td><td>Saisie et justification des absences, types d'absence, rapport d'assiduité, détection des élèves à risque.</td></tr>
+            <tr><td><strong>Gestion financière</strong></td><td>Frais de scolarité par niveau, bourses, caisse (ouverture/clôture), paiements et reçus, dépenses, versements bancaires.</td></tr>
+            <tr><td><strong>Comptabilité</strong></td><td>Journal alimenté automatiquement, plan comptable, grand livre, rapports financiers, rapprochement bancaire, clôtures.</td></tr>
+            <tr><td><strong>Recouvrement</strong></td><td>Suivi des soldes impayés, relances, gestion des arriérés d'années antérieures.</td></tr>
+            <tr><td><strong>Ressources humaines</strong></td><td>Employés, contrats de travail, rubriques de paie, bulletins de salaire, livre de paie.</td></tr>
+            <tr><td><strong>Espaces dédiés</strong></td><td>Portails parent, élève, enseignant et fondateur, chacun avec sa propre connexion et ses propres droits.</td></tr>
+            <tr><td><strong>Communication</strong></td><td>Notifications internes (cloche), suivi d'activité (mouchard), journaux Mobile Money.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="principes">Trois principes à retenir</h2>
+<h3 id="1-le-contexte-etablissement-annee">1. Le contexte établissement / année</h3>
+<p>
+    Presque toutes les données appartiennent à un établissement et à une année scolaire. Le sélecteur en haut de
+    page détermine ce que vous voyez : si une liste vous paraît vide ou incomplète, vérifiez d'abord ce contexte.
+</p>
+
+<h3 id="2-eleve-inscription">2. Élève ≠ inscription</h3>
+<p>
+    La fiche <strong>élève</strong> est un pur référentiel d'identité (nom, date de naissance, matricule, photo…) :
+    elle ne change pas d'une année à l'autre. Toute la scolarité — année, classe, niveau, statut, bourse, frais —
+    est portée par l'<strong>inscription</strong> (<code>Registration</code>). Un élève a donc autant d'inscriptions
+    que d'années passées dans l'établissement, sans jamais être dupliqué.
+</p>
+
+<h3 id="3-les-roles-commandent-tout">3. Les rôles commandent tout</h3>
+<p>
+    Le menu latéral, les boutons d'action et l'accès aux pages sont conditionnés par vos rôles. Un même écran peut
+    donc être en lecture seule pour l'un et modifiable pour l'autre. Voir la rubrique
+    <a href="{{ path('app_documentation_section', {'slug': 'roles'}) }}">Rôles et permissions</a>.
+</p>
+
+<h2 id="technique">En bref, côté technique</h2>
+<ul>
+    <li><strong>Framework</strong> : Symfony 6.4 (PHP 8.1+), Doctrine ORM 3.</li>
+    <li><strong>Interface</strong> : Twig, Bootstrap 5.3, Font Awesome 6, thème clair/sombre.</li>
+    <li><strong>Base de données</strong> : MySQL / MariaDB.</li>
+    <li><strong>PDF et tableurs</strong> : Dompdf (bulletins, reçus, états), PhpSpreadsheet (imports/exports Excel).</li>
+    <li><strong>API mobile</strong> : REST authentifiée par jeton porteur, consommée par l'application Flutter <em>ed_photo</em>.</li>
+</ul>
+<p>Le détail se trouve dans la rubrique <a href="{{ path('app_documentation_section', {'slug': 'architecture'}) }}">Architecture technique</a>.</p>

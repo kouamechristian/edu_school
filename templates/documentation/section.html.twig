@@ -1,0 +1,46 @@
+{% extends 'documentation/_layout.html.twig' %}
+
+{% block title %}{{ section.title }} — Documentation{% endblock %}
+
+{% block doc_header %}
+    {% embed 'components/page_header.html.twig' with {
+        title: section.title,
+        subtitle: section.abstract,
+        icon: section.icon,
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Documentation', path: path('app_documentation') },
+            { label: section.group },
+            { label: section.title }
+        ]
+    } %}
+        {% block actions %}
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> Imprimer
+            </button>
+        {% endblock %}
+    {% endembed %}
+{% endblock %}
+
+{% block doc_content %}
+<div class="card">
+    <div class="card-body doc-article">
+        {% include 'documentation/sections/' ~ section.slug ~ '.html.twig' %}
+    </div>
+</div>
+
+{# ── Navigation précédent / suivant ── #}
+<div class="d-flex justify-content-between gap-2 mt-3 doc-nav">
+    {% if previous %}
+        <a href="{{ path('app_documentation_section', {'slug': previous.slug}) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> {{ previous.title }}
+        </a>
+    {% else %}<span></span>{% endif %}
+
+    {% if next %}
+        <a href="{{ path('app_documentation_section', {'slug': next.slug}) }}" class="btn btn-outline-primary ms-auto">
+            {{ next.title }} <i class="fas fa-arrow-right ms-1"></i>
+        </a>
+    {% endif %}
+</div>
+{% endblock %}

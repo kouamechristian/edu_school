@@ -1,0 +1,71 @@
+<h2 id="employes">Employés</h2>
+<p>
+    <em>Ressources Humaines → Employés</em>. La fiche employé regroupe l'identité, la fonction, les coordonnées
+    et les informations administratives (numéro CNPS, situation familiale, coordonnées bancaires).
+</p>
+<div class="doc-note">
+    Un enseignant a deux fiches distinctes et complémentaires : la fiche <strong>enseignant</strong> (pédagogique :
+    matières, classes) et la fiche <strong>employé</strong> (administrative : contrat, salaire). Les deux peuvent
+    être reliées au même compte utilisateur.
+</div>
+
+<h2 id="contrats">Contrats de travail</h2>
+<p>
+    <em>Ressources Humaines → Contrat de travail</em>. Un contrat précise le type (CDI, CDD, vacation), les dates
+    de début et de fin, le salaire de base et la quotité de travail. Un employé peut avoir plusieurs contrats
+    successifs ; c'est le contrat actif qui alimente la paie.
+</p>
+
+<h2 id="rubriques">Rubriques de paie</h2>
+<p>
+    <em>Ressources Humaines → Rubriques de paie</em>. Chaque ligne d'un bulletin de salaire est une rubrique :
+</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Type</th><th>Effet</th><th>Exemples</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-soft success">Gain</span></td><td>Augmente le brut.</td><td>Salaire de base, prime d'ancienneté, heures supplémentaires, indemnité de transport.</td></tr>
+            <tr><td><span class="badge badge-soft danger">Retenue</span></td><td>Diminue le net.</td><td>Cotisation CNPS salariale, ITS, avance sur salaire, absence non rémunérée.</td></tr>
+            <tr><td><span class="badge badge-soft secondary">Patronale</span></td><td>À la charge de l'employeur, hors net.</td><td>CNPS part patronale, prestations familiales.</td></tr>
+        </tbody>
+    </table>
+</div>
+<p>
+    Une rubrique peut être un montant fixe, un pourcentage d'une base, ou le résultat d'un barème. Elle peut
+    s'appliquer à tous les employés ou seulement à certains.
+</p>
+
+<h2 id="parametres">Paramètres de paie</h2>
+<p>
+    <em>Ressources Humaines → Paramètres de paie</em>. On y règle les taux et barèmes légaux : cotisations CNPS
+    (parts salariale et patronale, plafonds) et barème de l'ITS. Ces valeurs étant susceptibles d'évoluer avec la
+    réglementation, elles sont paramétrables plutôt que codées en dur.
+</p>
+<div class="doc-note warning">
+    <div class="doc-note__title"><i class="fas fa-triangle-exclamation me-1"></i> À vérifier chaque année</div>
+    Contrôlez taux et plafonds au début de chaque exercice, avant de générer la première paie de l'année.
+</div>
+
+<h2 id="cycle">Générer une paie</h2>
+<ol class="doc-steps">
+    <li>Créez la <strong>période de paie</strong> (mois concerné) depuis <em>Ressources Humaines → Paie</em>.</li>
+    <li>Lancez la génération : l'application produit un bulletin par employé sous contrat actif, en appliquant les rubriques et les barèmes.</li>
+    <li>Contrôlez les bulletins un à un ; ajoutez les rubriques exceptionnelles du mois (primes, avances, retenues).</li>
+    <li>Validez la période. Les bulletins deviennent définitifs.</li>
+    <li>Éditez les bulletins en PDF et imprimez le <strong>livre de paie</strong> de la période.</li>
+</ol>
+
+<h2 id="livre">Livre de paie</h2>
+<p>
+    Le livre de paie récapitule, pour une période, l'ensemble des bulletins : brut, retenues, net à payer et
+    charges patronales, par employé et en total. C'est le document de synthèse à conserver et à transmettre à
+    la comptabilité.
+</p>
+
+<h2 id="limites">Périmètre actuel</h2>
+<div class="doc-note">
+    Le module couvre aujourd'hui le paramétrage des rubriques, le calcul CNPS / ITS, l'édition des bulletins et
+    le livre de paie. Le <strong>règlement des salaires et son déversement comptable automatique</strong> font
+    l'objet d'une évolution à venir : en attendant, saisissez le paiement des salaires comme une dépense et
+    l'écriture correspondante au journal.
+</div>

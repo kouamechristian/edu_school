@@ -1,0 +1,76 @@
+<h2 id="principe">Une comptabilité alimentée automatiquement</h2>
+<p>
+    Le module comptable ne demande pas de double saisie : les opérations de caisse — paiements, dépenses,
+    versements — génèrent automatiquement leurs écritures au journal. La saisie manuelle reste possible pour
+    les opérations diverses (amortissements, régularisations, à-nouveaux).
+</p>
+
+<h2 id="plan">Plan comptable</h2>
+<p>
+    <em>Comptabilité → Plan comptable</em>. La liste des comptes utilisés par l'établissement, organisée par
+    classe (capitaux, immobilisations, tiers, charges, produits, trésorerie). Un plan de base est proposé à
+    l'installation ; adaptez-le à vos besoins avant la première clôture.
+</p>
+<div class="doc-note">
+    Chaque type d'opération est associé à un couple de comptes (débit / crédit). C'est ce paramétrage qui permet
+    la génération automatique des écritures. Vérifiez-le avant la mise en production.
+</div>
+
+<h2 id="journal">Journal comptable</h2>
+<p>
+    <em>Comptabilité → Journal comptable</em>. Toutes les écritures, par ordre chronologique, avec leur pièce
+    d'origine. Chaque écriture est équilibrée (total débit = total crédit) et rattachée à une période.
+</p>
+<ul>
+    <li>Filtrez par date, compte, journal ou libellé.</li>
+    <li>Ouvrez une écriture pour remonter à la pièce qui l'a produite (le paiement, la dépense…).</li>
+    <li>Une écriture d'une période close n'est plus modifiable : il faut passer une écriture de correction.</li>
+</ul>
+
+<h2 id="grand-livre">Grand livre</h2>
+<p>
+    <em>Comptabilité → Grand livre</em>. La même information vue par compte : pour un compte donné, toutes ses
+    écritures, avec solde progressif et solde final. C'est l'outil de contrôle : un solde inattendu se
+    diagnostique ici.
+</p>
+
+<h2 id="rapports">Rapports financiers</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Rapport</th><th>Ce qu'il donne</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Balance</strong></td><td>Totaux débit / crédit et solde de chaque compte sur une période.</td></tr>
+            <tr><td><strong>Compte de résultat</strong></td><td>Produits et charges de la période, et le résultat qui en découle.</td></tr>
+            <tr><td><strong>Bilan</strong></td><td>Actif et passif à une date donnée.</td></tr>
+            <tr><td><strong>Trésorerie</strong></td><td>Entrées et sorties, position de caisse et de banque.</td></tr>
+        </tbody>
+    </table>
+</div>
+<p>Tous les rapports sont bornés par des dates et exportables en PDF ou Excel.</p>
+
+<h2 id="rapprochement">Rapprochement bancaire</h2>
+<p>
+    <em>Comptabilité → Rapprochement</em>. Confrontez le relevé de la banque aux écritures enregistrées :
+    pointez les lignes qui correspondent, identifiez les versements en transit et les frais bancaires non
+    encore comptabilisés. Le rapprochement se conserve, daté et signé.
+</p>
+
+<h2 id="cloture">Clôtures de période</h2>
+<ol class="doc-steps">
+    <li>Vérifiez que tous les paiements, dépenses et versements de la période sont saisis et approuvés.</li>
+    <li>Contrôlez la balance : elle doit être équilibrée.</li>
+    <li>Effectuez le rapprochement bancaire de la période.</li>
+    <li>Clôturez depuis <em>Comptabilité → Clôtures de période</em>.</li>
+</ol>
+<div class="doc-note danger">
+    <div class="doc-note__title"><i class="fas fa-lock me-1"></i> Irréversible en pratique</div>
+    Une période close interdit toute nouvelle écriture à une date antérieure. Ne clôturez qu'après contrôle
+    complet ; les corrections ultérieures devront passer par des écritures de régularisation sur la période
+    suivante.
+</div>
+
+<h2 id="dashboard">Tableau de bord</h2>
+<p>
+    <em>Comptabilité → Tableau de bord</em> résume l'essentiel : recettes et dépenses du mois, position de
+    trésorerie, évolution sur l'année, principaux postes de charges. C'est la vue à consulter en premier.
+</p>

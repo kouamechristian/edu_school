@@ -1,0 +1,58 @@
+{% extends 'documentation/_layout.html.twig' %}
+
+{% block title %}Documentation{% endblock %}
+
+{% block doc_header %}
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Documentation EDU-SCHOOL',
+        subtitle: "Guide d'utilisation et référence technique de la plateforme",
+        icon: 'fa-book',
+        color: 'primary',
+        breadcrumb: [ { label: 'Documentation' } ]
+    } %}
+        {% block actions %}
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> Imprimer
+            </button>
+        {% endblock %}
+    {% endembed %}
+{% endblock %}
+
+{% block doc_content %}
+<div class="card mb-4">
+    <div class="card-body doc-article">
+        <p class="mb-2">
+            EDU-SCHOOL est une plateforme de gestion scolaire multi-établissements : elle couvre la scolarité
+            (de la préinscription au bulletin), les finances (caisse, comptabilité, recouvrement), les ressources
+            humaines et la paie, ainsi que les espaces dédiés aux parents, élèves et enseignants.
+        </p>
+        <p class="mb-0 text-muted">
+            Cette documentation est organisée en {{ summary|reduce((total, sections) => total + sections|length, 0) }} rubriques.
+            Choisissez la vôtre ci-dessous, ou utilisez le sommaire à gauche.
+        </p>
+    </div>
+</div>
+
+{% for group, sections in summary %}
+    <h2 class="h5 fw-bold text-primary mt-4 mb-3">{{ group }}</h2>
+    <div class="row g-3">
+        {% for item in sections %}
+            <div class="col-md-6 col-xl-4">
+                <a href="{{ path('app_documentation_section', {'slug': item.slug}) }}" class="doc-card-link">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="page-header__icon primary" style="width:2.25rem;height:2.25rem;font-size:.9rem;">
+                                    <i class="fas {{ item.icon }}"></i>
+                                </span>
+                                <h3 class="h6 fw-bold mb-0">{{ item.title }}</h3>
+                            </div>
+                            <p class="text-muted small mb-0">{{ item.abstract }}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+{% endfor %}
+{% endblock %}

@@ -27,6 +27,13 @@ class SchoolContextSubscriber implements EventSubscriberInterface
 
     public function onKernelController(ControllerEvent $event): void
     {
+        // La documentation est une page publique et autonome : elle n'affiche ni
+        // établissement ni année. Résoudre le contexte ici démarrerait une session
+        // et interrogerait la base pour un visiteur anonyme, sans aucun usage.
+        if (str_starts_with((string) $event->getRequest()->attributes->get('_route'), 'app_documentation')) {
+            return;
+        }
+
         $currentSchool = $this->contextService->getCurrentSchool();
         $currentSchoolYear = $this->contextService->getCurrentSchoolYear();
 

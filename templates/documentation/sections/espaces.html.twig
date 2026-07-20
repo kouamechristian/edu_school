@@ -1,0 +1,68 @@
+<p>
+    Au-delà de l'interface d'administration, EDU-SCHOOL propose quatre espaces dédiés, chacun avec sa propre
+    porte d'entrée et ses propres droits.
+</p>
+
+<h2 id="parent">Espace parent</h2>
+<p><strong>Connexion :</strong> <code>/parent/connexion</code>, avec le numéro de téléphone et le mot de passe.</p>
+<p>Le parent y trouve, pour chacun de ses enfants :</p>
+<ul>
+    <li>La fiche scolaire : classe, niveau, enseignants.</li>
+    <li>Les notes et bulletins <em>publiés</em>, l'emploi du temps, les devoirs.</li>
+    <li>Les absences et retards, avec leur justification.</li>
+    <li>La situation financière : frais dus, paiements effectués, solde, reçus téléchargeables.</li>
+    <li>Les notifications de l'établissement (cloche en haut de page).</li>
+</ul>
+
+<h3 id="auto-inscription-d-un-parent">Auto-inscription d'un parent</h3>
+<p>
+    Un parent sans compte peut en créer un lui-même sur <code>/parent/inscription</code>, page publique. Il
+    saisit le <strong>matricule national</strong> de son enfant : l'application retrouve l'élève, le rattache au
+    nouveau compte parent et à l'établissement concerné. La connexion se fait ensuite par téléphone.
+</p>
+
+<h3 id="preinscription-et-reinscription-en-ligne">Préinscription et réinscription en ligne</h3>
+<ol class="doc-steps">
+    <li>Depuis son espace, le parent dépose une demande de préinscription (nouvel enfant) ou de réinscription (enfant déjà scolarisé dans l'établissement).</li>
+    <li>Il téléverse les pièces demandées.</li>
+    <li>La demande arrive côté administration au statut <em>en attente</em>.</li>
+    <li>Après validation, les frais du niveau sont rattachés à l'élève et le parent reçoit une notification.</li>
+</ol>
+
+<h2 id="eleve">Espace élève</h2>
+<p><strong>Connexion :</strong> <code>/eleve/connexion</code>, avec le matricule.</p>
+<p>
+    Espace en <strong>lecture seule</strong> : notes publiées, emploi du temps, absences, et devoirs déposés par
+    les enseignants. L'élève ne peut rien modifier.
+</p>
+
+<h2 id="enseignant">Espace enseignant</h2>
+<p><strong>Accès :</strong> connexion normale sur <code>/login</code> avec un compte portant <code>ROLE_ENSEIGNANT</code>.</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Écran</th><th>Usage</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Mes Cours</strong></td><td>Son emploi du temps personnel, par semaine.</td></tr>
+            <tr><td><strong>Mes élèves</strong></td><td>Les élèves des classes dont il a la charge.</td></tr>
+            <tr><td><strong>Évaluations</strong></td><td>Création des évaluations et saisie des notes de ses matières.</td></tr>
+            <tr><td><strong>Exercices de maison</strong></td><td>Dépôt des devoirs, avec échéance et pièces jointes ; visibles par les élèves et leurs parents.</td></tr>
+            <tr><td><strong>Absences</strong></td><td>Saisie des absences pour ses propres cours.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="fondateur">Espace fondateur</h2>
+<p><strong>Accès :</strong> compte portant <code>ROLE_FONDATEUR</code>.</p>
+<p>
+    Espace de supervision et de contrôle, couvrant l'ensemble des établissements du fondateur :
+</p>
+<ul>
+    <li><strong>Tableau de bord</strong> — effectifs, recettes et indicateurs consolidés.</li>
+    <li><strong>Valider les caisses</strong> — contrôle des caisses clôturées et de leurs écarts.</li>
+    <li><strong>Dépenses à approuver</strong> — autorisation préalable des sorties d'argent.</li>
+    <li><strong>Approuver les versements</strong> — confirmation des versements en banque déclarés par les encaisseurs.</li>
+</ul>
+<div class="doc-note">
+    Ces trois validations constituent le contrôle interne de l'établissement : tant qu'elles ne sont pas faites,
+    les opérations correspondantes restent en attente et le solde de caisse n'est pas définitif.
+</div>

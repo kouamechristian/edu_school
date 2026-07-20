@@ -1,0 +1,76 @@
+<h2 id="objet">ed_photo</h2>
+<p>
+    <strong>ed_photo</strong> est une application mobile Flutter compagnon d'EDU-SCHOOL. Elle sert à photographier
+    les élèves sur le terrain : l'opérateur saisit ou scanne un matricule, prend la photo, et celle-ci est
+    immédiatement rattachée à la fiche de l'élève dans EDU-SCHOOL.
+</p>
+<p>L'APK se télécharge depuis le bouton dédié situé dans l'en-tête de l'application web.</p>
+
+<h2 id="usage">Utilisation</h2>
+<ol class="doc-steps">
+    <li>Se connecter dans l'application avec ses identifiants EDU-SCHOOL habituels.</li>
+    <li>Rechercher l'élève par matricule ou par nom.</li>
+    <li>Vérifier l'identité affichée (nom, classe) avant de déclencher.</li>
+    <li>Prendre la photo et l'envoyer : elle remplace la photo courante de l'élève.</li>
+</ol>
+
+<h2 id="acces">Qui peut s'y connecter</h2>
+<div class="doc-note">
+    Tout le <strong>personnel</strong> peut obtenir un jeton et utiliser l'application. Les comptes
+    <code>ROLE_PARENT</code> et <code>ROLE_ELEVE</code> en sont exclus : le tri est fait au moment de la
+    connexion, qui n'émet un jeton qu'aux ayants droit.
+</div>
+
+<h2 id="api">L'API mobile</h2>
+<p>
+    L'application dialogue avec EDU-SCHOOL via une API REST sans session, authentifiée par un
+    <strong>jeton porteur</strong> transmis dans l'en-tête <code>Authorization</code>.
+</p>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Méthode</th><th>Route</th><th>Objet</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/mobile/login</code></td><td>Authentification. Route publique ; renvoie le jeton.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/mobile/students</code></td><td>Recherche d'élèves (par matricule ou par nom).</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/mobile/students/{id}/photo</code></td><td>Envoi de la photo d'un élève.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h3 id="exemple-d-enchainement">Exemple d'enchaînement</h3>
+<pre><code># 1. Obtenir un jeton
+POST /api/mobile/login
+Content-Type: application/json
+
+{ "username": "jdupont", "password": "••••••" }
+
+→ 200 { "token": "…" }
+
+# 2. Rechercher un élève
+GET /api/mobile/students?q=2024-0157
+Authorization: Bearer &lt;token&gt;
+
+# 3. Envoyer la photo
+POST /api/mobile/students/42/photo
+Authorization: Bearer &lt;token&gt;
+Content-Type: multipart/form-data</code></pre>
+
+<h2 id="securite">Sécurité</h2>
+<ul>
+    <li>Le pare-feu <code>/api/</code> est <strong>sans état</strong> : aucune session, chaque requête porte son jeton.</li>
+    <li>Seule la route de connexion est publique ; toutes les autres exigent un jeton valide.</li>
+    <li>Un jeton compromis se révoque en désactivant le compte utilisateur correspondant.</li>
+</ul>
+
+<h2 id="depannage">Dépannage</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Symptôme</th><th>Cause probable</th></tr></thead>
+        <tbody>
+            <tr><td>Connexion refusée dans l'application</td><td>Compte parent ou élève, ou compte désactivé.</td></tr>
+            <tr><td>Élève introuvable</td><td>Matricule inexact, ou élève d'un autre établissement que celui de l'opérateur.</td></tr>
+            <tr><td>Envoi de photo en échec</td><td>Jeton expiré (se reconnecter) ou fichier trop volumineux.</td></tr>
+        </tbody>
+    </table>
+</div>
