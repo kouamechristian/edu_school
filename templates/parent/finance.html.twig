@@ -29,14 +29,45 @@
     <div class="pp-child-sub" style="margin-top:.5rem;">{{ pct }}% de la scolarité réglée</div>
 </section>
 
-{# ── Payer la scolarité (Mobile Money) ──────────────────────── #}
+{# ── Paiements en ligne encore en cours de validation ───────── #}
+{% if pending_online_payments|length > 0 %}
+<section class="pp-card pp-reveal" style="margin-top:1.1rem;border-left:4px solid #f59e0b;">
+    <div class="pp-card-title" style="margin-bottom:.8rem;"><i class="fas fa-hourglass-half"></i> Paiement en cours de validation</div>
+    {% for op in pending_online_payments %}
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid #eef2f7;">
+            <div>
+                <strong>{{ op.amount|number_format(0, ',', ' ') }} F</strong>
+                {% if op.studentFee and op.studentFee.fee %}
+                    <span class="pp-child-sub"> — {{ op.studentFee.fee.name }}</span>
+                {% endif %}
+                <div class="pp-child-sub" style="font-size:.8rem;">
+                    Initié le {{ op.createdAt|date('d/m/Y à H:i') }} · réf. {{ op.reference }}
+                </div>
+            </div>
+            <a href="{{ path('parent_payment_return', {reference: op.reference}) }}" class="pp-btn pp-btn-ghost" style="white-space:nowrap;">
+                Vérifier
+            </a>
+        </div>
+    {% endfor %}
+    <p class="pp-child-sub" style="margin-top:.7rem;margin-bottom:0;">
+        <i class="fas fa-circle-info"></i> Si vous avez été débité, le solde sera crédité
+        automatiquement dès confirmation de l'opérateur. Aucune action n'est nécessaire.
+    </p>
+</section>
+{% endif %}
+
+{# ── Payer la scolarité ─────────────────────────────────────── #}
 {% set unpaid_fees = (registration ? registration.studentFees : child.studentFees)|filter(sf => sf.remainingAmount > 0 and sf.fee.isActive) %}
-{% if unpaid_fees|length > 0 %}
+{% if unpaid_fees|length > 0 and not online_payment_available %}
 <section class="pp-card pp-reveal" style="margin-top:1.1rem;">
-    <style>
-        .pp-op-btn{border:none;border-radius:12px;padding:.85rem .5rem;color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem;transition:transform .12s ease,box-shadow .12s ease;}
-        .pp-op-btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(30,58,95,.18);}
-    </style>
+    <div class="pp-card-title" style="margin-bottom:.6rem;"><i class="fas fa-building-columns"></i> Régler la scolarité</div>
+    <p class="pp-child-sub" style="margin-bottom:0;">
+        Le paiement en ligne n'est pas encore proposé par cet établissement.
+        Rapprochez-vous de la caisse pour régler la scolarité.
+    </p>
+</section>
+{% elseif unpaid_fees|length > 0 %}
+<section class="pp-card pp-reveal" style="margin-top:1.1rem;">
     <div class="pp-card-title" style="margin-bottom:1rem;"><i class="fas fa-mobile-screen-button"></i> Payer la scolarité</div>
 
     <form method="post" action="{{ path('parent_child_pay', {id: child.id}) }}" id="pp-pay-form">
@@ -60,24 +91,15 @@
                    style="width:100%;border:1px solid #e3e8f0;border-radius:12px;padding:.7rem 1rem;font-size:1rem;color:#1e3a5f;background:#fff;">
         </div>
 
-        {# Étape 1 — bouton qui révèle le choix de l'opérateur #}
-        <button type="button" id="pp-pay-online" class="pp-btn pp-btn-primary pp-btn-block" style="margin-top:.4rem;">
+        {# Le moyen de paiement se choisit sur la page sécurisée de GeniusPay :
+           pas de sélecteur d'opérateur ici. #}
+        <button type="submit" id="pp-pay-online" class="pp-btn pp-btn-primary pp-btn-block" style="margin-top:.4rem;">
             <i class="fas fa-lock"></i> Payer en ligne
         </button>
 
-        {# Étape 2 — choix de l'opérateur Mobile Money (masqué au départ) #}
-        <div id="pp-operators" style="display:none;margin-top:1rem;">
-            <p class="pp-child-sub" style="margin-bottom:.6rem;font-weight:600;">Choisissez votre opérateur Mobile Money :</p>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;">
-                <button type="submit" name="operator" value="orange" class="pp-op-btn" style="background:#ff7900;"><i class="fas fa-mobile-screen-button"></i> Orange Money</button>
-                <button type="submit" name="operator" value="mtn" class="pp-op-btn" style="background:#ffcc00;color:#1e3a5f;"><i class="fas fa-mobile-screen-button"></i> MTN MoMo</button>
-                <button type="submit" name="operator" value="moov" class="pp-op-btn" style="background:#0a6cff;"><i class="fas fa-mobile-screen-button"></i> Moov Money</button>
-                <button type="submit" name="operator" value="wave" class="pp-op-btn" style="background:#1dc6ff;color:#1e3a5f;"><i class="fas fa-mobile-screen-button"></i> Wave</button>
-            </div>
-        </div>
-
         <p class="pp-child-sub" style="margin-top:.8rem;">
-            <i class="fas fa-shield-halved"></i> Paiement sécurisé par Mobile Money (Orange, MTN, Moov, Wave).
+            <i class="fas fa-shield-halved"></i> Vous serez redirigé vers la page de paiement sécurisée,
+            où vous choisirez Wave, Orange Money, MTN MoMo ou carte bancaire.
             Le solde est mis à jour automatiquement après confirmation du paiement.
         </p>
     </form>
@@ -138,13 +160,14 @@
             syncAmount();
         }
 
-        // Étape 1 → Étape 2 : révèle le choix de l'opérateur Mobile Money.
+        // La redirection vers la passerelle prend un instant : on neutralise le
+        // bouton pour éviter qu'un double-clic ne crée deux transactions.
+        var form = document.getElementById('pp-pay-form');
         var payBtn = document.getElementById('pp-pay-online');
-        var operators = document.getElementById('pp-operators');
-        if (payBtn && operators) {
-            payBtn.addEventListener('click', function () {
-                operators.style.display = 'block';
-                payBtn.style.display = 'none';
+        if (form && payBtn) {
+            form.addEventListener('submit', function () {
+                payBtn.disabled = true;
+                payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Redirection en cours…';
             });
         }
     })();

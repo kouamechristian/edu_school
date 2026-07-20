@@ -106,6 +106,10 @@ security:
          - { path: ^/login$, roles: PUBLIC_ACCESS }
          # Documentation : page autonome et publique, consultable sans connexion.
          - { path: ^/documentation, roles: PUBLIC_ACCESS }
+         # Webhook GeniusPay : appelé par la passerelle, pas par un utilisateur.
+         # Sa sécurité repose entièrement sur la signature HMAC vérifiée dans le
+         # contrôleur — surtout ne pas y ajouter d'exigence de rôle.
+         - { path: ^/webhook/geniuspay$, roles: PUBLIC_ACCESS }
          # API mobile ed_photo : connexion publique (émission du jeton). Le reste exige
          # simplement un jeton valide : le tri des rôles (tout le personnel, mais PAS
          # ROLE_PARENT ni ROLE_ELEVE) est fait au login, qui n'émet un jeton qu'aux ayants droit.

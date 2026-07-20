@@ -7,11 +7,26 @@
 #
 # See https://symfony.com/doc/current/configuration.html#importing-the-routing-configuration
 
+parameters:
+    # Passerelle de paiement GeniusPay. Les clés marchandes, elles, sont propres
+    # à chaque établissement et stockées chiffrées en base (cf. SecretCipher).
+    #
+    # ⚠️ La documentation GeniusPay annonce http://pay.genius.ci ; envoyer
+    # X-API-Secret en clair exposerait les clés marchandes. On utilise donc
+    # https par défaut. Si GeniusPay ne le supporte pas, surchargez
+    # GENIUSPAY_BASE_URL dans .env.local — en connaissance de cause.
+    geniuspay.base_url: '%env(default:geniuspay.default_base_url:GENIUSPAY_BASE_URL)%'
+    geniuspay.default_base_url: 'https://pay.genius.ci/api/v1/merchant'
+
 services:
     # default configuration for services in *this* file
     _defaults:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        bind:
+            # Clé de chiffrement des secrets stockés en base (cf. SecretCipher).
+            string $appSecret: '%env(APP_SECRET)%'
+            string $geniuspayBaseUrl: '%geniuspay.base_url%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name

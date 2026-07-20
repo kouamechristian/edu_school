@@ -78,6 +78,23 @@ class School
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'schools')]
     private Collection $users;
 
+    // ── Passerelle de paiement en ligne GeniusPay ────────────────────────────
+    // Chaque établissement encaisse sur SON compte marchand. Les trois secrets
+    // sont chiffrés au repos (cf. SecretCipher) : ne jamais les lire directement,
+    // passer par GeniusPayConfigResolver.
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $geniuspayEnabled = false;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $geniuspayApiKey = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $geniuspayApiSecret = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $geniuspayWebhookSecret = null;
+
     public function __construct()
     {
         $this->users = new ArrayCollection();
@@ -263,6 +280,54 @@ class School
     public function setSchoolGroup(?SchoolGroup $schoolGroup): static
     {
         $this->schoolGroup = $schoolGroup;
+        return $this;
+    }
+
+    // ── GeniusPay ───────────────────────────────────────────────────────────
+    // Les accesseurs manipulent la forme CHIFFRÉE. Le déchiffrement est du
+    // ressort de GeniusPayConfigResolver, seul point d'entrée légitime.
+
+    public function isGeniuspayEnabled(): bool
+    {
+        return $this->geniuspayEnabled;
+    }
+
+    public function setGeniuspayEnabled(bool $geniuspayEnabled): static
+    {
+        $this->geniuspayEnabled = $geniuspayEnabled;
+        return $this;
+    }
+
+    public function getGeniuspayApiKey(): ?string
+    {
+        return $this->geniuspayApiKey;
+    }
+
+    public function setGeniuspayApiKey(?string $geniuspayApiKey): static
+    {
+        $this->geniuspayApiKey = $geniuspayApiKey;
+        return $this;
+    }
+
+    public function getGeniuspayApiSecret(): ?string
+    {
+        return $this->geniuspayApiSecret;
+    }
+
+    public function setGeniuspayApiSecret(?string $geniuspayApiSecret): static
+    {
+        $this->geniuspayApiSecret = $geniuspayApiSecret;
+        return $this;
+    }
+
+    public function getGeniuspayWebhookSecret(): ?string
+    {
+        return $this->geniuspayWebhookSecret;
+    }
+
+    public function setGeniuspayWebhookSecret(?string $geniuspayWebhookSecret): static
+    {
+        $this->geniuspayWebhookSecret = $geniuspayWebhookSecret;
         return $this;
     }
 

@@ -9,6 +9,39 @@
 {% block page_subtitle %}Historique des paiements de vos enfants.{% endblock %}
 
 {% block body %}
+{# Tentatives en ligne sans encaissement confirmé : elles n'ont pas de paiement
+   associé et seraient donc invisibles, alors que c'est exactement ce qu'un
+   parent vient chercher après un règlement qui « n'a rien fait ». #}
+{% if unresolved_online|length > 0 %}
+    <section class="pp-card pp-reveal" style="margin-bottom:1.1rem;border-left:4px solid #f59e0b;">
+        <div class="pp-card-title" style="margin-bottom:.8rem;">
+            <i class="fas fa-clock-rotate-left"></i> Paiements en ligne non aboutis
+        </div>
+        {% for op in unresolved_online %}
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px solid #eef2f7;">
+                <div>
+                    <strong>{{ op.amount|number_format(0, ',', ' ') }} F</strong>
+                    <span class="pp-child-sub"> — {{ op.student.fullName }}</span>
+                    <div class="pp-child-sub" style="font-size:.8rem;">
+                        {{ op.createdAt|date('d/m/Y à H:i') }} · réf. {{ op.reference }}
+                        {% if op.failureReason %} · {{ op.failureReason }}{% endif %}
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:.5rem;white-space:nowrap;">
+                    {% set badge = {'success':'green','warning':'amber','danger':'red'}[op.statusColor] ?? 'navy' %}
+                    <span class="pp-badge {{ badge }}">{{ op.statusLabel }}</span>
+                    <a href="{{ path('parent_payment_return', {reference: op.reference}) }}" class="pp-btn pp-btn-ghost">Vérifier</a>
+                </div>
+            </div>
+        {% endfor %}
+        <p class="pp-child-sub" style="margin-top:.7rem;margin-bottom:0;">
+            <i class="fas fa-circle-info"></i> Un paiement « en attente » se débloque seul dès
+            confirmation de l'opérateur. En cas de doute après un débit, contactez l'établissement
+            en indiquant la référence.
+        </p>
+    </section>
+{% endif %}
+
 {% if payments is empty %}
     <div class="pp-card pp-reveal">
         <div class="pp-empty">

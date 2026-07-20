@@ -15,6 +15,10 @@
         ]
     } %}
         {% block actions %}
+            <a href="{{ path('admin_school_geniuspay', {'id': school.id}) }}" class="btn btn-outline-primary">
+                <i class="fas fa-credit-card me-1"></i> Paiement en ligne
+                {% if school.isGeniuspayEnabled %}<span class="badge badge-soft success ms-1">activé</span>{% endif %}
+            </a>
             <a href="{{ path('admin_school_edit', {'id': school.id}) }}" class="btn btn-warning"><i class="fas fa-edit me-1"></i> Modifier</a>
             <a href="{{ path('admin_school_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
         {% endblock %}

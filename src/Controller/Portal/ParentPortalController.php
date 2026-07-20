@@ -8,9 +8,11 @@ use App\Entity\Notification;
 use App\Entity\PreRegistration;
 use App\Entity\PreRegistrationDocument;
 use App\Entity\Student;
+use App\Entity\User;
 use App\Form\PreRegistrationType;
 use App\Repository\CourseRepository;
 use App\Repository\NotificationRepository;
+use App\Repository\OnlinePaymentRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\PeriodRepository;
 use App\Repository\PreRegistrationRepository;
@@ -19,6 +21,8 @@ use App\Repository\StudentFeeRepository;
 use App\Repository\StudentRepository;
 use App\Repository\UserRepository;
 use App\Security\Voter\ChildVoter;
+use App\Service\GeniusPay\GeniusPayException;
+use App\Service\GeniusPay\GeniusPayService;
 use App\Service\MatriculeGenerator;
 use App\Service\ParentContextService;
 use App\Service\ParentPortalService;
@@ -28,6 +32,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -322,43 +327,44 @@ class ParentPortalController extends AbstractController
     }
 
     #[Route('/enfant/{id}/finances', name: 'parent_child_finance', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function finance(Student $child, PaymentRepository $paymentRepository): Response
-    {
+    public function finance(
+        Student $child,
+        PaymentRepository $paymentRepository,
+        OnlinePaymentRepository $onlinePaymentRepository,
+        GeniusPayService $geniusPay,
+    ): Response {
         $this->denyAccessUnlessGranted(ChildVoter::VIEW, $child);
+
+        $onlinePayments = $onlinePaymentRepository->findByStudent($child);
 
         return $this->render('parent/finance.html.twig', [
             'child' => $child,
             'finance' => $this->portal->getFinancialReport($child),
             'registration' => $child->getScolariteRegistration(),
             'payments' => $paymentRepository->findByStudent($child),
+            // Ne pas proposer un formulaire de paiement que la passerelle ne
+            // pourra pas honorer : le parent le remplirait pour rien.
+            'online_payment_available' => $geniusPay->isAvailableFor($child->getSchool()),
+            // Transactions encore en cours : le parent doit voir qu'un paiement
+            // est parti, même si la confirmation n'est pas encore revenue.
+            'pending_online_payments' => array_filter($onlinePayments, static fn ($op) => $op->isPending()),
         ]);
     }
 
     /**
-     * Opérateurs Mobile Money proposés au parent pour le paiement en ligne.
+     * Paiement en ligne de la scolarité (espace parent), via la passerelle GeniusPay.
      *
-     * @var array<string, string>
-     */
-    private const MOBILE_MONEY_OPERATORS = [
-        'orange' => 'Orange Money',
-        'mtn' => 'MTN MoMo',
-        'moov' => 'Moov Money',
-        'wave' => 'Wave',
-    ];
-
-    /**
-     * Paiement en ligne de la scolarité (espace parent) — Mobile Money.
-     *
-     * Le parent choisit son opérateur (Orange, MTN, Moov, Wave…) puis valide. La
-     * passerelle Mobile Money n'étant pas encore raccordée, on affiche un écran
-     * « système en travaux ». C'est ICI que sera branchée l'API de paiement le moment
-     * venu : initiation de la transaction côté opérateur puis redirection du parent.
+     * On ne fixe pas le moyen de paiement : le parent choisit Wave, Orange, MTN
+     * ou carte sur la page de checkout GeniusPay, vers laquelle on le redirige.
+     * L'encaissement n'est enregistré qu'au retour du webhook (ou à la
+     * vérification faite au retour du parent) — jamais ici.
      */
     #[Route('/enfant/{id}/payer', name: 'parent_child_pay', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function payFee(
         Student $child,
         Request $request,
         StudentFeeRepository $studentFeeRepository,
+        GeniusPayService $geniusPay,
     ): Response {
         $this->denyAccessUnlessGranted(ChildVoter::VIEW, $child);
 
@@ -368,6 +374,12 @@ class ParentPortalController extends AbstractController
             $this->addFlash('error', 'Jeton de sécurité invalide, veuillez réessayer.');
 
             return $redirect;
+        }
+
+        if (!$geniusPay->isAvailableFor($child->getSchool())) {
+            return $this->render('parent/payment_maintenance.html.twig', [
+                'child' => $child,
+            ]);
         }
 
         $studentFee = $studentFeeRepository->find((int) $request->request->get('student_fee_id'));
@@ -384,22 +396,63 @@ class ParentPortalController extends AbstractController
             return $redirect;
         }
 
-        $operatorKey = (string) $request->request->get('operator');
-        if (!isset(self::MOBILE_MONEY_OPERATORS[$operatorKey])) {
-            $this->addFlash('error', 'Veuillez choisir un opérateur Mobile Money.');
+        try {
+            $onlinePayment = $geniusPay->initiate(
+                student: $child,
+                studentFee: $studentFee,
+                amount: $amount,
+                initiatedBy: $this->getUser() instanceof User ? $this->getUser() : null,
+                successUrl: $this->generateUrl('parent_payment_return', [], UrlGeneratorInterface::ABSOLUTE_URL),
+                errorUrl: $this->generateUrl('parent_payment_return', ['echec' => 1], UrlGeneratorInterface::ABSOLUTE_URL),
+            );
+        } catch (GeniusPayException $e) {
+            $this->addFlash('error', $e->getMessage());
 
             return $redirect;
         }
 
-        // TODO: brancher ici l'API Mobile Money de l'opérateur (création de la
-        // transaction + redirection vers sa page de paiement). En attendant, écran
-        // « système en travaux ».
-        return $this->render('parent/payment_maintenance.html.twig', [
-            'child' => $child,
-            'student_fee' => $studentFee,
-            'amount' => $amount,
-            'operator' => self::MOBILE_MONEY_OPERATORS[$operatorKey],
-            'operator_key' => $operatorKey,
+        // La référence est mémorisée en session : au retour, GeniusPay ne la
+        // repasse pas forcément en paramètre.
+        $request->getSession()->set('geniuspay_reference', $onlinePayment->getReference());
+
+        return $this->redirect($onlinePayment->getCheckoutUrl());
+    }
+
+    /**
+     * Retour du parent depuis la page de checkout GeniusPay.
+     *
+     * On revérifie l'état directement auprès de la passerelle : le webhook peut
+     * arriver après le parent, ou s'être perdu. `confirm()` étant idempotent,
+     * cette double vérification ne risque pas de créditer deux fois.
+     */
+    #[Route('/paiement/retour', name: 'parent_payment_return', methods: ['GET'])]
+    public function paymentReturn(
+        Request $request,
+        GeniusPayService $geniusPay,
+        OnlinePaymentRepository $onlinePayments,
+    ): Response {
+        $reference = (string) ($request->query->get('reference') ?: $request->getSession()->get('geniuspay_reference', ''));
+        $request->getSession()->remove('geniuspay_reference');
+
+        $onlinePayment = $reference !== '' ? $onlinePayments->findOneByReference($reference) : null;
+
+        // Cloisonnement : un parent ne consulte que les transactions de ses enfants.
+        if ($onlinePayment !== null) {
+            $this->denyAccessUnlessGranted(ChildVoter::VIEW, $onlinePayment->getStudent());
+
+            if (!$onlinePayment->isCompleted() && !$request->query->getBoolean('echec')) {
+                try {
+                    $geniusPay->confirm($reference, null, 'retour_parent');
+                } catch (\Throwable) {
+                    // La vérification a échoué : le webhook reste le filet de
+                    // sécurité. On affiche simplement l'état connu.
+                }
+            }
+        }
+
+        return $this->render('parent/payment_return.html.twig', [
+            'online_payment' => $onlinePayment,
+            'reference' => $reference,
         ]);
     }
 
@@ -435,13 +488,28 @@ class ParentPortalController extends AbstractController
      * « Mes paiements » : historique de tous les paiements des enfants du parent.
      */
     #[Route('/paiements', name: 'parent_payments', methods: ['GET'])]
-    public function payments(\App\Repository\PaymentRepository $paymentRepository): Response
-    {
+    public function payments(
+        PaymentRepository $paymentRepository,
+        OnlinePaymentRepository $onlinePaymentRepository,
+    ): Response {
         $children = $this->portal->getChildren($this->getCurrentParent());
         $studentIds = array_map(static fn (Student $c) => $c->getId(), $children);
 
+        // Tentatives en ligne non abouties : elles n'ont pas de Payment associé,
+        // donc n'apparaîtraient nulle part sans cela — or c'est précisément ce
+        // qu'un parent cherche après un paiement qui « n'a rien fait ».
+        $unresolved = [];
+        foreach ($children as $c) {
+            foreach ($onlinePaymentRepository->findByStudent($c) as $op) {
+                if (!$op->isCompleted()) {
+                    $unresolved[] = $op;
+                }
+            }
+        }
+
         return $this->render('parent/payments.html.twig', [
             'payments' => $paymentRepository->findByStudentIds($studentIds),
+            'unresolved_online' => $unresolved,
         ]);
     }
 

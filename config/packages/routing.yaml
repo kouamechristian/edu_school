@@ -2,9 +2,15 @@ framework:
     router:
         utf8: true
 
-        # Configure how to generate URLs in non-HTTP contexts, such as CLI commands.
-        # See https://symfony.com/doc/current/routing.html#generating-urls-in-commands
-        #default_uri: http://localhost
+        # URL de base pour les liens générés hors requête HTTP (commandes CLI,
+        # e-mails, tâches planifiées). Pendant une vraie requête, Symfony utilise
+        # l'hôte réel : l'URL de webhook affichée dans l'administration est donc
+        # correcte d'elle-même en production comme en local.
+        default_uri: '%env(default:router.default_uri_fallback:APP_BASE_URL)%'
+
+parameters:
+    # Valeur de repli si APP_BASE_URL n'est pas défini dans l'environnement.
+    router.default_uri_fallback: 'http://localhost:8000'
 
 when@prod:
     framework:

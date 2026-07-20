@@ -9,6 +9,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -140,6 +141,44 @@ class SchoolType extends AbstractType
                 ],
                 'attr' => ['class' => 'form-select'],
             ])
+
+            // ── Paiement en ligne (GeniusPay) ────────────────────────────────
+            // Champs NON mappés : l'entité ne contient que la forme chiffrée.
+            // Un mapping direct écrirait les clés en clair en base.
+            // Le chiffrement est fait par GeniusPayCredentialsUpdater.
+            ->add('geniuspayApiKeyPlain', TextType::class, [
+                'label' => 'Clé API publique',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'pk_sandbox_… ou pk_live_…', 'autocomplete' => 'off'],
+                'help' => 'Fournie par votre tableau de bord GeniusPay. Laisser vide pour ne pas modifier.',
+            ])
+            ->add('geniuspayApiSecretPlain', PasswordType::class, [
+                'label' => 'Clé API secrète',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'sk_sandbox_… ou sk_live_…', 'autocomplete' => 'new-password'],
+                'help' => 'Stockée chiffrée et jamais réaffichée. Laisser vide pour ne pas modifier.',
+            ])
+            ->add('geniuspayWebhookSecretPlain', PasswordType::class, [
+                'label' => 'Secret de webhook',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'whsec_…', 'autocomplete' => 'new-password'],
+                'help' => 'Indispensable : sans lui, les paiements ne peuvent pas être confirmés automatiquement.',
+            ])
+            ->add('geniuspayEnabledPlain', ChoiceType::class, [
+                'label' => 'Paiement en ligne',
+                'mapped' => false,
+                'required' => false,
+                'choices' => [
+                    'Désactivé' => false,
+                    'Activé' => true,
+                ],
+                'data' => $options['geniuspay_enabled'],
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Active le règlement de la scolarité en ligne depuis l’espace parent.',
+            ])
         ;
     }
 
@@ -147,7 +186,11 @@ class SchoolType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => School::class,
+            // Le champ « activé » n'étant pas mappé, sa valeur initiale doit être
+            // fournie par le contrôleur en modification.
+            'geniuspay_enabled' => false,
         ]);
+        $resolver->setAllowedTypes('geniuspay_enabled', 'bool');
     }
 }
 

@@ -1,0 +1,47 @@
+{# ==========================================================================
+   Section « Paiement en ligne » du formulaire établissement.
+
+   Partagée par la création et la modification. Les champs sont non mappés :
+   ils portent la valeur en clair, chiffrée à l'enregistrement par
+   GeniusPayCredentialsUpdater.
+   ========================================================================== #}
+<hr>
+<h6 class="text-muted mb-1"><i class="fas fa-credit-card me-2"></i>Paiement en ligne (GeniusPay)</h6>
+<p class="text-muted small mb-3">
+    Permet aux parents de régler la scolarité en ligne depuis leur espace.
+    Les clés proviennent du tableau de bord GeniusPay et sont propres à cet
+    établissement : c'est sur ce compte marchand que l'argent sera versé.
+    Facultatif — vous pouvez configurer cela plus tard.
+</p>
+
+<div class="alert alert-info d-flex gap-2 py-2 small">
+    <i class="fas fa-lock mt-1"></i>
+    <div>
+        Les trois secrets sont <strong>chiffrés</strong> avant enregistrement et ne sont
+        jamais réaffichés.
+        {% if school is defined and school.id %}Laissez un champ vide pour conserver sa valeur actuelle.{% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">{{ form_row(form.geniuspayApiKeyPlain) }}</div>
+    <div class="col-md-6 mb-3">{{ form_row(form.geniuspayApiSecretPlain) }}</div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">{{ form_row(form.geniuspayWebhookSecretPlain) }}</div>
+    <div class="col-md-6 mb-3">{{ form_row(form.geniuspayEnabledPlain) }}</div>
+</div>
+
+{% if school is defined and school.id %}
+    <p class="small text-muted mb-0">
+        <i class="fas fa-bell me-1"></i>
+        URL de webhook à déclarer chez GeniusPay :
+        <code>{{ url('webhook_geniuspay') }}</code>
+    </p>
+{% else %}
+    <p class="small text-muted mb-0">
+        <i class="fas fa-circle-info me-1"></i>
+        Après création, l'écran <em>Paiement en ligne</em> de l'établissement vous donnera
+        l'URL de webhook à déclarer chez GeniusPay.
+    </p>
+{% endif %}

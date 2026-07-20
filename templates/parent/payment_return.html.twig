@@ -1,0 +1,84 @@
+{# Retour du parent depuis la page de checkout GeniusPay. #}
+{% extends 'parent/base.html.twig' %}
+
+{% set op = online_payment %}
+{% set child = op ? op.student : null %}
+
+{% block title %}Résultat du paiement{% endblock %}
+
+{% block breadcrumb %}
+    <div class="pp-breadcrumb"><a href="{{ path('parent_dashboard') }}">Tableau de bord</a> /
+        {% if child %}<a href="{{ path('parent_child_finance', {id: child.id}) }}">Finances</a> / {% endif %}Paiement</div>
+{% endblock %}
+{% block page_title %}Résultat du paiement{% endblock %}
+
+{% block body %}
+<section class="pp-card pp-reveal" style="text-align:center;max-width:560px;margin:1.5rem auto;">
+    {% if op is null %}
+        <div style="font-size:3.2rem;color:#94a3b8;margin-bottom:.6rem;"><i class="fas fa-circle-question"></i></div>
+        <h2 style="color:#1e3a5f;margin:0 0 .4rem;font-size:1.4rem;">Transaction introuvable</h2>
+        <p class="pp-child-sub" style="margin-bottom:1.3rem;">
+            Nous n'avons pas retrouvé cette transaction{% if reference %} (référence <code>{{ reference }}</code>){% endif %}.
+            Si votre compte a été débité, contactez l'établissement avec cette référence.
+        </p>
+
+    {% elseif op.isCompleted %}
+        <div style="font-size:3.2rem;color:#10b981;margin-bottom:.6rem;"><i class="fas fa-circle-check"></i></div>
+        <h2 style="color:#1e3a5f;margin:0 0 .4rem;font-size:1.4rem;">Paiement confirmé</h2>
+        <p class="pp-child-sub" style="margin-bottom:1.2rem;">
+            Merci, votre règlement a bien été enregistré.
+        </p>
+
+    {% elseif op.status == 'pending' %}
+        <div style="font-size:3.2rem;color:#f59e0b;margin-bottom:.6rem;"><i class="fas fa-hourglass-half"></i></div>
+        <h2 style="color:#1e3a5f;margin:0 0 .4rem;font-size:1.4rem;">Paiement en cours de validation</h2>
+        <p class="pp-child-sub" style="margin-bottom:1.2rem;">
+            Votre paiement n'est pas encore confirmé par l'opérateur. C'est parfois
+            un peu long : cette page se mettra à jour à son aboutissement, et votre
+            solde sera crédité automatiquement. Aucune action de votre part.
+        </p>
+
+    {% else %}
+        <div style="font-size:3.2rem;color:#ef4444;margin-bottom:.6rem;"><i class="fas fa-circle-xmark"></i></div>
+        <h2 style="color:#1e3a5f;margin:0 0 .4rem;font-size:1.4rem;">Paiement non abouti</h2>
+        <p class="pp-child-sub" style="margin-bottom:1.2rem;">
+            Le paiement a été {{ op.statusLabel|lower }}. Aucun montant n'a été
+            imputé à votre scolarité. Vous pouvez réessayer.
+        </p>
+    {% endif %}
+
+    {% if op %}
+        <div style="background:#f8fafc;border-radius:12px;padding:1rem;margin-bottom:1.3rem;text-align:left;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.45rem;">
+                <span class="pp-child-sub">Élève</span><strong>{{ op.student.fullName }}</strong>
+            </div>
+            {% if op.studentFee and op.studentFee.fee %}
+            <div style="display:flex;justify-content:space-between;margin-bottom:.45rem;">
+                <span class="pp-child-sub">Frais</span><strong>{{ op.studentFee.fee.name }}</strong>
+            </div>
+            {% endif %}
+            <div style="display:flex;justify-content:space-between;margin-bottom:.45rem;">
+                <span class="pp-child-sub">Montant</span><strong>{{ op.amount|number_format(0, ',', ' ') }} F CFA</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+                <span class="pp-child-sub">Référence</span><code>{{ op.reference }}</code>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if child %}
+        <a href="{{ path('parent_child_finance', {id: child.id}) }}" class="pp-btn pp-btn-ghost">
+            <i class="fas fa-arrow-left"></i> Retour aux finances
+        </a>
+    {% else %}
+        <a href="{{ path('parent_dashboard') }}" class="pp-btn pp-btn-ghost">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
+    {% endif %}
+</section>
+
+{% if op and op.status == 'pending' %}
+    {# Le webhook arrive parfois juste après le parent : on rafraîchit une fois. #}
+    <script>setTimeout(function () { window.location.reload(); }, 8000);</script>
+{% endif %}
+{% endblock %}

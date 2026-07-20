@@ -1,0 +1,165 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Paiement en ligne — {{ school.name }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Paiement en ligne (GeniusPay)',
+        subtitle: school.name,
+        icon: 'fa-credit-card',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Établissements', path: path('admin_school_index') },
+            { label: school.name, path: path('admin_school_show', {id: school.id}) },
+            { label: 'Paiement en ligne' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_school_show', {id: school.id}) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Retour
+            </a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-key me-2"></i>Clés marchandes</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info d-flex gap-2">
+                        <i class="fas fa-circle-info mt-1"></i>
+                        <div>
+                            Ces clés proviennent de votre tableau de bord GeniusPay et sont
+                            <strong>propres à cet établissement</strong> : c'est sur ce compte marchand
+                            que seront versés les paiements des parents.
+                            Elles sont <strong>chiffrées</strong> avant enregistrement et ne sont jamais réaffichées.
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token('geniuspay' ~ school.id) }}">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="api_key">Clé API publique</label>
+                            <input type="text" class="form-control" id="api_key" name="api_key"
+                                   autocomplete="off" placeholder="pk_sandbox_… ou pk_live_…">
+                            <div class="form-text">Enregistrée : <code>{{ masked.api_key }}</code> — laissez vide pour ne pas modifier.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="api_secret">Clé API secrète</label>
+                            <input type="password" class="form-control" id="api_secret" name="api_secret"
+                                   autocomplete="new-password" placeholder="sk_sandbox_… ou sk_live_…">
+                            <div class="form-text">Enregistrée : <code>{{ masked.api_secret }}</code> — laissez vide pour ne pas modifier.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="webhook_secret">Secret de webhook</label>
+                            <input type="password" class="form-control" id="webhook_secret" name="webhook_secret"
+                                   autocomplete="new-password" placeholder="whsec_…">
+                            <div class="form-text">
+                                Enregistrée : <code>{{ masked.webhook_secret }}</code> — laissez vide pour ne pas modifier.
+                                Sans ce secret, les notifications de paiement seront <strong>refusées</strong>.
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="enabled" name="enabled" value="1" {{ school.isGeniuspayEnabled ? 'checked' : '' }}>
+                            <label class="form-check-label fw-semibold" for="enabled">
+                                Activer le paiement en ligne pour cet établissement
+                            </label>
+                            <div class="form-text">Tant que c'est désactivé, les parents voient « paiement en ligne indisponible ».</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Enregistrer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-signal me-2"></i>État</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Paiement en ligne</span>
+                        <span class="badge badge-soft {{ school.isGeniuspayEnabled ? 'success' : 'secondary' }}">
+                            {{ school.isGeniuspayEnabled ? 'Activé' : 'Désactivé' }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Environnement</span>
+                        <span class="badge badge-soft {{ masked.environment == 'live' ? 'danger' : 'info' }}">
+                            {{ masked.environment }}
+                        </span>
+                    </div>
+                    {% if masked.environment == 'live' %}
+                        <div class="alert alert-warning mt-3 mb-0 small">
+                            <i class="fas fa-triangle-exclamation me-1"></i>
+                            Mode <strong>live</strong> : les transactions sont réelles et débitent
+                            effectivement les parents.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-bell me-2"></i>Webhook à déclarer</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Déclarez cette URL dans votre tableau de bord GeniusPay pour que les
+                        paiements soient crédités automatiquement.
+                    </p>
+                    <div class="input-group input-group-sm mb-2">
+                        <input type="text" class="form-control" id="webhookUrl" value="{{ webhook_url }}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="
+                            var f = document.getElementById('webhookUrl'); f.select();
+                            document.execCommand('copy'); this.innerHTML = 'Copié';">Copier</button>
+                    </div>
+                    <p class="text-muted small mb-0">
+                        Événements utiles : <code>payment.success</code>, <code>payment.failed</code>,
+                        <code>payment.cancelled</code>.
+                    </p>
+
+                    {% set is_local = 'localhost' in webhook_url or '127.0.0.1' in webhook_url %}
+                    {% if is_local %}
+                        <div class="alert alert-danger mt-3 mb-0 small">
+                            <i class="fas fa-triangle-exclamation me-1"></i>
+                            <strong>Cette URL n'est pas joignable depuis Internet.</strong>
+                            <code>localhost</code> et <code>127.0.0.1</code> désignent le serveur
+                            de GeniusPay, pas le vôtre : la notification n'arrivera jamais et les
+                            paiements resteront « en attente ». En développement, exposez
+                            l'application par un tunnel (ngrok…) et déclarez l'URL publique
+                            <strong>complète, chemin compris</strong>.
+                        </div>
+                    {% elseif webhook_url starts with 'http://' %}
+                        <div class="alert alert-warning mt-3 mb-0 small">
+                            <i class="fas fa-triangle-exclamation me-1"></i>
+                            Cette URL est en <strong>http</strong>. En production, exposez-la en
+                            <strong>https</strong> : la notification transporte des données de paiement.
+                        </div>
+                    {% endif %}
+
+                    <div class="alert alert-secondary mt-3 mb-0 small">
+                        <i class="fas fa-circle-info me-1"></i>
+                        L'URL doit se terminer par <code>/webhook/geniuspay</code>. Une URL pointant
+                        sur la racine du site ne sera pas traitée.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

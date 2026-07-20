@@ -64,8 +64,53 @@ chmod -R 775 var public/uploads
 chown -R www-data:www-data var public/uploads
 ```
 
-## 9. Vérification
+## 9. Paiement en ligne GeniusPay (espace parent)
+
+Le règlement de la scolarité en ligne se configure **par établissement**, dans
+*Administration → Établissements → Paiement en ligne*.
+
+### 9.1 URL publique
+Renseigner dans `.env.local` l'URL réellement servie :
+```env
+APP_BASE_URL=https://edu-school.31.207.39.182.nip.io
+```
+Elle ne sert qu'aux liens générés hors requête HTTP (CLI, e-mails) : pendant une
+requête, Symfony utilise l'hôte réel.
+
+### 9.2 Clés marchandes
+> ⚠️ **Les clés sont chiffrées avec `APP_SECRET`.** Elles ne sont donc **pas
+> transposables d'un environnement à l'autre** : copier la base de développement
+> vers la production rendra les clés illisibles (le paiement en ligne se
+> désactivera de lui-même, sans erreur visible). **Ressaisir les clés
+> directement en production.**
+
+Saisir la clé publique, la clé secrète et le secret de webhook, puis activer.
+Utiliser les clés `pk_live_…` / `sk_live_…` pour encaisser réellement.
+
+### 9.3 Webhook
+Déclarer dans le tableau de bord GeniusPay l'URL **complète** :
+```
+https://edu-school.31.207.39.182.nip.io/webhook/geniuspay
+```
+Événements : `payment.success`, `payment.failed`, `payment.cancelled`, `payment.expired`.
+
+> ⚠️ Le **secret de webhook n'est affiché qu'une seule fois**, à la création.
+> Le noter immédiatement : il n'est plus récupérable ensuite, il faudrait
+> recréer le webhook.
+
+Une URL en `localhost` ou `127.0.0.1` ne fonctionnera **jamais** : ces adresses
+désignent le serveur de GeniusPay. L'écran d'administration le signale.
+
+### 9.4 Contrôle
+Cliquer sur « tester » depuis GeniusPay. Réponse attendue :
+```json
+{"received":true,"test":true,"school":"NOM DE L'ÉTABLISSEMENT"}
+```
+Un `401` signifie que le secret enregistré ne correspond pas à celui du webhook.
+
+## 10. Vérification
 - Accéder à l'URL du domaine → la page de connexion doit s'afficher.
+- `/documentation` doit s'ouvrir **sans connexion** (page publique).
 - En cas d'erreur 500, consulter `var/log/prod.log`.
 
 ## ♻️ Procédure de mise à jour rapide
