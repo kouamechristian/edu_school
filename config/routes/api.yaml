@@ -1,4 +1,5 @@
-app_api:
-    resource: ../../src/Controller/Api/
-    type: attribute
-    prefix: /api
+# Les contrôleurs de src/Controller/Api/ sont déjà chargés par le loader générique
+# « controllers » de config/routes.yaml (qui scanne tout src/Controller/). On ne
+# les réimporte donc PAS ici avec un préfixe : cela créerait des routes en double
+# (même nom, chemins différents). Le préfixe « /api » est porté par les attributs
+# #[Route] au niveau des classes de contrôleur (ex. MobileApiController).

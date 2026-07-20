@@ -8,6 +8,8 @@ security:
     role_hierarchy:
         # ── Rôles de base (espaces personnels) ──
         ROLE_PARENT: ROLE_USER
+        # ── ROLE_ELEVE : espace élève (lecture seule + réception des devoirs). ──
+        ROLE_ELEVE: ROLE_USER
 
         # ── Rôles opérationnels (personnel) ──
         ROLE_ENSEIGNANT: ROLE_USER
@@ -59,10 +61,22 @@ security:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+        # API mobile (ed_photo) : authentification par jeton porteur, sans session.
+        api:
+            pattern: ^/api/
+            stateless: true
+            provider: app_user_provider
+            custom_authenticators:
+                - App\Security\ApiTokenAuthenticator
         main:
             lazy: true
             provider: app_user_provider
-            custom_authenticator: App\Security\MainAuthenticator
+            custom_authenticators:
+                - App\Security\MainAuthenticator
+                - App\Security\StudentAuthenticator
+            # Avec plusieurs authenticators, l'entry_point détermine la page de
+            # connexion présentée à un visiteur anonyme (défaut = personnel/parent).
+            entry_point: App\Security\MainAuthenticator
             logout:
                 path: app_logout
                 # where to redirect after logout
@@ -90,11 +104,21 @@ security:
     # Note: Only the *first* access control that matches will be used
     access_control:
          - { path: ^/login$, roles: PUBLIC_ACCESS }
+         # API mobile ed_photo : connexion publique (émission du jeton). Le reste exige
+         # simplement un jeton valide : le tri des rôles (tout le personnel, mais PAS
+         # ROLE_PARENT ni ROLE_ELEVE) est fait au login, qui n'émet un jeton qu'aux ayants droit.
+         - { path: ^/api/mobile/login$, roles: PUBLIC_ACCESS }
+         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
          # Espace parent — pages publiques : connexion dédiée et auto-inscription.
          - { path: ^/parent/connexion$, roles: PUBLIC_ACCESS }
          - { path: ^/parent/inscription$, roles: PUBLIC_ACCESS }
          # Portail Parent : réservé aux parents (et super-admins par héritage).
          - { path: ^/parent, roles: ROLE_PARENT }
+         # Espace élève — page de connexion publique, puis réservé aux élèves.
+         - { path: ^/eleve/connexion$, roles: PUBLIC_ACCESS }
+         - { path: ^/eleve, roles: ROLE_ELEVE }
+         # Espace enseignant — réservé aux enseignants (et hiérarchie supérieure).
+         - { path: ^/enseignant, roles: ROLE_ENSEIGNANT }
          - { path: ^/, roles: ROLE_USER }
 
 

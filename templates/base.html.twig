@@ -613,6 +613,11 @@
                             <i class="fas fa-clipboard-list"></i><span>Évaluations</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ path('enseignant_homework_index') }}" class="nav-link {{ current_route starts with 'enseignant_homework' ? 'active' : '' }}">
+                            <i class="fas fa-book-open"></i><span>Exercices de maison</span>
+                        </a>
+                    </li>
                    {#} {% if is_granted('ROLE_EDUCATEUR') %}
                     <li class="nav-item">
                         <a href="{{ path('admin_absence_index') }}" class="nav-link {{ current_route starts with 'admin_absence_index' ? 'active' : '' }}">
@@ -649,7 +654,7 @@
                     </li>
                     <li class="nav-item">
                         <a href="{{ path('fondateur_autorisations') }}" class="nav-link {{ app.request.get('_route') == 'fondateur_autorisations' ? 'active' : '' }}">
-                            <i class="fas fa-key"></i><span>Autorisations</span>
+                            <i class="fas fa-clipboard-check"></i><span>Dépenses à approuver</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -676,8 +681,18 @@
                 </a>
                 <ul class="nav flex-column collapse {{ admin_active ? 'show' : '' }}" id="menuAdmin">
                     <li class="nav-item">
-                        <a href="{{ path('admin_user_index') }}" class="nav-link {{ current_route starts with 'admin_user' ? 'active' : '' }}">
+                        <a href="{{ path('admin_user_index') }}" class="nav-link {{ current_route starts with 'admin_user' and current_route != 'admin_user_parents' and current_route != 'admin_user_students' ? 'active' : '' }}">
                             <i class="fas fa-users"></i><span>Utilisateurs et Role</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_user_parents') }}" class="nav-link {{ current_route == 'admin_user_parents' ? 'active' : '' }}">
+                            <i class="fas fa-user-friends"></i><span>Comptes Parents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_user_students') }}" class="nav-link {{ current_route == 'admin_user_students' ? 'active' : '' }}">
+                            <i class="fas fa-user-graduate"></i><span>Comptes Élèves</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -1316,6 +1331,16 @@
             <button class="theme-toggle" id="themeToggle" title="Basculer thème clair/sombre">
                 <i class="fas fa-moon" id="themeIcon"></i>
             </button>
+
+            {# ── Téléchargement de l'application mobile (ed_photo, Android) ── #}
+            {% if app.user and app.user.userType != 'parent' %}
+            <div class="topbar-item">
+                <a href="{{ asset('downloads/ed_photo.apk') }}" class="topbar-link" download
+                   title="Télécharger l'application mobile Android (ed_photo)">
+                    <i class="fab fa-android fa-fw" style="color:#3ddc84;"></i>
+                </a>
+            </div>
+            {% endif %}
 
             {# ── Notifications dropdown ── #}
             {% set unread_notifs = unread_notifications_count() %}

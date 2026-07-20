@@ -60,6 +60,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $lastLogin = null;
 
+    /**
+     * Jeton d'authentification pour l'API mobile (ed_photo). Généré à la connexion
+     * mobile, transmis en en-tête « Authorization: Bearer <token> ». Nul tant que
+     * l'utilisateur ne s'est jamais connecté depuis l'application mobile.
+     */
+    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    private ?string $apiToken = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $avatar = null;
 
@@ -92,7 +100,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeInterface $updatedAt = null;
 
     #[ORM\Column(length: 50, nullable: true)]
-    #[Assert\Choice(choices: ['admin', 'directeur', 'enseignant', 'personnel', 'parent'])]
+    #[Assert\Choice(choices: ['admin', 'directeur', 'enseignant', 'personnel', 'parent', 'eleve'])]
     private ?string $userType = null;
 
     #[ORM\ManyToOne]
@@ -293,6 +301,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getApiToken(): ?string
+    {
+        return $this->apiToken;
+    }
+
+    public function setApiToken(?string $apiToken): static
+    {
+        $this->apiToken = $apiToken;
+        return $this;
+    }
+
     public function getAvatar(): ?string
     {
         return $this->avatar;
@@ -450,6 +469,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'enseignant' => 'Enseignant',
             'personnel' => 'Personnel',
             'parent' => 'Parent',
+            'eleve' => 'Élève',
             default => 'Utilisateur'
         };
     }

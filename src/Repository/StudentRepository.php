@@ -150,6 +150,37 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Recherche un élève actif par son matricule interne OU national, en le limitant
+     * aux établissements autorisés (multi-tenant). Utilisé par l'API mobile ed_photo.
+     * Comparaison insensible à la casse et aux espaces de début/fin.
+     *
+     * @param int[] $schoolIds Établissements autorisés ; tableau vide = aucune restriction (super-admin).
+     */
+    public function findOneByMatriculeInSchools(string $matricule, array $schoolIds): ?Student
+    {
+        $normalized = mb_strtolower(trim($matricule));
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        $qb = $this->createQueryBuilder('s')
+            ->andWhere('LOWER(TRIM(s.matriculeInterne)) = :matricule OR LOWER(TRIM(s.matriculeNational)) = :matricule')
+            ->andWhere('s.isActive = :active')
+            ->setParameter('matricule', $normalized)
+            ->setParameter('active', true)
+            ->orderBy('s.createdAt', 'DESC')
+            ->setMaxResults(1);
+
+        if ($schoolIds !== []) {
+            $qb->andWhere('IDENTITY(s.school) IN (:schoolIds)')
+                ->setParameter('schoolIds', $schoolIds);
+        }
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    /**
      * Trouve les élèves par nom ou prénom
      */
     public function findByName(string $name): array

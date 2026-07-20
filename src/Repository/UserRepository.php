@@ -35,6 +35,19 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
+     * Retrouve l'utilisateur (actif) détenteur d'un jeton d'API mobile.
+     */
+    public function findOneByApiToken(string $apiToken): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->where('u.apiToken = :token')
+            ->andWhere('u.isActive = true')
+            ->setParameter('token', $apiToken)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Used to upgrade (rehash) the user's password automatically over time.
      */
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
@@ -87,6 +100,29 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->orderBy('u.username', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Comptes (actifs ET inactifs) portant un rôle donné (ROLE_PARENT, ROLE_ELEVE…),
+     * avec recherche facultative sur le nom, le nom d'utilisateur ou l'e-mail.
+     * Sert aux écrans de gestion « Comptes Parents » / « Comptes Élèves ».
+     *
+     * @return User[]
+     */
+    public function findAccountsByRole(string $role, ?string $search = null): array
+    {
+        $qb = $this->createQueryBuilder('u')
+            ->andWhere('u.roles LIKE :role')
+            ->setParameter('role', '%"'.$role.'"%')
+            ->orderBy('u.lastName', 'ASC')
+            ->addOrderBy('u.username', 'ASC');
+
+        if ($search !== null && trim($search) !== '') {
+            $qb->andWhere('u.username LIKE :term OR u.email LIKE :term OR u.firstName LIKE :term OR u.lastName LIKE :term')
+                ->setParameter('term', '%'.trim($search).'%');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     /**
@@ -172,14 +208,30 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             return []; // Si pas d'établissement, retourner liste vide
         }
 
-        return $this->createQueryBuilder('u')
-            ->innerJoin('u.schools', 's')
-            ->andWhere('s.id = :school')
-            ->setParameter('school', $schoolId)
-            ->orderBy('u.lastName', 'ASC')
-            ->addOrderBy('u.firstName', 'ASC')
+        return $this->excludePortalAccounts(
+            $this->createQueryBuilder('u')
+                ->innerJoin('u.schools', 's')
+                ->andWhere('s.id = :school')
+                ->setParameter('school', $schoolId)
+                ->orderBy('u.lastName', 'ASC')
+                ->addOrderBy('u.firstName', 'ASC')
+            )
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Exclut les comptes des portails élève/parent (ROLE_ELEVE, ROLE_PARENT) des
+     * listes de gestion du personnel : ces comptes ont leurs propres écrans dédiés
+     * (Administration → Comptes Parents / Comptes Élèves).
+     */
+    private function excludePortalAccounts(\Doctrine\ORM\QueryBuilder $qb): \Doctrine\ORM\QueryBuilder
+    {
+        return $qb
+            ->andWhere('u.roles NOT LIKE :excludeParent')
+            ->andWhere('u.roles NOT LIKE :excludeEleve')
+            ->setParameter('excludeParent', '%"ROLE_PARENT"%')
+            ->setParameter('excludeEleve', '%"ROLE_ELEVE"%');
     }
 
     /**
@@ -191,13 +243,15 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             return $this->searchByNameOrEmail($searchTerm);
         }
 
-        return $this->createQueryBuilder('u')
-            ->innerJoin('u.schools', 's')
-            ->andWhere('s.id = :school')
-            ->andWhere('u.username LIKE :term OR u.email LIKE :term OR u.firstName LIKE :term OR u.lastName LIKE :term')
-            ->setParameter('school', $schoolId)
-            ->setParameter('term', '%'.$searchTerm.'%')
-            ->orderBy('u.username', 'ASC')
+        return $this->excludePortalAccounts(
+            $this->createQueryBuilder('u')
+                ->innerJoin('u.schools', 's')
+                ->andWhere('s.id = :school')
+                ->andWhere('u.username LIKE :term OR u.email LIKE :term OR u.firstName LIKE :term OR u.lastName LIKE :term')
+                ->setParameter('school', $schoolId)
+                ->setParameter('term', '%'.$searchTerm.'%')
+                ->orderBy('u.username', 'ASC')
+            )
             ->getQuery()
             ->getResult();
     }
@@ -211,15 +265,17 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             return $this->findByType($type);
         }
 
-        return $this->createQueryBuilder('u')
-            ->innerJoin('u.schools', 's')
-            ->andWhere('s.id = :school')
-            ->andWhere('u.userType = :type')
-            ->andWhere('u.isActive = :active')
-            ->setParameter('school', $schoolId)
-            ->setParameter('type', $type)
-            ->setParameter('active', true)
-            ->orderBy('u.lastName', 'ASC')
+        return $this->excludePortalAccounts(
+            $this->createQueryBuilder('u')
+                ->innerJoin('u.schools', 's')
+                ->andWhere('s.id = :school')
+                ->andWhere('u.userType = :type')
+                ->andWhere('u.isActive = :active')
+                ->setParameter('school', $schoolId)
+                ->setParameter('type', $type)
+                ->setParameter('active', true)
+                ->orderBy('u.lastName', 'ASC')
+            )
             ->getQuery()
             ->getResult();
     }
