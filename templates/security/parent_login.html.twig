@@ -24,11 +24,13 @@
 
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            min-height: 100vh; display: flex; align-items: center; justify-content: center;
-            padding: 20px; background: #0a1f1a; position: relative; overflow: hidden;
+            min-height: 100vh; display: flex; justify-content: center;
+            padding: 20px; background: #0a1f1a; position: relative;
+            overflow-x: hidden; overflow-y: auto;
         }
+        /* Halos en `fixed` : décor de fond sans barre de défilement parasite. */
         body::before, body::after {
-            content: ""; position: absolute; border-radius: 50%;
+            content: ""; position: fixed; border-radius: 50%;
             filter: blur(90px); opacity: 0.5; z-index: 0;
         }
         body::before { width: 480px; height: 480px; background: #10b981; top: -120px; left: -120px; opacity: 0.4; }
@@ -36,6 +38,9 @@
 
         .login-container {
             position: relative; z-index: 1; background: #fff; border-radius: 22px;
+            /* margin:auto centre verticalement sans rogner le haut si la carte
+               depasse la hauteur de l'ecran (defilement possible). */
+            margin: auto;
             box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); overflow: hidden;
             max-width: 920px; width: 100%; display: flex; animation: rise 0.6s ease-out;
         }
@@ -115,6 +120,18 @@
     </style>
 </head>
 <body>
+    {# Aide publique, barre supérieure toujours visible. #}
+    <div style="position:fixed;top:16px;right:20px;z-index:10;display:flex;gap:10px;">
+        <a href="{{ path('app_documentation') }}" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;background:#fff;border:1px solid #e2e8f0;color:#1e3a5f;font-size:.85rem;font-weight:600;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.25);">
+            <i class="fas fa-book" style="color:#059669;"></i> Documentation
+        </a>
+        <a href="{{ path('app_support') }}" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;background:#fff;border:1px solid #e2e8f0;color:#1e3a5f;font-size:.85rem;font-weight:600;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.25);">
+            <i class="fas fa-life-ring" style="color:#059669;"></i> Support
+        </a>
+    </div>
+
     <div class="login-container">
         {# ── Présentation ── #}
         <div class="login-left">
@@ -197,6 +214,7 @@
             <div class="staff-link">
                 <a href="{{ path('app_login') }}"><i class="fas fa-briefcase me-1"></i> Vous êtes membre du personnel ? Connexion ici</a>
             </div>
+
         </div>
     </div>
 

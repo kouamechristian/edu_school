@@ -231,7 +231,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 1.5rem;
+            padding: 0 1rem;
             transition: all 0.3s;
             z-index: 999;
         }
@@ -257,7 +257,7 @@
         .topbar-nav {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.25rem;
         }
 
         .topbar-item {
@@ -267,8 +267,8 @@
         .topbar-link {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
+            gap: 0.4rem;
+            padding: 0.4rem 0.55rem;
             color: var(--secondary-color);
             text-decoration: none;
             border-radius: 0.35rem;
@@ -279,6 +279,8 @@
             background-color: #f8f9fc;
             color: var(--primary-color);
         }
+
+        .topbar-link > i { font-size: 0.95rem; }
 
         .notification-badge {
             position: absolute;
@@ -296,8 +298,8 @@
         }
 
         .user-avatar {
-            width: 35px;
-            height: 35px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             background: var(--primary-color);
             color: white;
@@ -305,6 +307,8 @@
             align-items: center;
             justify-content: center;
             font-weight: 600;
+            font-size: 0.72rem;
+            flex-shrink: 0;
         }
 
         /* ── Content ── */
@@ -1269,7 +1273,7 @@
         {% endif %}
 
         {# ── Sélecteurs de contexte (dropdowns) — masqués pour les parents ── #}
-        <div class="context-selectors d-none {{ app.user and app.user.userType == 'parent' ? '' : 'd-lg-flex' }} gap-2 ms-3">
+        <div class="context-selectors d-none {{ app.user and app.user.userType == 'parent' ? '' : 'd-lg-flex' }} gap-1 ms-2">
             {% if current_school is defined and current_school %}
             <div class="dropdown">
                 <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -1336,8 +1340,9 @@
             {% if app.user and app.user.userType != 'parent' %}
             <div class="topbar-item">
                 <a href="{{ asset('downloads/ed_photo.apk') }}" class="topbar-link" download
-                   title="Télécharger l'application mobile Android (ed_photo)">
-                    <i class="fab fa-android fa-fw" style="color:#3ddc84;"></i>
+                   title="Télécharger l'application mobile Android (ed_photo)"
+                   aria-label="Télécharger l'application mobile">
+                    <i class="fas fa-download fa-fw"></i>
                 </a>
             </div>
             {% endif %}
@@ -1422,7 +1427,7 @@
                     <div class="user-avatar" style="background: {{ user_bg }};">
                         {{ app.user ? app.user.initials : 'AD' }}
                     </div>
-                    <span class="d-none d-lg-inline ms-2">
+                    <span class="d-none d-xl-inline ms-2 text-truncate" style="max-width:150px;font-size:0.85rem;">
                         {{ app.user ? app.user.fullName : 'Admin' }}
                     </span>
                 </a>
@@ -1541,7 +1546,8 @@
                         Version 1.0.0 | 
                         <a href="{{ path('app_documentation') }}" class="text-decoration-none"
                            target="_blank" rel="noopener">Documentation</a> |
-                        <a href="#" class="text-decoration-none">Support</a>
+                        <a href="{{ path('app_support') }}" class="text-decoration-none"
+                           target="_blank" rel="noopener">Support</a>
                     </div>
                 </div>
             </div>
