@@ -114,6 +114,22 @@ class PaymentController extends AbstractController
     }
 
     /**
+     * Identifiant de l'établissement courant, ou null s'il n'y en a pas (un message
+     * l'indique alors à l'utilisateur). Les listes de paiements s'y limitent toujours.
+     */
+    private function currentSchoolId(SchoolContextService $contextService): ?int
+    {
+        $school = $contextService->getCurrentSchool();
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour voir les paiements.');
+
+            return null;
+        }
+
+        return $school->getId();
+    }
+
+    /**
      * Frais restant dus par l'élève pour l'année courante, prêts pour l'imputation.
      * Ordre : arriérés antérieurs d'abord (à solder en priorité), puis par prochaine
      * échéance impayée — c'est aussi l'ordre de la répartition automatique.
@@ -234,25 +250,30 @@ class PaymentController extends AbstractController
         $method = $request->query->get('method');
         $search = $request->query->get('search');
 
+        // Toutes les requêtes sont restreintes à l'établissement courant : on ne voit
+        // jamais les paiements d'un autre établissement, même en gérant plusieurs.
+        $schoolId = $currentSchool->getId();
+
         // Filtrer les paiements
         if ($search) {
-            $payments = $paymentRepository->searchByNumberOrReference($search);
+            $payments = $paymentRepository->searchByNumberOrReference($search, $schoolId);
         } elseif ($status) {
-            $payments = $paymentRepository->findByStatus($status);
+            $payments = $paymentRepository->findByStatus($status, $schoolId);
         } elseif ($method) {
-            $payments = $paymentRepository->findByPaymentMethod($method);
+            $payments = $paymentRepository->findByPaymentMethod($method, $schoolId);
         } else {
-            $payments = $paymentRepository->findRecent(50);
+            $payments = $paymentRepository->findRecent(50, $schoolId);
         }
 
-        // Statistiques
+        // Statistiques (du seul établissement courant, comme la liste)
         $stats = [
             'total' => count($payments),
-            'by_status' => $paymentRepository->countByStatus(),
-            'by_method' => $paymentRepository->countByPaymentMethod(),
+            'by_status' => $paymentRepository->countByStatus($schoolId),
+            'by_method' => $paymentRepository->countByPaymentMethod($schoolId),
             'total_amount' => $paymentRepository->getTotalAmountByDateRange(
                 new \DateTime('-30 days'),
-                new \DateTime()
+                new \DateTime(),
+                $schoolId
             )
         ];
 
@@ -836,19 +857,20 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/pending', name: 'pending', methods: ['GET'])]
-    public function pending(PaymentRepository $paymentRepository): Response
+    public function pending(PaymentRepository $paymentRepository, SchoolContextService $contextService): Response
     {
-        $pendingPayments = $paymentRepository->findPending();
+        $schoolId = $this->currentSchoolId($contextService);
 
         return $this->render('payment/pending.html.twig', [
-            'payments' => $pendingPayments,
+            'payments' => $schoolId === null ? [] : $paymentRepository->findPending($schoolId),
         ]);
     }
 
     #[Route('/cancelled', name: 'cancelled', methods: ['GET'])]
-    public function cancelled(Request $request, PaymentRepository $paymentRepository, \Knp\Component\Pager\PaginatorInterface $paginator): Response
+    public function cancelled(Request $request, PaymentRepository $paymentRepository, SchoolContextService $contextService, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
-        $cancelledPayments = $paymentRepository->findByStatus('annulé');
+        $schoolId = $this->currentSchoolId($contextService);
+        $cancelledPayments = $schoolId === null ? [] : $paymentRepository->findByStatus('annulé', $schoolId);
         $payments = $paginator->paginate($cancelledPayments, $request->query->getInt('page', 1), 50);
 
         return $this->render('payment/cancelled.html.twig', [
@@ -858,12 +880,12 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/recent', name: 'recent', methods: ['GET'])]
-    public function recent(PaymentRepository $paymentRepository): Response
+    public function recent(PaymentRepository $paymentRepository, SchoolContextService $contextService): Response
     {
-        $recentPayments = $paymentRepository->findRecent(20);
+        $schoolId = $this->currentSchoolId($contextService);
 
         return $this->render('payment/recent.html.twig', [
-            'payments' => $recentPayments,
+            'payments' => $schoolId === null ? [] : $paymentRepository->findRecent(20, $schoolId),
         ]);
     }
 }

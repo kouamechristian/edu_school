@@ -7,6 +7,7 @@ use App\Entity\SchoolGroup;
 use App\Entity\Student;
 use App\Entity\Fee;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -91,6 +92,26 @@ class PaymentRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
 
         return (float) ($result ?? 0);
+    }
+
+    /**
+     * Restreint une requête aux paiements d'un établissement.
+     *
+     * Un paiement appartient à l'établissement de son élève : les listes et les
+     * statistiques de l'espace caisse ne doivent jamais déborder sur les autres
+     * établissements, même pour un utilisateur qui en gère plusieurs.
+     *
+     * @param string $alias Alias de l'entité Payment dans la requête
+     */
+    private function restrictToSchool(QueryBuilder $qb, ?int $schoolId, string $alias = 'p'): QueryBuilder
+    {
+        if ($schoolId !== null) {
+            $qb->innerJoin($alias . '.student', 'school_scope_student')
+               ->andWhere('school_scope_student.school = :schoolScopeId')
+               ->setParameter('schoolScopeId', $schoolId);
+        }
+
+        return $qb;
     }
 
     public function save(Payment $entity, bool $flush = false): void
@@ -186,29 +207,29 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trouve les paiements par statut
+     * Trouve les paiements par statut (restreints à un établissement si fourni)
      */
-    public function findByStatus(string $status): array
+    public function findByStatus(string $status, ?int $schoolId = null): array
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->andWhere('p.status = :status')
             ->setParameter('status', $status)
-            ->orderBy('p.paymentDate', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('p.paymentDate', 'DESC');
+
+        return $this->restrictToSchool($qb, $schoolId)->getQuery()->getResult();
     }
 
     /**
-     * Trouve les paiements par méthode
+     * Trouve les paiements par méthode (restreints à un établissement si fourni)
      */
-    public function findByPaymentMethod(string $method): array
+    public function findByPaymentMethod(string $method, ?int $schoolId = null): array
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->andWhere('p.paymentMethod = :method')
             ->setParameter('method', $method)
-            ->orderBy('p.paymentDate', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('p.paymentDate', 'DESC');
+
+        return $this->restrictToSchool($qb, $schoolId)->getQuery()->getResult();
     }
 
     /**
@@ -229,33 +250,33 @@ class PaymentRepository extends ServiceEntityRepository
     /**
      * Trouve les paiements en attente
      */
-    public function findPending(): array
+    public function findPending(?int $schoolId = null): array
     {
-        return $this->findByStatus('en_attente');
+        return $this->findByStatus('en_attente', $schoolId);
     }
 
     /**
      * Trouve les paiements confirmés
      */
-    public function findConfirmed(): array
+    public function findConfirmed(?int $schoolId = null): array
     {
-        return $this->findByStatus('payé');
+        return $this->findByStatus('payé', $schoolId);
     }
 
     /**
      * Trouve les paiements partiellement payés
      */
-    public function findPartiallyPaid(): array
+    public function findPartiallyPaid(?int $schoolId = null): array
     {
-        return $this->findByStatus('partiellement_payé');
+        return $this->findByStatus('partiellement_payé', $schoolId);
     }
 
     /**
      * Trouve les paiements annulés
      */
-    public function findCancelled(): array
+    public function findCancelled(?int $schoolId = null): array
     {
-        return $this->findByStatus('annulé');
+        return $this->findByStatus('annulé', $schoolId);
     }
 
     /**
@@ -295,18 +316,18 @@ class PaymentRepository extends ServiceEntityRepository
     /**
      * Calcule le montant total des paiements par période
      */
-    public function getTotalAmountByDateRange(\DateTimeInterface $startDate, \DateTimeInterface $endDate): float
+    public function getTotalAmountByDateRange(\DateTimeInterface $startDate, \DateTimeInterface $endDate, ?int $schoolId = null): float
     {
-        $result = $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->select('SUM(p.amount) as total')
             ->andWhere('p.paymentDate >= :startDate')
             ->andWhere('p.paymentDate <= :endDate')
             ->andWhere('p.status IN (:statuses)')
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate)
-            ->setParameter('statuses', ['payé', 'partiellement_payé'])
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('statuses', ['payé', 'partiellement_payé']);
+
+        $result = $this->restrictToSchool($qb, $schoolId)->getQuery()->getSingleScalarResult();
 
         return (float) ($result ?? 0);
     }
@@ -378,39 +399,39 @@ class PaymentRepository extends ServiceEntityRepository
     /**
      * Compte les paiements par statut
      */
-    public function countByStatus(): array
+    public function countByStatus(?int $schoolId = null): array
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->select('p.status, COUNT(p.id) as count')
             ->groupBy('p.status')
-            ->orderBy('count', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('count', 'DESC');
+
+        return $this->restrictToSchool($qb, $schoolId)->getQuery()->getResult();
     }
 
     /**
      * Compte les paiements par méthode
      */
-    public function countByPaymentMethod(): array
+    public function countByPaymentMethod(?int $schoolId = null): array
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->select('p.paymentMethod, COUNT(p.id) as count')
             ->groupBy('p.paymentMethod')
-            ->orderBy('count', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('count', 'DESC');
+
+        return $this->restrictToSchool($qb, $schoolId)->getQuery()->getResult();
     }
 
     /**
-     * Trouve les paiements récents
+     * Trouve les paiements récents (restreints à un établissement si fourni)
      */
-    public function findRecent(int $limit = 10): array
+    public function findRecent(int $limit = 10, ?int $schoolId = null): array
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->orderBy('p.createdAt', 'DESC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
+            ->setMaxResults($limit);
+
+        return $this->restrictToSchool($qb, $schoolId)->getQuery()->getResult();
     }
 
     /**
@@ -438,14 +459,14 @@ class PaymentRepository extends ServiceEntityRepository
     /**
      * Recherche les paiements par numéro (de paiement ou de reçu) ou référence
      */
-    public function searchByNumberOrReference(string $search): array
+    public function searchByNumberOrReference(string $search, ?int $schoolId = null): array
     {
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->andWhere('p.paymentNumber LIKE :search OR p.receiptNumber LIKE :search OR p.reference LIKE :search')
             ->setParameter('search', '%' . $search . '%')
-            ->orderBy('p.paymentDate', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('p.paymentDate', 'DESC');
+
+        return $this->restrictToSchool($qb, $schoolId)->getQuery()->getResult();
     }
 
     /**
