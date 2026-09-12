@@ -1,0 +1,12 @@
+{# Indicateur d'avancement de l'encaissement : 1 montant → 2 imputation → 3 reçu #}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    {% for label in ['Élève et montant versé', 'Imputation sur les frais', 'Reçu'] %}
+        {% set n = loop.index %}
+        <div class="d-flex align-items-center {{ n < step ? 'text-success' : (n == step ? 'text-primary fw-bold' : 'text-muted') }}">
+            <span class="badge rounded-pill {{ n < step ? 'bg-success' : (n == step ? 'bg-primary' : 'bg-secondary') }} me-2">
+                {% if n < step %}<i class="fas fa-check"></i>{% else %}{{ n }}{% endif %}
+            </span>{{ label }}
+        </div>
+        {% if not loop.last %}<i class="fas fa-chevron-right text-muted small mx-1"></i>{% endif %}
+    {% endfor %}
+</div>

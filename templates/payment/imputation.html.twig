@@ -1,0 +1,282 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Imputation du paiement{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .imputation-bar { position: sticky; bottom: 0; z-index: 5; background: var(--bs-body-bg, #fff); border-top: 1px solid rgba(0,0,0,.08); }
+        .imputation-input { min-width: 120px; }
+        .imputation-stat .value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+        #submitBtn.is-ready { animation: imputation-pulse 1.2s ease-in-out 2; }
+        @keyframes imputation-pulse { 50% { transform: scale(1.04); box-shadow: 0 0 0 .3rem rgba(25,135,84,.25); } }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Imputation du paiement',
+        subtitle: student.fullName,
+        icon: 'fa-list-check',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Paiements', path: path('admin_payment_index') },
+            { label: 'Nouveau', path: path('admin_payment_new', {draft: token}) },
+            { label: 'Imputation' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_payment_new', {draft: token}) }}" class="btn btn-light"><i class="fas fa-pen me-1"></i> Modifier le montant</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+    {% include 'payment/_steps.html.twig' with { step: 2 } %}
+
+    <form method="post" id="imputationForm" autocomplete="off">
+        <input type="hidden" name="_token" value="{{ csrf_token('payment_imputation_' ~ token) }}">
+
+        <div class="row g-3 mb-3">
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase mb-1">Élève</div>
+                        <div class="fw-bold fs-5">{{ student.fullName }}</div>
+                        <div class="small text-muted">
+                            {{ student.matriculeInterne ?: student.matriculeNational ?: '' }}
+                            {% if classroom %} · {{ classroom.name }}{% endif %}
+                        </div>
+                        <hr class="my-2">
+                        <div class="small">
+                            <i class="fas fa-calendar me-1 text-muted"></i>{{ draft.payment_date|date('d/m/Y') }}
+                            <span class="mx-1">·</span>
+                            <i class="fas fa-wallet me-1 text-muted"></i>{{ payment_method_label }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="row text-center imputation-stat">
+                            <div class="col-4">
+                                <div class="text-muted small">Montant versé</div>
+                                <div class="value text-primary">{{ amount|number_format(0, ',', ' ') }} F</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Total imputé</div>
+                                <div class="value" id="totalImputed">0 F</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Reste à imputer</div>
+                                <div class="value text-danger" id="leftToImpute">{{ amount|number_format(0, ',', ' ') }} F</div>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 8px;">
+                            <div class="progress-bar" id="imputationProgress" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list-ol me-2"></i>Frais à imputer</h6>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary" id="autoAllocateBtn" title="Solder les arriérés puis les échéances les plus anciennes">
+                        <i class="fas fa-wand-magic-sparkles me-1"></i> Répartition automatique
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="clearBtn"><i class="fas fa-eraser me-1"></i> Tout effacer</button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0" id="imputationTable">
+                        <thead>
+                            <tr>
+                                <th>Frais</th>
+                                <th>Échéances restantes</th>
+                                <th class="text-end">Montant</th>
+                                <th class="text-end">Déjà payé</th>
+                                <th class="text-end">Reste dû</th>
+                                <th class="text-end" style="width: 210px;">Imputation</th>
+                                <th class="text-end">Solde après</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fee in fees %}
+                                <tr class="js-fee-row">
+                                    <td>
+                                        <strong>{{ fee.name }}</strong>
+                                        {% if fee.is_arriere %}
+                                            <br><span class="badge bg-warning text-dark"><i class="fas fa-triangle-exclamation me-1"></i>Arriéré{{ fee.annee_origine ? ' ' ~ fee.annee_origine : '' }} — prioritaire</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small text-muted">
+                                        {% set pending = fee.schedules|filter(s => s.remaining > 0) %}
+                                        {% for s in pending %}
+                                            <div>Éch. {{ s.order }} · {{ s.due ?: 'à l\'inscription' }} : <span class="text-body">{{ s.remaining|number_format(0, ',', ' ') }} F</span></div>
+                                        {% else %}
+                                            Paiement unique
+                                        {% endfor %}
+                                    </td>
+                                    <td class="text-end">{{ fee.amount|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end">{{ fee.paid|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end fw-bold">{{ fee.remaining|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end">
+                                        <div class="input-group input-group-sm imputation-input">
+                                            <input type="number" name="allocations[{{ fee.id }}]" class="form-control text-end js-alloc"
+                                                   min="0" max="{{ fee.remaining }}" step="any" inputmode="numeric" placeholder="0"
+                                                   value="{{ submitted[fee.id] is defined and submitted[fee.id] > 0 ? submitted[fee.id] : '' }}"
+                                                   data-remaining="{{ fee.remaining }}" aria-label="Imputation {{ fee.name }}">
+                                            <button type="button" class="btn btn-outline-secondary js-fill" title="Imputer le maximum possible sur ce frais">Max</button>
+                                        </div>
+                                    </td>
+                                    <td class="text-end js-after">{{ fee.remaining|number_format(0, ',', ' ') }}</td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="7" class="text-center text-muted py-4">Aucun frais restant à payer pour cet élève.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if fees|length > 0 %}
+                            <tfoot>
+                                <tr class="table-light fw-bold">
+                                    <td colspan="4" class="text-end">Total</td>
+                                    <td class="text-end">{{ fees|reduce((sum, f) => sum + f.remaining, 0)|number_format(0, ',', ' ') }}</td>
+                                    <td class="text-end" id="footTotal">0</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer imputation-bar d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+                <div id="imputationStatus" class="small"></div>
+                <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+                    <i class="fas fa-receipt me-1"></i> Valider et afficher le reçu
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var target = {{ amount|json_encode }};
+            var form = document.getElementById('imputationForm');
+            var inputs = Array.prototype.slice.call(document.querySelectorAll('.js-alloc'));
+            var submitBtn = document.getElementById('submitBtn');
+            var statusEl = document.getElementById('imputationStatus');
+            var totalEl = document.getElementById('totalImputed');
+            var leftEl = document.getElementById('leftToImpute');
+            var footTotal = document.getElementById('footTotal');
+            var progress = document.getElementById('imputationProgress');
+            var wasReady = false;
+
+            function round2(n) { return Math.round(n * 100) / 100; }
+            function num(v) { var n = parseFloat(String(v).replace(',', '.')); return Number.isNaN(n) ? 0 : n; }
+            function fmt(n) { return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' F'; }
+            function remainingOf(input) { return parseFloat(input.dataset.remaining) || 0; }
+
+            function refresh() {
+                var total = 0, invalid = false;
+
+                inputs.forEach(function (input) {
+                    var value = num(input.value), rem = remainingOf(input);
+                    var bad = value < 0 || value > rem + 0.009;
+                    var row = input.closest('tr');
+                    input.classList.toggle('is-invalid', bad);
+                    row.classList.toggle('table-success', value > 0 && !bad);
+                    row.classList.toggle('table-danger', bad);
+                    row.querySelector('.js-after').textContent = fmt(Math.max(0, round2(rem - value)));
+                    if (bad) invalid = true;
+                    total += value;
+                });
+
+                total = round2(total);
+                var left = round2(target - total);
+                var ready = !invalid && total > 0 && Math.abs(left) < 0.01;
+
+                totalEl.textContent = fmt(total);
+                if (footTotal) footTotal.textContent = fmt(total);
+                leftEl.textContent = fmt(left);
+                leftEl.className = 'value ' + (Math.abs(left) < 0.01 ? 'text-success' : 'text-danger');
+
+                progress.style.width = Math.min(100, target > 0 ? (total / target) * 100 : 0) + '%';
+                progress.className = 'progress-bar ' + (left < -0.009 || invalid ? 'bg-danger' : (ready ? 'bg-success' : 'bg-primary'));
+
+                if (invalid) {
+                    statusEl.className = 'small text-danger fw-bold';
+                    statusEl.innerHTML = '<i class="fas fa-circle-exclamation me-1"></i>Une imputation dépasse le reste dû du frais.';
+                } else if (left < -0.009) {
+                    statusEl.className = 'small text-danger fw-bold';
+                    statusEl.innerHTML = '<i class="fas fa-circle-exclamation me-1"></i>Vous avez imputé ' + fmt(-left) + ' de plus que le montant versé.';
+                } else if (ready) {
+                    statusEl.className = 'small text-success fw-bold';
+                    statusEl.innerHTML = '<i class="fas fa-circle-check me-1"></i>Imputation complète : le montant versé est entièrement réparti.';
+                } else {
+                    statusEl.className = 'small text-muted';
+                    statusEl.innerHTML = '<i class="fas fa-hourglass-half me-1"></i>Il reste <strong>' + fmt(left) + '</strong> à imputer pour pouvoir valider.';
+                }
+
+                submitBtn.disabled = !ready;
+                submitBtn.classList.toggle('is-ready', ready && !wasReady);
+                wasReady = ready;
+            }
+
+            // Répartition automatique : dans l'ordre affiché (arriérés, puis échéances les plus anciennes).
+            document.getElementById('autoAllocateBtn').addEventListener('click', function () {
+                var left = target;
+                inputs.forEach(function (input) {
+                    var give = round2(Math.max(0, Math.min(remainingOf(input), left)));
+                    input.value = give > 0 ? give : '';
+                    left = round2(left - give);
+                });
+                refresh();
+            });
+
+            document.getElementById('clearBtn').addEventListener('click', function () {
+                inputs.forEach(function (input) { input.value = ''; });
+                refresh();
+                if (inputs[0]) inputs[0].focus();
+            });
+
+            // « Max » : impute sur ce frais tout ce qui reste à répartir, dans la limite de son reste dû.
+            document.querySelectorAll('.js-fill').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var input = btn.closest('tr').querySelector('.js-alloc');
+                    var others = inputs.reduce(function (s, i) { return i === input ? s : s + num(i.value); }, 0);
+                    var give = round2(Math.max(0, Math.min(remainingOf(input), target - others)));
+                    input.value = give > 0 ? give : '';
+                    refresh();
+                });
+            });
+
+            inputs.forEach(function (input) { input.addEventListener('input', refresh); });
+
+            // Un seul frais dû : l'imputation est évidente, on la pré-remplit.
+            if (inputs.length === 1 && !inputs[0].value) {
+                inputs[0].value = round2(Math.min(remainingOf(inputs[0]), target));
+            }
+
+            form.addEventListener('submit', function (e) {
+                if (submitBtn.disabled) { e.preventDefault(); return; }
+                // Évite un double encaissement en cas de double clic.
+                setTimeout(function () {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enregistrement…';
+                }, 0);
+            });
+
+            refresh();
+            var firstEmpty = inputs.find(function (i) { return !i.value; });
+            if (firstEmpty) firstEmpty.focus();
+        });
+    </script>
+{% endblock %}

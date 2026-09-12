@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Reçu {{ payment.paymentNumber }}</title>
+    <title>Reçu {{ receipt_number }}</title>
     <style>
         @page { margin: 14px 26px; }
         body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
@@ -62,7 +62,7 @@
     </style>
 </head>
 <body>
-    {% macro receipt(payment, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, tag) %}
+    {% macro receipt(payment, receipt_number, receipt_amount, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, tag) %}
         <div class="copy">
             <div class="copy-tag">{{ tag }}</div>
 
@@ -80,7 +80,7 @@
 
             <table class="ident">
                 <tr>
-                    <td><span class="label">REÇU DE PAIEMENT N° :</span> <b>{{ payment.paymentNumber }}</b></td>
+                    <td><span class="label">REÇU DE PAIEMENT N° :</span> <b>{{ receipt_number }}</b></td>
                     <td><span class="label">DATE DE PAIEMENT :</span> <b>{{ payment.paymentDate ? payment.paymentDate|date('d/m/Y') : '-' }} {{ payment.createdAt ? payment.createdAt|date('H:i:s') : '' }}</b></td>
                     <td class="right">{{ student and student.schoolYear ? student.schoolYear.name : '' }}</td>
                 </tr>
@@ -95,7 +95,7 @@
             </table>
 
             <div class="paid-line">
-                MONTANT PAYE: <b>{{ payment.amount|number_format(0, ',', ' ') }}</b> ( {{ amount_in_words }} ) {{ payment.paymentMethodLabel|lower }}
+                MONTANT PAYE: <b>{{ receipt_amount|number_format(0, ',', ' ') }}</b> ( {{ amount_in_words }} ) {{ payment.paymentMethodLabel|lower }}
             </div>
 
             {% for section in sections %}
@@ -132,9 +132,9 @@
                 <tr>
                     <td class="totals">
                         <table>
-                            <tr><td>Montant Total {{ total_due|number_format(0, ',', ' ') }} F CFA</td></tr>
-                            <tr><td>Montant Payé {{ total_paid|number_format(0, ',', ' ') }} F CFA</td></tr>
-                            <tr><td>Reste à payer {{ total_balance|number_format(0, ',', ' ') }} F CFA</td></tr>
+                            <tr><td>Montant Total : {{ total_due|number_format(0, ',', ' ') }} F CFA</td></tr>
+                            <tr><td>Montant Total payé : {{ total_paid|number_format(0, ',', ' ') }} F CFA</td></tr>
+                            <tr><td>Reste à payer : {{ total_balance|number_format(0, ',', ' ') }} F CFA</td></tr>
                         </table>
                     </td>
                     <td class="sign">
@@ -160,11 +160,11 @@
 
     {% import _self as recu %}
 
-    {{ recu.receipt(payment, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, 'EXEMPLAIRE CAISSE') }}
+    {{ recu.receipt(payment, receipt_number, receipt_amount, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, 'EXEMPLAIRE CAISSE') }}
 
     <hr class="cut">
     <div class="cut-label">— — — — — — — — — — découper ici — — — — — — — — — —</div>
 
-    {{ recu.receipt(payment, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, 'EXEMPLAIRE PARENT') }}
+    {{ recu.receipt(payment, receipt_number, receipt_amount, student, school, logo_data, sections, amount_in_words, total_due, total_paid, total_balance, 'EXEMPLAIRE PARENT') }}
 </body>
 </html>

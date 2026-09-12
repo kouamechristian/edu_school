@@ -414,12 +414,34 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Recherche les paiements par numéro ou référence
+     * Lignes encaissées du reçu auquel appartient ce paiement (imputations d'un même
+     * encaissement). Un paiement sans numéro de reçu forme un reçu à lui seul.
+     *
+     * @return Payment[]
+     */
+    public function findReceiptLines(Payment $payment): array
+    {
+        if ($payment->getReceiptNumber() === null) {
+            return [$payment];
+        }
+
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.receiptNumber = :receipt')
+            ->andWhere('p.status = :paid')
+            ->setParameter('receipt', $payment->getReceiptNumber())
+            ->setParameter('paid', 'payé')
+            ->orderBy('p.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Recherche les paiements par numéro (de paiement ou de reçu) ou référence
      */
     public function searchByNumberOrReference(string $search): array
     {
         return $this->createQueryBuilder('p')
-            ->andWhere('p.paymentNumber LIKE :search OR p.reference LIKE :search')
+            ->andWhere('p.paymentNumber LIKE :search OR p.receiptNumber LIKE :search OR p.reference LIKE :search')
             ->setParameter('search', '%' . $search . '%')
             ->orderBy('p.paymentDate', 'DESC')
             ->getQuery()

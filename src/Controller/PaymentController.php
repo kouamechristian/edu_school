@@ -3,7 +3,11 @@
 namespace App\Controller;
 
 use App\Controller\Concern\HandlesEntityDeletion;
+use App\Entity\CashRegister;
 use App\Entity\Payment;
+use App\Entity\Student;
+use App\Entity\User;
+use App\Form\PaymentStartType;
 use App\Form\PaymentType;
 use App\Repository\CashRegisterRepository;
 use App\Repository\PaymentRepository;
@@ -27,6 +31,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class PaymentController extends AbstractController
 {
     use HandlesEntityDeletion;
+
+    /** Saisies en cours (étape 1 validée, imputation pas encore enregistrée), par jeton. */
+    private const DRAFT_SESSION_KEY = 'payment_drafts';
 
     private function generatePaymentReference(string $method): string
     {
@@ -70,6 +77,125 @@ class PaymentController extends AbstractController
                 number_format($max, 0, ',', ' ')
             )));
         }
+    }
+
+    /**
+     * Caisse ouverte et validée du caissier courant, ou redirection expliquant
+     * pourquoi aucun encaissement n'est possible.
+     */
+    private function requireOpenCashRegister(
+        SchoolContextService $contextService,
+        CashRegisterRepository $cashRegisterRepository
+    ): CashRegister|Response {
+        $currentSchool = $contextService->getCurrentSchool();
+        if (!$currentSchool) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement avant d\'enregistrer un paiement.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        $cashier = $this->getUser();
+        if (!$cashier instanceof User) {
+            $this->addFlash('error', 'Utilisateur invalide.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        $cashRegister = $cashRegisterRepository->findOpenForCashier($currentSchool, $cashier);
+        if (!$cashRegister) {
+            $this->addFlash('warning', 'Votre caisse n’est pas ouverte. Veuillez l’ouvrir avant d’enregistrer un paiement.');
+            return $this->redirectToRoute('admin_cash_register_open');
+        }
+
+        if (!$cashRegister->isValidated()) {
+            $this->addFlash('warning', 'Votre caisse n’a pas encore été validée par le fondateur. Aucune opération n’est possible tant qu’elle n’est pas validée.');
+            return $this->redirectToRoute('admin_cash_register_index');
+        }
+
+        return $cashRegister;
+    }
+
+    /**
+     * Frais restant dus par l'élève pour l'année courante, prêts pour l'imputation.
+     * Ordre : arriérés antérieurs d'abord (à solder en priorité), puis par prochaine
+     * échéance impayée — c'est aussi l'ordre de la répartition automatique.
+     *
+     * @return list<array{
+     *     student_fee: \App\Entity\StudentFee, id: int, name: string, amount: float, paid: float,
+     *     remaining: float, is_arriere: bool, annee_origine: ?string, next_due: string,
+     *     schedules: list<array{order: int, due: ?string, amount: float, remaining: float}>
+     * }>
+     */
+    private function buildOutstandingFees(Student $student, ?int $schoolYearId): array
+    {
+        $inscription = $student->getScolariteRegistration($schoolYearId);
+        $studentFees = $inscription ? $inscription->getStudentFees() : $student->getStudentFees();
+
+        $list = [];
+        foreach ($studentFees as $studentFee) {
+            $fee = $studentFee->getFee();
+            if (!$fee || !$fee->isActive() || $studentFee->getRemainingAmount() <= 0) {
+                continue;
+            }
+
+            // Échéances du frais avec le reste par échéance (imputation en cascade du
+            // déjà-payé, les plus anciennes d'abord).
+            $schedules = $fee->getSchedules()->toArray();
+            usort($schedules, static fn ($a, $b) => ($a->getOrderNumber() ?? 0) <=> ($b->getOrderNumber() ?? 0));
+            $paidLeft = (float) $studentFee->getPaidAmount();
+            $scheduleList = [];
+            // Un frais sans échéancier (ou une échéance sans date) est dû immédiatement.
+            $nextDue = null;
+            foreach ($schedules as $i => $schedule) {
+                $amt = (float) $schedule->getAmount();
+                $imp = min($paidLeft, $amt);
+                $paidLeft -= $imp;
+                $remaining = round($amt - $imp, 2);
+                if ($remaining > 0 && $nextDue === null) {
+                    $nextDue = $schedule->getDueDate()?->format('Y-m-d') ?? '0000-00-00';
+                }
+                $scheduleList[] = [
+                    'order' => $schedule->getOrderNumber() ?? ($i + 1),
+                    'due' => $schedule->getDueDate()?->format('d/m/Y'),
+                    'amount' => $amt,
+                    'remaining' => $remaining,
+                ];
+            }
+
+            $list[] = [
+                'student_fee' => $studentFee,
+                'id' => $studentFee->getId(),
+                'name' => (string) $fee->getName(),
+                'amount' => (float) $studentFee->getAmount(),
+                'paid' => (float) $studentFee->getPaidAmount(),
+                'remaining' => $studentFee->getRemainingAmount(),
+                'is_arriere' => $studentFee->isArriereAnterieur(),
+                'annee_origine' => $studentFee->getAnneeOrigine(),
+                'next_due' => $nextDue ?? '0000-00-00',
+                'schedules' => $scheduleList,
+            ];
+        }
+
+        usort($list, static fn (array $a, array $b): int => ($b['is_arriere'] <=> $a['is_arriere'])
+            ?: ($a['next_due'] <=> $b['next_due'])
+            ?: strcmp($a['name'], $b['name']));
+
+        return $list;
+    }
+
+    private function loadDraft(Request $request, string $token): ?array
+    {
+        return $request->getSession()->get(self::DRAFT_SESSION_KEY, [])[$token] ?? null;
+    }
+
+    private function saveDraft(Request $request, string $token, ?array $draft): void
+    {
+        $session = $request->getSession();
+        $drafts = $session->get(self::DRAFT_SESSION_KEY, []);
+        if ($draft === null) {
+            unset($drafts[$token]);
+        } else {
+            $drafts[$token] = $draft;
+        }
+        $session->set(self::DRAFT_SESSION_KEY, $drafts);
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
@@ -148,158 +274,271 @@ class PaymentController extends AbstractController
         ]);
     }
 
+    /**
+     * Étape 1 : l'élève et le montant versé par le parent. Le montant est gardé en
+     * session puis réparti sur les frais à l'étape d'imputation.
+     */
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(
         Request $request,
-        EntityManagerInterface $entityManager,
         SchoolContextService $contextService,
         CashRegisterRepository $cashRegisterRepository,
-        StudentFeeRepository $studentFeeRepository,
-        FeeAssignmentService $feeAssignmentService,
         StudentRepository $studentRepository
-    ): Response
-    {
-        $currentSchool = $contextService->getCurrentSchool();
-        $cashier = $this->getUser();
-
-        if (!$currentSchool) {
-            $this->addFlash('warning', 'Veuillez sélectionner un établissement avant d\'enregistrer un paiement.');
-            return $this->redirectToRoute('admin_payment_index');
+    ): Response {
+        $cashRegister = $this->requireOpenCashRegister($contextService, $cashRegisterRepository);
+        if ($cashRegister instanceof Response) {
+            return $cashRegister;
         }
 
-        if (!$cashier instanceof \App\Entity\User) {
-            $this->addFlash('error', 'Utilisateur invalide.');
-            return $this->redirectToRoute('admin_payment_index');
-        }
-
-        $cashRegister = $cashRegisterRepository->findOpenForCashier($currentSchool, $cashier);
-        if (!$cashRegister) {
-            $this->addFlash('warning', 'Votre caisse n’est pas ouverte. Veuillez l’ouvrir avant d’enregistrer un paiement.');
-            return $this->redirectToRoute('admin_cash_register_open');
-        }
-
-        if (!$cashRegister->isValidated()) {
-            $this->addFlash('warning', 'Votre caisse n’a pas encore été validée par le fondateur. Aucune opération n’est possible tant qu’elle n’est pas validée.');
-            return $this->redirectToRoute('admin_cash_register_index');
-        }
-
-        $payment = new Payment();
+        $schoolYearId = $contextService->getCurrentSchoolYear()?->getId();
         $studentChoices = $studentRepository->findWithRemainingBalanceBySchool(
-            $currentSchool->getId(),
-            $contextService->getCurrentSchoolYear()?->getId()
+            $contextService->getCurrentSchool()->getId(),
+            $schoolYearId
         );
-        $form = $this->createForm(PaymentType::class, $payment, [
+
+        // Retour depuis l'imputation (« Modifier le montant ») : la saisie est reprise.
+        $draftToken = (string) $request->query->get('draft', '');
+        $draft = $draftToken !== '' ? $this->loadDraft($request, $draftToken) : null;
+        if ($draft === null) {
+            $draftToken = '';
+        }
+
+        $data = ['paymentDate' => new \DateTime(), 'paymentMethod' => 'espèces'];
+        if ($draft !== null) {
+            foreach ($studentChoices as $choice) {
+                if ($choice->getId() === $draft['student_id']) {
+                    $data['student'] = $choice;
+                }
+            }
+            $data['amount'] = $draft['amount'];
+            $data['paymentDate'] = new \DateTime($draft['payment_date']);
+            $data['paymentMethod'] = $draft['payment_method'];
+            $data['notes'] = $draft['notes'];
+        }
+
+        $form = $this->createForm(PaymentStartType::class, $data, [
             'student_choices' => $studentChoices,
         ]);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted()) {
-            $this->validatePaymentAmountWithinRemaining($payment, $form, $studentFeeRepository, 0.0);
-        }
-
         if ($form->isSubmitted() && $form->isValid()) {
-            // Générer un numéro de paiement unique
-            $paymentNumber = 'PAY-' . date('Ymd') . '-' . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
-            $payment->setPaymentNumber($paymentNumber);
-            $payment->setRecordedBy($this->getUser());
-            $payment->setReference($this->generatePaymentReference((string) $payment->getPaymentMethod()));
-            $payment->setCashRegister($cashRegister);
-            // Un enregistrement manuel est un encaissement immédiat
-            $payment->setStatus('payé');
+            /** @var Student $student */
+            $student = $form->get('student')->getData();
+            $amount = round((float) $form->get('amount')->getData(), 2);
+            $maxPayable = array_sum(array_column($this->buildOutstandingFees($student, $schoolYearId), 'remaining'));
 
-            // Mise à jour automatique de la scolarité de l'élève
-            // (incrementer StudentFee.paidAmount pour que le total payé de l'élève se mette à jour)
-            $student = $payment->getStudent();
-            $fee = $payment->getFee();
+            if ($maxPayable <= 0) {
+                $form->get('student')->addError(new FormError('Cet élève n\'a aucun frais restant à payer pour l\'année en cours.'));
+            } elseif ($amount > $maxPayable + 0.009) {
+                $form->get('amount')->addError(new FormError(sprintf(
+                    'Le montant versé ne peut pas dépasser le reste à payer de l\'élève (%s F CFA).',
+                    number_format($maxPayable, 0, ',', ' ')
+                )));
+            } else {
+                $token = $draftToken !== '' ? $draftToken : bin2hex(random_bytes(8));
+                $this->saveDraft($request, $token, [
+                    'student_id' => $student->getId(),
+                    'amount' => $amount,
+                    'payment_date' => $form->get('paymentDate')->getData()->format('Y-m-d'),
+                    'payment_method' => (string) $form->get('paymentMethod')->getData(),
+                    'notes' => $form->get('notes')->getData(),
+                ]);
 
-            if ($student && $fee) {
-                $studentFee = $studentFeeRepository->findOneForStudentAndFee($student->getId(), $fee->getId());
-
-                if (!$studentFee) {
-                    $studentFee = $feeAssignmentService->assignFeeToStudent($fee, $student);
-                }
-
-                if ($studentFee) {
-                    $amount = (float) $payment->getAmount();
-                    $payment->setAmount((string) number_format($amount, 2, '.', ''));
-                    $studentFee->setPaidAmount((string) number_format(((float) $studentFee->getPaidAmount()) + $amount, 2, '.', ''));
-                    $payment->setStudentFee($studentFee);
-                }
+                return $this->redirectToRoute('admin_payment_imputation', ['token' => $token], Response::HTTP_SEE_OTHER);
             }
-
-            $entityManager->persist($payment);
-            $entityManager->flush();
-
-            // Le reçu n'est plus stocké : il est généré à la volée à l'ouverture.
-
-            $this->addFlash('success', 'Le paiement a été enregistré avec succès. Le reçu s\'ouvre dans un nouvel onglet.');
-
-            // On revient sur la fiche du paiement ; le reçu (PDF) s'ouvre dans un nouvel onglet (JS).
-            return $this->redirectToRoute('admin_payment_show', ['id' => $payment->getId(), 'receipt' => 1], Response::HTTP_SEE_OTHER);
-        }
-
-        if ($form->isSubmitted() && !$form->isValid()) {
-            $messages = [];
-            foreach ($form->getErrors(true) as $error) {
-                $messages[] = $error->getMessage();
-            }
-
-            $this->addFlash('error', 'Paiement non enregistré: ' . implode(' | ', array_unique($messages)));
-        }
-
-        // Frais de chaque élève embarqués dans la page : la cascade « Frais selon élève »
-        // fonctionne ainsi sans appel AJAX ni dépendance externe (déterministe).
-        $schoolYearId = $contextService->getCurrentSchoolYear()?->getId();
-        $feesByStudent = [];
-        foreach ($studentChoices as $choiceStudent) {
-            $inscription = $choiceStudent->getScolariteRegistration($schoolYearId);
-            $studentFees = $inscription ? $inscription->getStudentFees() : $choiceStudent->getStudentFees();
-            $list = [];
-            foreach ($studentFees as $studentFee) {
-                $fee = $studentFee->getFee();
-                if (!$fee || !$fee->isActive() || $studentFee->getRemainingAmount() <= 0) {
-                    continue;
-                }
-
-                // Échéances du frais (rangées par échéancier) avec le reste par échéance
-                // (imputation en cascade du déjà-payé, les plus anciennes d'abord).
-                $schedules = $fee->getSchedules()->toArray();
-                usort($schedules, static fn ($a, $b) => ($a->getOrderNumber() ?? 0) <=> ($b->getOrderNumber() ?? 0));
-                $paidLeft = (float) $studentFee->getPaidAmount();
-                $scheduleList = [];
-                foreach ($schedules as $i => $schedule) {
-                    $amt = (float) $schedule->getAmount();
-                    $imp = min($paidLeft, $amt);
-                    $paidLeft -= $imp;
-                    $scheduleList[] = [
-                        'order' => $schedule->getOrderNumber() ?? ($i + 1),
-                        'due' => $schedule->getDueDate()?->format('d/m/Y'),
-                        'amount' => $amt,
-                        'remaining' => round($amt - $imp, 2),
-                    ];
-                }
-
-                $list[] = [
-                    'id' => $fee->getId(),
-                    'name' => $fee->getName(),
-                    'remaining' => $studentFee->getRemainingAmount(),
-                    'is_arriere' => $studentFee->isArriereAnterieur(),
-                    'schedules' => $scheduleList,
-                ];
-            }
-
-            // Les arriérés antérieurs se soldent en priorité : on les remonte en tête
-            // de liste (puis tri alphabétique) pour guider l'imputation du caissier.
-            usort($list, static fn (array $a, array $b): int => ($b['is_arriere'] <=> $a['is_arriere']) ?: strcmp((string) $a['name'], (string) $b['name']));
-
-            $feesByStudent[$choiceStudent->getId()] = $list;
         }
 
         return $this->render('payment/new.html.twig', [
-            'payment' => $payment,
             'form' => $form,
-            'fees_by_student' => $feesByStudent,
         ]);
+    }
+
+    /**
+     * Étape 2 : répartition du montant versé sur les frais choisis. L'enregistrement
+     * n'est accepté que si la somme des imputations est égale au montant versé ; le
+     * reçu s'affiche alors directement.
+     */
+    #[Route('/new/{token}/imputation', name: 'imputation', methods: ['GET', 'POST'], requirements: ['token' => '[a-f0-9]{16}'])]
+    public function imputation(
+        string $token,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        SchoolContextService $contextService,
+        CashRegisterRepository $cashRegisterRepository,
+        StudentRepository $studentRepository
+    ): Response {
+        $cashRegister = $this->requireOpenCashRegister($contextService, $cashRegisterRepository);
+        if ($cashRegister instanceof Response) {
+            return $cashRegister;
+        }
+
+        $draft = $this->loadDraft($request, $token);
+        if ($draft === null) {
+            $this->addFlash('warning', 'Cette saisie a expiré ou a déjà été enregistrée. Veuillez recommencer.');
+            return $this->redirectToRoute('admin_payment_new');
+        }
+
+        $student = $studentRepository->find($draft['student_id']);
+        if (!$student || $student->getSchool()?->getId() !== $contextService->getCurrentSchool()->getId()) {
+            $this->saveDraft($request, $token, null);
+            $this->addFlash('error', 'Élève introuvable dans l\'établissement courant.');
+            return $this->redirectToRoute('admin_payment_new');
+        }
+
+        $schoolYearId = $contextService->getCurrentSchoolYear()?->getId();
+        $amount = (float) $draft['amount'];
+        $fees = $this->buildOutstandingFees($student, $schoolYearId);
+        $feesById = array_column($fees, null, 'id');
+        $submitted = [];
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('payment_imputation_' . $token, $request->request->get('_token'))) {
+                $this->addFlash('error', 'Session expirée, veuillez réessayer.');
+                return $this->redirectToRoute('admin_payment_imputation', ['token' => $token]);
+            }
+
+            $errors = [];
+            $allocations = [];
+            $total = 0.0;
+
+            foreach ($request->request->all('allocations') as $id => $raw) {
+                $raw = str_replace([' ', "\u{00A0}", "\u{202F}", ','], ['', '', '', '.'], trim((string) $raw));
+                if ($raw === '') {
+                    continue;
+                }
+                if (!is_numeric($raw)) {
+                    $errors[] = 'Un montant d\'imputation est invalide.';
+                    continue;
+                }
+
+                $value = round((float) $raw, 2);
+                $submitted[(int) $id] = $value;
+                if ($value == 0.0) {
+                    continue;
+                }
+                if ($value < 0) {
+                    $errors[] = 'Une imputation ne peut pas être négative.';
+                    continue;
+                }
+                if (!isset($feesById[(int) $id])) {
+                    $errors[] = 'Un des frais imputés n\'est plus dû par cet élève.';
+                    continue;
+                }
+
+                $fee = $feesById[(int) $id];
+                if ($value > $fee['remaining'] + 0.009) {
+                    $errors[] = sprintf(
+                        '%s : l\'imputation (%s F CFA) dépasse le reste dû (%s F CFA).',
+                        $fee['name'],
+                        number_format($value, 0, ',', ' '),
+                        number_format($fee['remaining'], 0, ',', ' ')
+                    );
+                    continue;
+                }
+
+                $allocations[(int) $id] = $value;
+                $total += $value;
+            }
+
+            if ($errors === [] && $allocations === []) {
+                $errors[] = 'Imputez le montant versé sur au moins un frais.';
+            } elseif ($errors === [] && abs($total - $amount) > 0.009) {
+                $errors[] = sprintf(
+                    'La somme des imputations (%s F CFA) doit être égale au montant versé (%s F CFA).',
+                    number_format($total, 0, ',', ' '),
+                    number_format($amount, 0, ',', ' ')
+                );
+            }
+
+            if ($errors === []) {
+                $payments = $this->recordImputations($entityManager, $student, $cashRegister, $draft, $allocations, $feesById);
+                $this->saveDraft($request, $token, null);
+
+                $this->addFlash('success', sprintf(
+                    'Paiement de %s F CFA enregistré et imputé sur %d frais.',
+                    number_format($amount, 0, ',', ' '),
+                    \count($payments)
+                ));
+
+                return $this->redirectToRoute('admin_payment_receipt_view', ['id' => $payments[0]->getId(), 'new' => 1], Response::HTTP_SEE_OTHER);
+            }
+
+            foreach (array_unique($errors) as $error) {
+                $this->addFlash('error', $error);
+            }
+        }
+
+        $inscription = $student->getScolariteRegistration($schoolYearId);
+
+        return $this->render('payment/imputation.html.twig', [
+            'token' => $token,
+            'student' => $student,
+            'classroom' => $inscription?->getClassroom(),
+            'draft' => $draft,
+            'amount' => $amount,
+            'fees' => $fees,
+            'submitted' => $submitted,
+            'payment_method_label' => (new Payment())->setPaymentMethod($draft['payment_method'])->getPaymentMethodLabel(),
+        ]);
+    }
+
+    /**
+     * Enregistre un encaissement : une ligne Payment par frais imputé, toutes sous le
+     * même numéro de reçu et la même référence.
+     *
+     * @param array<int, float> $allocations Montant imputé par id de StudentFee
+     * @param array<int, array> $feesById    Frais dus (cf. buildOutstandingFees), par id de StudentFee
+     *
+     * @return list<Payment>
+     */
+    private function recordImputations(
+        EntityManagerInterface $entityManager,
+        Student $student,
+        CashRegister $cashRegister,
+        array $draft,
+        array $allocations,
+        array $feesById
+    ): array {
+        $receiptNumber = 'REC-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+        $reference = $this->generatePaymentReference($draft['payment_method']);
+        $paymentDate = new \DateTime($draft['payment_date']);
+        $usedNumbers = [];
+        $payments = [];
+
+        foreach ($allocations as $studentFeeId => $value) {
+            $studentFee = $feesById[$studentFeeId]['student_fee'];
+
+            do {
+                $paymentNumber = 'PAY-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+            } while (\in_array($paymentNumber, $usedNumbers, true));
+            $usedNumbers[] = $paymentNumber;
+
+            $payment = (new Payment())
+                ->setPaymentNumber($paymentNumber)
+                ->setReceiptNumber($receiptNumber)
+                ->setReference($reference)
+                ->setStudent($student)
+                ->setFee($studentFee->getFee())
+                ->setStudentFee($studentFee)
+                ->setAmount(number_format($value, 2, '.', ''))
+                ->setPaymentDate($paymentDate)
+                ->setPaymentMethod($draft['payment_method'])
+                // Un enregistrement au guichet est un encaissement immédiat.
+                ->setStatus('payé')
+                ->setCashRegister($cashRegister)
+                ->setRecordedBy($this->getUser())
+                ->setNotes($draft['notes']);
+
+            $studentFee->setPaidAmount(number_format((float) $studentFee->getPaidAmount() + $value, 2, '.', ''));
+
+            $entityManager->persist($payment);
+            $payments[] = $payment;
+        }
+
+        // Un seul flush : toutes les imputations sont enregistrées ensemble, ou aucune.
+        $entityManager->flush();
+
+        return $payments;
     }
 
     #[Route('/students/{id}/summary', name: 'student_summary', methods: ['GET'])]
@@ -311,8 +550,18 @@ class PaymentController extends AbstractController
         }
 
         // Situation de l'année courante (frais rattachés à l'inscription).
-        $inscription = $student->getScolariteRegistration($contextService->getCurrentSchoolYear()?->getId());
+        $schoolYearId = $contextService->getCurrentSchoolYear()?->getId();
+        $inscription = $student->getScolariteRegistration($schoolYearId);
         $classroom = $inscription?->getClassroom() ?? $student->getClassroom();
+
+        // Plafond du montant versé = somme des restes dus, et part d'arriérés à solder en priorité.
+        $outstanding = $this->buildOutstandingFees($student, $schoolYearId);
+        $arriereRemaining = 0.0;
+        foreach ($outstanding as $fee) {
+            if ($fee['is_arriere']) {
+                $arriereRemaining += $fee['remaining'];
+            }
+        }
 
         return new JsonResponse([
             'id' => $student->getId(),
@@ -322,6 +571,9 @@ class PaymentController extends AbstractController
             'montantScolarite' => $inscription ? $inscription->getTotalTuition() : $student->getTotalTuition(),
             'montantPaye' => $inscription ? $inscription->getTotalPaid() : $student->getTotalPaid(),
             'montantRestant' => $inscription ? $inscription->getRemainingTuition() : $student->getRemainingTuition(),
+            'maxPayable' => array_sum(array_column($outstanding, 'remaining')),
+            'arriereRemaining' => $arriereRemaining,
+            'nbFrais' => \count($outstanding),
         ]);
     }
 
@@ -362,10 +614,11 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(Payment $payment): Response
+    public function show(Payment $payment, PaymentRepository $paymentRepository): Response
     {
         return $this->render('payment/show.html.twig', [
             'payment' => $payment,
+            'receipt_lines' => $payment->getStatus() === 'payé' ? $paymentRepository->findReceiptLines($payment) : [$payment],
         ]);
     }
 
@@ -380,11 +633,37 @@ class PaymentController extends AbstractController
         }
 
         // Reçu généré à la volée et affiché dans le navigateur (aucune sauvegarde disque).
-        $filename = sprintf('recu_%s.pdf', $payment->getPaymentNumber() ?: ('payment_' . $payment->getId()));
+        $filename = sprintf('recu_%s.pdf', $payment->getReceiptNumber() ?: ($payment->getPaymentNumber() ?: ('payment_' . $payment->getId())));
 
         return new Response($paymentReceiptService->render($payment), Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
+        ]);
+    }
+
+    /**
+     * Étape 3 : le reçu (PDF intégré à la page, sans fenêtre pop-up à autoriser) avec
+     * le récapitulatif des imputations de l'encaissement.
+     */
+    #[Route('/{id}/receipt/view', name: 'receipt_view', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function receiptView(Payment $payment, PaymentRepository $paymentRepository): Response
+    {
+        if ($payment->getStatus() !== 'payé') {
+            $this->addFlash('warning', 'Le reçu est disponible uniquement pour les paiements encaissés.');
+            return $this->redirectToRoute('admin_payment_show', ['id' => $payment->getId()], Response::HTTP_SEE_OTHER);
+        }
+
+        $lines = $paymentRepository->findReceiptLines($payment);
+        $total = 0.0;
+        foreach ($lines as $line) {
+            $total += (float) $line->getAmount();
+        }
+
+        return $this->render('payment/receipt_view.html.twig', [
+            'payment' => $payment,
+            'lines' => $lines,
+            'total' => $total,
+            'receipt_number' => $payment->getReceiptNumber() ?? $payment->getPaymentNumber(),
         ]);
     }
 

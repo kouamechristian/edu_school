@@ -19,79 +19,66 @@
     {% endembed %}
 
     {% include '_flash.html.twig' %}
+    {% include 'payment/_steps.html.twig' with { step: 1 } %}
 
-    <div class="card">
-        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-credit-card me-2"></i>Enregistrer un paiement</h6></div>
-        <div class="card-body">
-            {{ form_start(form, {'attr': {'id': 'paymentForm'}}) }}
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        {{ form_row(form.student) }}
-                        <div class="mt-2" id="studentSummary" data-summary-url="{{ path('admin_payment_student_summary', {id: 0}) }}" style="display:none;">
-                            <div class="card card-accent success mb-0">
-                                <div class="card-body py-2">
-                                    <div class="row g-2 small">
-                                        <div class="col-md-6"><strong>Nom</strong> : <span data-field="nom">—</span></div>
-                                        <div class="col-md-6"><strong>Prénom</strong> : <span data-field="prenom">—</span></div>
-                                        <div class="col-md-6"><strong>Classe</strong> : <span data-field="classe">—</span></div>
-                                        <div class="col-md-6"><strong>Montant scolarité</strong> : <span data-field="montantScolarite">—</span></div>
-                                        <div class="col-md-6"><strong>Montant payé</strong> : <span data-field="montantPaye">—</span></div>
-                                        <div class="col-md-6"><strong>Montant restant</strong> : <span data-field="montantRestant" class="fw-bold text-danger">—</span></div>
+    <div class="row">
+        <div class="col-lg-8 mb-3">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-user-graduate me-2"></i>Élève et montant versé par le parent</h6></div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'id': 'paymentStartForm'}}) }}
+                        <div class="mb-3">
+                            {{ form_row(form.student) }}
+                            <div class="mt-2" id="studentSummary" data-summary-url="{{ path('admin_payment_student_summary', {id: 0}) }}" style="display:none;">
+                                <div class="card card-accent success mb-0">
+                                    <div class="card-body py-2">
+                                        <div class="row g-2 small">
+                                            <div class="col-md-6"><strong>Nom</strong> : <span data-field="nom">—</span></div>
+                                            <div class="col-md-6"><strong>Prénom</strong> : <span data-field="prenom">—</span></div>
+                                            <div class="col-md-6"><strong>Classe</strong> : <span data-field="classe">—</span></div>
+                                            <div class="col-md-6"><strong>Montant scolarité</strong> : <span data-field="montantScolarite">—</span></div>
+                                            <div class="col-md-6"><strong>Montant payé</strong> : <span data-field="montantPaye">—</span></div>
+                                            <div class="col-md-6"><strong>Reste à payer</strong> : <span data-field="maxPayable" class="fw-bold text-danger">—</span></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                            <div id="arriereWarning" class="alert alert-warning py-2 mt-2 mb-0 small" style="display:none;"></div>
                         </div>
-                    </div>
-                    <div class="col-md-6 mb-3" id="fee-wrap">
-                        {{ form_row(form.fee) }}
-                        <div id="arriereWarning" class="alert alert-warning py-2 mt-2 mb-0 small" style="display:none;"></div>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <div class="col-md-4 mb-3" id="amount-wrap">{{ form_row(form.amount) }}</div>
-                    <div class="col-md-4 mb-3">{{ form_row(form.paymentDate) }}</div>
-                    <div class="col-md-4 mb-3">{{ form_row(form.paymentMethod) }}</div>
-                </div>
-
-                {# Imputation par échéancier : aperçu de la répartition du montant saisi #}
-                <div class="row" id="imputation-wrap" style="display:none;">
-                    <div class="col-12 mb-3">
-                        <div class="card card-accent info mb-0">
-                            <div class="card-header py-2"><strong><i class="fas fa-list-ol me-1"></i> Imputation par échéancier</strong></div>
-                            <div class="card-body py-2">
-                                <div class="table-responsive">
-                                    <table class="table table-sm align-middle mb-0" id="imputation-table">
-                                        <thead>
-                                            <tr>
-                                                <th>N°</th><th>Échéance</th>
-                                                <th class="text-end">Montant</th>
-                                                <th class="text-end">Reste</th>
-                                                <th class="text-end">Imputé</th>
-                                                <th class="text-end">Nouveau solde</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                </div>
-                                <div class="small text-muted mt-2" id="imputation-note"></div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3" id="amount-wrap">
+                                {{ form_row(form.amount) }}
+                                <div class="small mt-1" id="amountHint"></div>
                             </div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.paymentDate) }}</div>
+                            <div class="col-md-4 mb-3">{{ form_row(form.paymentMethod) }}</div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="alert alert-info py-2 mb-0"><i class="fas fa-info-circle me-1"></i>La référence / N° de transaction est générée automatiquement.</div>
-                    </div>
-                </div>
+                        <div class="mb-3">{{ form_row(form.notes) }}</div>
 
-                <div class="mb-3">{{ form_row(form.notes) }}</div>
-
-                <div class="pt-3 border-top">
-                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Enregistrer</button>
+                        <div class="pt-3 border-top d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary" id="continueBtn">
+                                Continuer vers l'imputation <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    {{ form_end(form) }}
                 </div>
-            {{ form_end(form) }}
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-3">
+            <div class="card card-accent info">
+                <div class="card-header"><h6 class="m-0 fw-bold"><i class="fas fa-circle-info me-2"></i>Comment ça marche</h6></div>
+                <div class="card-body small">
+                    <ol class="ps-3 mb-0">
+                        <li class="mb-2">Sélectionnez l'élève et saisissez le <strong>montant remis par le parent</strong>.</li>
+                        <li class="mb-2">Sur la page suivante, <strong>répartissez ce montant</strong> sur les frais de votre choix.</li>
+                        <li>Dès que la somme des imputations est égale au montant versé, validez : <strong>le reçu s'affiche</strong>.</li>
+                    </ol>
+                    <div class="text-muted mt-3"><i class="fas fa-hashtag me-1"></i>La référence et le numéro de reçu sont générés automatiquement.</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -102,7 +89,13 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var el = document.querySelector('.js-student-select');
+            var amountInput = document.querySelector('#amount-wrap input');
+            var hint = document.getElementById('amountHint');
+            var box = document.getElementById('studentSummary');
+            var warn = document.getElementById('arriereWarning');
             if (!el) return;
+
+            var maxPayable = null;
 
             function formatMoneyXof(value) {
                 if (value === null || value === undefined || value === '') return '—';
@@ -111,210 +104,66 @@
                 return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' F CFA';
             }
 
+            function setField(name, value) {
+                var node = box.querySelector('[data-field="' + name + '"]');
+                if (node) node.textContent = value;
+            }
+
+            // Plafond du montant versé : le reste à payer de l'élève.
+            function updateAmountHint() {
+                if (!hint) return;
+                if (maxPayable === null) { hint.textContent = ''; hint.className = 'small mt-1'; return; }
+                var amount = parseFloat(amountInput ? amountInput.value : '') || 0;
+                if (amount > maxPayable + 0.009) {
+                    hint.className = 'small mt-1 text-danger fw-bold';
+                    hint.textContent = 'Le montant dépasse le reste à payer (' + formatMoneyXof(maxPayable) + ').';
+                } else {
+                    hint.className = 'small mt-1 text-muted';
+                    hint.textContent = 'Maximum : ' + formatMoneyXof(maxPayable);
+                }
+            }
+
             async function loadStudentSummary(studentId) {
-                var box = document.getElementById('studentSummary');
-                if (!box) return;
-                if (!studentId) { box.style.display = 'none'; return; }
-                var baseUrl = box.getAttribute('data-summary-url') || '';
-                var url = baseUrl.replace('/0/', '/' + String(studentId) + '/');
+                maxPayable = null;
+                warn.style.display = 'none';
+                if (!studentId) { box.style.display = 'none'; updateAmountHint(); return; }
+
+                var url = (box.getAttribute('data-summary-url') || '').replace('/0/', '/' + String(studentId) + '/');
                 try {
                     var res = await fetch(url, { headers: { 'Accept': 'application/json' } });
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     var data = await res.json();
+
                     box.style.display = '';
-                    box.querySelector('[data-field="nom"]').textContent = data.nom ?? '—';
-                    box.querySelector('[data-field="prenom"]').textContent = data.prenom ?? '—';
-                    box.querySelector('[data-field="classe"]').textContent = data.classe ?? '—';
-                    box.querySelector('[data-field="montantScolarite"]').textContent = formatMoneyXof(data.montantScolarite);
-                    box.querySelector('[data-field="montantPaye"]').textContent = formatMoneyXof(data.montantPaye);
-                    box.querySelector('[data-field="montantRestant"]').textContent = formatMoneyXof(data.montantRestant);
+                    setField('nom', data.nom ?? '—');
+                    setField('prenom', data.prenom ?? '—');
+                    setField('classe', data.classe ?? '—');
+                    setField('montantScolarite', formatMoneyXof(data.montantScolarite));
+                    setField('montantPaye', formatMoneyXof(data.montantPaye));
+                    setField('maxPayable', formatMoneyXof(data.maxPayable));
+
+                    maxPayable = Number(data.maxPayable) || 0;
+                    if (amountInput) amountInput.setAttribute('max', Math.ceil(maxPayable));
+
+                    // Un arriéré antérieur se solde en priorité avant la scolarité courante.
+                    if (Number(data.arriereRemaining) > 0) {
+                        warn.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>Cet élève a un arriéré antérieur de <strong>'
+                            + formatMoneyXof(data.arriereRemaining) + '</strong> à solder <strong>en priorité</strong> avant la scolarité courante.';
+                        warn.style.display = '';
+                    }
                 } catch (e) {
                     box.style.display = 'none';
-                    box.querySelector('[data-field="nom"]').textContent = '—';
-                    box.querySelector('[data-field="prenom"]').textContent = '—';
-                    box.querySelector('[data-field="classe"]').textContent = '—';
-                    box.querySelector('[data-field="montantScolarite"]').textContent = '—';
-                    box.querySelector('[data-field="montantPaye"]').textContent = '—';
-                    box.querySelector('[data-field="montantRestant"]').textContent = '—';
+                    if (amountInput) amountInput.removeAttribute('max');
                 }
-            }
-
-            // ── Frais en cascade : ne proposer que les frais de l'élève sélectionné ──
-            // Données embarquées (aucun appel réseau) : { studentId: [ {id,name,remaining} ] }.
-            var feesByStudent = {{ fees_by_student|json_encode|raw }};
-
-            function loadStudentFees(studentId) {
-                var sel = document.querySelector('#fee-wrap select');
-                if (!sel) return;
-
-                var previous = sel.value;
-                sel.innerHTML = '';
-
-                if (!studentId) {
-                    sel.appendChild(new Option('Sélectionnez d\'abord un élève', ''));
-                    return;
-                }
-
-                var fees = feesByStudent[studentId] || [];
-                if (fees.length === 0) {
-                    sel.appendChild(new Option('Aucun frais à payer pour cet élève', ''));
-                    return;
-                }
-
-                sel.appendChild(new Option('Sélectionnez un frais', ''));
-                fees.forEach(function (f) {
-                    var label = (f.is_arriere ? '⚠ ARRIÉRÉ — ' : '') + f.name + ' — Reste : ' + formatMoneyXof(f.remaining);
-                    var opt = new Option(label, f.id);
-                    opt.setAttribute('data-remaining', f.remaining);
-                    opt.setAttribute('data-arriere', f.is_arriere ? '1' : '0');
-                    sel.appendChild(opt);
-                });
-
-                if (previous) { sel.value = previous; }
-            }
-
-            // ── Avertissement de priorité : un arriéré antérieur se solde avant la scolarité courante ──
-            function updateArriereWarning() {
-                var warn = document.getElementById('arriereWarning');
-                if (!warn) return;
-
-                var fees = feesByStudent[el.value] || [];
-                var arrieres = fees.filter(function (f) { return f.is_arriere && Number(f.remaining) > 0; });
-
-                if (arrieres.length === 0) { warn.style.display = 'none'; return; }
-
-                var selOpt = feeSelect && feeSelect.selectedIndex >= 0 ? feeSelect.options[feeSelect.selectedIndex] : null;
-                var selectedIsArriere = selOpt && selOpt.getAttribute('data-arriere') === '1';
-                if (selectedIsArriere) { warn.style.display = 'none'; return; }
-
-                var totalArriere = arrieres.reduce(function (s, f) { return s + Number(f.remaining); }, 0);
-                warn.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>Cet élève a un arriéré antérieur de <strong>'
-                    + formatMoneyXof(totalArriere) + '</strong> à solder <strong>en priorité</strong> avant la scolarité courante.';
-                warn.style.display = '';
-            }
-
-            // Pré-remplir le montant avec le reste dû du frais choisi.
-            var feeSelect = document.querySelector('#fee-wrap select');
-            var amountInput = document.querySelector('#amount-wrap input');
-            if (feeSelect) {
-                feeSelect.addEventListener('change', function () {
-                    var opt = feeSelect.options[feeSelect.selectedIndex];
-                    var remaining = opt ? parseFloat(opt.getAttribute('data-remaining')) : NaN;
-                    if (amountInput && !Number.isNaN(remaining) && remaining > 0) {
-                        amountInput.value = Math.round(remaining);
-                    }
-                    renderImputation();
-                    updateArriereWarning();
-                });
-            }
-            if (amountInput) {
-                amountInput.addEventListener('input', renderImputation);
-            }
-
-            // ── Aperçu de l'imputation par échéancier ──
-            function selectedFeeSchedules() {
-                if (!feeSelect || !el.value || !feeSelect.value) return null;
-                var fees = feesByStudent[el.value] || [];
-                var fee = fees.find(function (f) { return String(f.id) === String(feeSelect.value); });
-                return fee ? (fee.schedules || []) : null;
-            }
-
-            function renderImputation() {
-                var wrap = document.getElementById('imputation-wrap');
-                var tbody = document.querySelector('#imputation-table tbody');
-                var note = document.getElementById('imputation-note');
-                if (!wrap || !tbody) return;
-
-                var schedules = selectedFeeSchedules();
-                if (!schedules || schedules.length === 0) { wrap.style.display = 'none'; return; }
-
-                var amount = parseFloat(amountInput ? amountInput.value : 0) || 0;
-                var left = amount, totalImputed = 0, totalRem = 0;
-                tbody.innerHTML = '';
-
-                schedules.forEach(function (s) {
-                    var rem = Number(s.remaining);
-                    totalRem += rem;
-                    var imp = Math.max(0, Math.min(left, rem));
-                    left -= imp; totalImputed += imp;
-                    var tr = document.createElement('tr');
-                    if (imp > 0) tr.classList.add('table-success');
-                    tr.innerHTML =
-                        '<td>' + s.order + '</td>' +
-                        '<td>' + (s.due || 'À l\'inscription') + '</td>' +
-                        '<td class="text-end">' + formatMoneyXof(s.amount) + '</td>' +
-                        '<td class="text-end">' + formatMoneyXof(rem) + '</td>' +
-                        '<td class="text-end fw-bold text-success">' + (imp > 0 ? formatMoneyXof(imp) : '—') + '</td>' +
-                        '<td class="text-end">' + formatMoneyXof(rem - imp) + '</td>';
-                    tbody.appendChild(tr);
-                });
-
-                wrap.style.display = '';
-                var msg = 'Total imputé : ' + formatMoneyXof(totalImputed) + ' sur ' + formatMoneyXof(amount) + ' saisi(s).';
-                if (left > 0.009) {
-                    msg += ' ⚠ Surplus de ' + formatMoneyXof(left) + ' : le montant dépasse le reste dû de ce frais (' + formatMoneyXof(totalRem) + ').';
-                }
-                note.textContent = msg;
+                updateAmountHint();
             }
 
             // Le select élève est rendu recherchable par l'enhancer TomSelect global de
             // base.html.twig (qui déclenche l'événement « change » natif sur le select).
-            // On y branche la cascade ; le select frais reste natif (classe no-search).
-            el.addEventListener('change', function () {
-                loadStudentSummary(el.value);
-                loadStudentFees(el.value);
-                renderImputation();
-                updateArriereWarning();
-            });
+            el.addEventListener('change', function () { loadStudentSummary(el.value); });
+            if (amountInput) amountInput.addEventListener('input', updateAmountHint);
 
             loadStudentSummary(el.value);
-            loadStudentFees(el.value);
-            renderImputation();
-            updateArriereWarning();
-
-            // ── Confirmation SweetAlert avant d'enregistrer le paiement ──
-            var form = document.getElementById('paymentForm');
-            var confirmedSubmit = false;
-            if (form && typeof Swal !== 'undefined') {
-                form.addEventListener('submit', function (e) {
-                    if (confirmedSubmit) return;         // déjà confirmé
-                    if (!form.checkValidity()) return;   // laisse la validation native s'afficher
-                    e.preventDefault();
-
-                    // Nom complet de l'élève : d'abord le récapitulatif chargé, sinon l'option sélectionnée.
-                    var box = document.getElementById('studentSummary');
-                    var nom = box ? (box.querySelector('[data-field="nom"]').textContent || '').trim() : '';
-                    var prenom = box ? (box.querySelector('[data-field="prenom"]').textContent || '').trim() : '';
-                    var fullName = (nom + ' ' + prenom).replace(/—/g, '').trim();
-                    if (!fullName && el.options && el.selectedIndex >= 0) {
-                        fullName = el.options[el.selectedIndex].text;
-                    }
-
-                    var amount = amountInput ? amountInput.value : '';
-
-                    Swal.fire({
-                        title: 'Confirmer le paiement',
-                        html: 'Êtes-vous sûr de vouloir effectuer un paiement de <strong>' + formatMoneyXof(amount) + '</strong>'
-                            + ' sur l\'élève <strong>' + (fullName || '—') + '</strong> ?',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Oui, enregistrer',
-                        cancelButtonText: 'Annuler',
-                        confirmButtonColor: '#198754',
-                        cancelButtonColor: '#6c757d',
-                        reverseButtons: true
-                    }).then(function (result) {
-                        if (result.isConfirmed) {
-                            confirmedSubmit = true;
-                            if (typeof form.requestSubmit === 'function') {
-                                form.requestSubmit();
-                            } else {
-                                form.submit();
-                            }
-                        }
-                    });
-                });
-            }
         });
     </script>
 {% endblock %}

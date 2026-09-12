@@ -9,6 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 #[ORM\Table(name: 'payment')]
+#[ORM\Index(name: 'idx_payment_receipt_number', columns: ['receipt_number'])]
 #[ORM\HasLifecycleCallbacks]
 class Payment implements SchoolOwnedInterface
 {
@@ -25,6 +26,15 @@ class Payment implements SchoolOwnedInterface
     #[ORM\Column(length: 50, unique: true)]
     #[Assert\Length(max: 50)]
     private ?string $paymentNumber = null;
+
+    /**
+     * Numéro du reçu : un encaissement réparti sur plusieurs frais produit une ligne
+     * Payment par frais imputé, toutes partageant ce numéro (un seul reçu imprimé).
+     * Null pour les paiements antérieurs à l'imputation multiple (reçu = la ligne seule).
+     */
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Length(max: 50)]
+    private ?string $receiptNumber = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -106,6 +116,17 @@ class Payment implements SchoolOwnedInterface
     public function setPaymentNumber(string $paymentNumber): static
     {
         $this->paymentNumber = $paymentNumber;
+        return $this;
+    }
+
+    public function getReceiptNumber(): ?string
+    {
+        return $this->receiptNumber;
+    }
+
+    public function setReceiptNumber(?string $receiptNumber): static
+    {
+        $this->receiptNumber = $receiptNumber;
         return $this;
     }
 

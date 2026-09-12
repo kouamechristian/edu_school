@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reçu {{ receipt_number }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Reçu ' ~ receipt_number,
+        subtitle: payment.student.fullName,
+        icon: 'fa-receipt',
+        color: 'success',
+        breadcrumb: [
+            { label: 'Paiements', path: path('admin_payment_index') },
+            { label: 'Reçu ' ~ receipt_number }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_payment_receipt', {'id': payment.id}) }}" target="_blank" rel="noopener" class="btn btn-success"><i class="fas fa-print me-1"></i> Imprimer</a>
+            <a href="{{ path('admin_payment_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau paiement</a>
+            <a href="{{ path('admin_payment_index') }}" class="btn btn-light"><i class="fas fa-list me-1"></i> Paiements</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+    {% if app.request.query.get('new') %}
+        {% include 'payment/_steps.html.twig' with { step: 3 } %}
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-circle-check me-2"></i>Récapitulatif</h6></div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row"><div class="info-label">N° reçu</div><div class="info-value fw-bold">{{ receipt_number }}</div></div>
+                        <div class="info-row"><div class="info-label">Élève</div><div class="info-value">{{ payment.student.fullName }} <small class="text-muted">({{ payment.student.matriculeInterne }})</small></div></div>
+                        <div class="info-row"><div class="info-label">Date</div><div class="info-value">{{ payment.paymentDate ? payment.paymentDate|date('d/m/Y') : '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Méthode</div><div class="info-value"><span class="badge badge-soft secondary">{{ payment.paymentMethodLabel }}</span></div></div>
+                        <div class="info-row"><div class="info-label">Référence</div><div class="info-value">{{ payment.reference ?: '—' }}</div></div>
+                        <div class="info-row"><div class="info-label">Caissière</div><div class="info-value">{{ payment.recordedBy ? payment.recordedBy.fullName : '—' }}</div></div>
+                    </div>
+
+                    <table class="table table-sm align-middle mt-3 mb-0">
+                        <thead><tr><th>Frais imputé</th><th class="text-end">Montant</th></tr></thead>
+                        <tbody>
+                            {% for line in lines %}
+                                <tr>
+                                    <td><a href="{{ path('admin_payment_show', {'id': line.id}) }}">{{ line.fee ? line.fee.name : '—' }}</a></td>
+                                    <td class="text-end">{{ line.amount|number_format(0, ',', ' ') }} F</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold"><td>Total versé</td><td class="text-end text-success">{{ total|number_format(0, ',', ' ') }} F</td></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-0">
+                    <iframe src="{{ path('admin_payment_receipt', {'id': payment.id}) }}" title="Reçu {{ receipt_number }}"
+                            style="width: 100%; height: 80vh; border: 0; display: block;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

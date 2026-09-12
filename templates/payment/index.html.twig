@@ -130,6 +130,7 @@
                                 <tr class="js-payment-row {{ payment.status == 'annulé' ? 'table-danger' : '' }}">
                                     <td>
                                         <span class="badge badge-soft secondary">{{ payment.paymentNumber }}</span>
+                                        {% if payment.receiptNumber %}<br><small class="text-muted">Reçu {{ payment.receiptNumber }}</small>{% endif %}
                                         {% if payment.reference %}<br><small class="text-muted">{{ payment.reference }}</small>{% endif %}
                                     </td>
                                     <td><strong>{{ payment.student.fullName }}</strong><br><small class="text-muted">{{ payment.student.matriculeInterne }}</small></td>

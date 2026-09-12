@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Payment;
 use App\Entity\School;
+use App\Repository\PaymentRepository;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -13,6 +14,7 @@ class PaymentReceiptService
 {
     public function __construct(
         private Environment $twig,
+        private PaymentRepository $paymentRepository,
         #[Autowire('%kernel.project_dir%')]
         private string $projectDir,
     ) {
@@ -21,19 +23,39 @@ class PaymentReceiptService
     /**
      * Génère le reçu PDF à la volée et renvoie son contenu binaire (aucune écriture
      * sur disque : le reçu est simplement affiché dans le navigateur).
+     *
+     * Le reçu couvre toutes les imputations de l'encaissement auquel appartient ce
+     * paiement (même numéro de reçu) : montant total et imputation par frais.
      */
     public function render(Payment $payment): string
     {
+        $lines = $this->paymentRepository->findReceiptLines($payment);
+        if ($lines === []) {
+            $lines = [$payment];
+        }
+
         $student = $payment->getStudent();
         $school = $student?->getSchool();
-        $paidAmount = (float) $payment->getAmount();
+
+        $paidAmount = 0.0;
+        $imputedByFee = [];
+        foreach ($lines as $line) {
+            $amount = (float) $line->getAmount();
+            $paidAmount += $amount;
+            $feeId = $line->getFee()?->getId();
+            if ($feeId !== null) {
+                $imputedByFee[$feeId] = ($imputedByFee[$feeId] ?? 0.0) + $amount;
+            }
+        }
 
         $html = $this->twig->render('payment/receipt.pdf.html.twig', [
-            'payment' => $payment,
+            'payment' => $lines[0],
+            'receipt_number' => $payment->getReceiptNumber() ?? $payment->getPaymentNumber(),
+            'receipt_amount' => $paidAmount,
             'student' => $student,
             'school' => $school,
             'logo_data' => $this->buildLogoData($school),
-            'sections' => $this->buildFeeStatement($payment),
+            'sections' => $this->buildFeeStatement($payment, $imputedByFee),
             'amount_in_words' => $this->amountInWords($paidAmount),
             'total_due' => $student?->getTotalTuition() ?? 0.0,
             'total_paid' => $student?->getTotalPaid() ?? 0.0,
@@ -57,22 +79,22 @@ class PaymentReceiptService
     /**
      * Construit le relevé détaillé : une section par frais affecté à l'élève, avec
      * une ligne par échéance (ou une ligne unique si le frais n'a pas d'échéancier).
-     * L'imputation correspond à la part de CE paiement affectée à chaque ligne.
+     * L'imputation correspond à la part de CET encaissement affectée à chaque ligne.
+     *
+     * @param array<int, float> $imputedByFee Montant imputé par l'encaissement, par id de frais
      *
      * @return list<array{
      *     title: string,
      *     rows: list<array{rubrique: string, echeance: ?\DateTimeInterface, montant: float, imputation: float, regle: float, solde: float}>
      * }>
      */
-    private function buildFeeStatement(Payment $payment): array
+    private function buildFeeStatement(Payment $payment, array $imputedByFee): array
     {
         $student = $payment->getStudent();
         if (!$student) {
             return [];
         }
 
-        $paidFeeId = $payment->getFee()?->getId();
-        $paymentAmount = (float) $payment->getAmount();
         $sections = [];
 
         foreach ($student->getStudentFees() as $studentFee) {
@@ -81,10 +103,9 @@ class PaymentReceiptService
                 continue;
             }
 
-            $isPaidFee = $paidFeeId !== null && $fee->getId() === $paidFeeId;
             $paidAfter = (float) $studentFee->getPaidAmount();
-            // Ce qui a été imputé par CE paiement à ce frais.
-            $imputed = $isPaidFee ? $paymentAmount : 0.0;
+            // Ce qui a été imputé par CET encaissement à ce frais.
+            $imputed = $imputedByFee[$fee->getId()] ?? 0.0;
             $paidBefore = max(0.0, $paidAfter - $imputed);
 
             $schedules = $fee->getSchedules();
