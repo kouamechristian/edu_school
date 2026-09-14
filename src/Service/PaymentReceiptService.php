@@ -51,7 +51,7 @@ class PaymentReceiptService
         $html = $this->twig->render('payment/receipt.pdf.html.twig', [
             'payment' => $lines[0],
             'receipt_number' => $payment->getReceiptNumber() ?? $payment->getPaymentNumber(),
-            'receipt_amount' => $paidAmount,
+            'receipt_amount' => $amount,
             'student' => $student,
             'school' => $school,
             'logo_data' => $this->buildLogoData($school),
