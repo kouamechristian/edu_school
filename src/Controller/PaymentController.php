@@ -542,6 +542,8 @@ class PaymentController extends AbstractController
                 ->setFee($studentFee->getFee())
                 ->setStudentFee($studentFee)
                 ->setAmount(number_format($value, 2, '.', ''))
+                // Montant versé saisi à l'étape 1 : c'est lui qu'affiche le reçu.
+                ->setReceiptAmount(number_format((float) $draft['amount'], 2, '.', ''))
                 ->setPaymentDate($paymentDate)
                 ->setPaymentMethod($draft['payment_method'])
                 // Un enregistrement au guichet est un encaissement immédiat.

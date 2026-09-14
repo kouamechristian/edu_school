@@ -55,6 +55,13 @@ class Payment implements SchoolOwnedInterface
     #[Assert\Positive(message: 'Le montant doit être positif')]
     private ?string $amount = null;
 
+    /**
+     * Montant versé saisi à l'étape 1 de l'encaissement, commun à toutes les lignes
+     * du reçu (null pour les paiements antérieurs à ce champ).
+     */
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    private ?string $receiptAmount = null;
+
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     #[Assert\NotBlank(message: 'La date de paiement est obligatoire')]
     private ?\DateTimeInterface $paymentDate = null;
@@ -171,6 +178,17 @@ class Payment implements SchoolOwnedInterface
     public function setAmount(string $amount): static
     {
         $this->amount = $amount;
+        return $this;
+    }
+
+    public function getReceiptAmount(): ?string
+    {
+        return $this->receiptAmount;
+    }
+
+    public function setReceiptAmount(?string $receiptAmount): static
+    {
+        $this->receiptAmount = $receiptAmount;
         return $this;
     }
 

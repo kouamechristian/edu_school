@@ -48,6 +48,13 @@ class PaymentReceiptService
             }
         }
 
+        // Montant versé saisi à l'encaissement ; repli sur la somme des imputations
+        // pour les paiements enregistrés avant ce champ.
+        $receiptAmount = $payment->getReceiptAmount();
+        if ($receiptAmount !== null) {
+            $paidAmount = (float) $receiptAmount;
+        }
+
         $html = $this->twig->render('payment/receipt.pdf.html.twig', [
             'payment' => $lines[0],
             'receipt_number' => $payment->getReceiptNumber() ?? $payment->getPaymentNumber(),
