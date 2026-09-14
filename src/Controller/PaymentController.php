@@ -682,6 +682,12 @@ class PaymentController extends AbstractController
             $total += (float) $line->getAmount();
         }
 
+        // Montant versé saisi à l'encaissement ; repli sur la somme des imputations
+        // pour les paiements enregistrés avant ce champ.
+        if ($payment->getReceiptAmount() !== null) {
+            $total = (float) $payment->getReceiptAmount();
+        }
+
         return $this->render('payment/receipt_view.html.twig', [
             'payment' => $payment,
             'lines' => $lines,
