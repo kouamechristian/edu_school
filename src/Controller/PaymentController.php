@@ -265,18 +265,9 @@ class PaymentController extends AbstractController
             $payments = $paymentRepository->findRecent(50, $schoolId);
         }
 
-        // Liste complète conservée pour les cartes de statistiques (qui parcourent la
-        // collection de lignes brutes).
-        $allPayments = $payments;
-
-        // Une imputation sur plusieurs frais produit plusieurs lignes Payment sous le
-        // même numéro de reçu : on les regroupe pour que la liste (et son compteur)
-        // affiche un seul encaissement par reçu au lieu de le répéter par frais imputé.
-        $receiptGroups = $paymentRepository->groupByReceipt($payments);
-
         // Statistiques (du seul établissement courant, comme la liste)
         $stats = [
-            'total' => count($receiptGroups),
+            'total' => count($payments),
             'by_status' => $paymentRepository->countByStatus($schoolId),
             'by_method' => $paymentRepository->countByPaymentMethod($schoolId),
             'total_amount' => $paymentRepository->getTotalAmountByDateRange(
@@ -286,11 +277,13 @@ class PaymentController extends AbstractController
             )
         ];
 
-        // La table est paginée à 50 reçus/page.
-        $receiptGroups = $paginator->paginate($receiptGroups, $request->query->getInt('page', 1), 50);
+        // Liste complète conservée pour les cartes de statistiques (qui parcourent la
+        // collection) ; la table est paginée à 50/page.
+        $allPayments = $payments;
+        $payments = $paginator->paginate($payments, $request->query->getInt('page', 1), 50);
 
         return $this->render('payment/index.html.twig', [
-            'payments' => $receiptGroups,
+            'payments' => $payments,
             'all_payments' => $allPayments,
             'stats' => $stats,
             'current_status' => $status,

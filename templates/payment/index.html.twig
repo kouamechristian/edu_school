@@ -1,41 +1,7 @@
 {% extends 'base.html.twig' %}
 {% from 'components/macros.html.twig' import empty_state %}
-{% import _self as self %}
 
 {% block title %}Gestion des Paiements{% endblock %}
-
-{% macro payment_actions(payment) %}
-    <div class="btn-group btn-group-sm">
-        <a href="{{ path('admin_payment_show', {'id': payment.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
-        {% if payment.status == 'payé' %}
-            <a href="{{ path('admin_payment_receipt', {'id': payment.id}) }}" target="_blank" rel="noopener" class="btn btn-outline-success" title="Reçu PDF"><i class="fas fa-file-pdf"></i></a>
-        {% endif %}
-        {% if payment.status == 'en_attente' or payment.status == 'partiellement_payé' %}
-            <form method="post" action="{{ path('admin_payment_confirm', {'id': payment.id}) }}" class="d-inline">
-                <input type="hidden" name="_token" value="{{ csrf_token('confirm' ~ payment.id) }}">
-                <button type="submit" class="btn btn-outline-success" title="Confirmer"><i class="fas fa-check"></i></button>
-            </form>
-            <form method="post" action="{{ path('admin_payment_cancel', {'id': payment.id}) }}" class="d-inline"
-                  data-confirm="Voulez-vous vraiment annuler le paiement <strong>{{ payment.paymentNumber }}</strong> de <strong>{{ payment.amount|number_format(0, ',', ' ') }} FCFA</strong> de l'élève <strong>{{ payment.student.fullName }}</strong> ?"
-                  data-confirm-title="Annuler le paiement"
-                  data-confirm-btn="Oui, annuler"
-                  data-confirm-icon="warning">
-                <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ payment.id) }}">
-                <button type="submit" class="btn btn-outline-danger" title="Annuler"><i class="fas fa-times"></i></button>
-            </form>
-        {% endif %}
-        {% if payment.status == 'payé' %}
-        <form method="post" action="{{ path('admin_payment_cancel', {'id': payment.id}) }}" class="d-inline"
-              data-confirm="Voulez-vous vraiment annuler le paiement <strong>{{ payment.paymentNumber }}</strong> de <strong>{{ payment.amount|number_format(0, ',', ' ') }} FCFA</strong> de l'élève <strong>{{ payment.student.fullName }}</strong> ?<br><small class='text-muted'>Le montant sera retiré du frais de l'élève.</small>"
-              data-confirm-title="Annuler le paiement"
-              data-confirm-btn="Oui, annuler"
-              data-confirm-icon="warning">
-            <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ payment.id) }}">
-            <button type="submit" class="btn btn-outline-danger" title="Annuler le paiement"><i class="fas fa-ban"></i></button>
-        </form>
-        {% endif %}
-    </div>
-{% endmacro %}
 
 {% block body %}
 <div class="container-fluid">
@@ -160,65 +126,55 @@
                             <tr><th>N° Paiement</th><th>Élève</th><th>Frais</th><th class="text-end">Montant</th><th>Date</th><th>Méthode</th><th>Statut</th><th class="text-end">Actions</th></tr>
                         </thead>
                         <tbody>
-                            {% for group in payments %}
-                                {% set first = group.lines[0] %}
-                                {% set multi = group.lines|length > 1 %}
-                                <tr class="js-payment-row {{ group.status == 'annulé' ? 'table-danger' : '' }}">
+                            {% for payment in payments %}
+                                <tr class="js-payment-row {{ payment.status == 'annulé' ? 'table-danger' : '' }}">
                                     <td>
-                                        {% if multi %}
-                                            <a href="#receiptDetail{{ loop.index }}" class="text-decoration-none text-reset" data-bs-toggle="collapse" role="button" aria-expanded="false">
-                                                <i class="fas fa-chevron-right small text-muted me-1 js-collapse-chevron"></i><span class="badge badge-soft secondary">{{ group.receipt_number }}</span>
-                                            </a>
-                                            <br><small class="text-muted">{{ group.lines|length }} frais imputés</small>
-                                        {% else %}
-                                            <span class="badge badge-soft secondary">{{ first.paymentNumber }}</span>
-                                            {% if first.receiptNumber %}<br><small class="text-muted">Reçu {{ first.receiptNumber }}</small>{% endif %}
-                                        {% endif %}
-                                        {% if first.reference %}<br><small class="text-muted">{{ first.reference }}</small>{% endif %}
+                                        <span class="badge badge-soft secondary">{{ payment.paymentNumber }}</span>
+                                        {% if payment.receiptNumber %}<br><small class="text-muted">Reçu {{ payment.receiptNumber }}</small>{% endif %}
+                                        {% if payment.reference %}<br><small class="text-muted">{{ payment.reference }}</small>{% endif %}
                                     </td>
-                                    <td><strong>{{ group.student.fullName }}</strong><br><small class="text-muted">{{ group.student.matriculeInterne }}</small></td>
-                                    <td>{% for name in group.fee_names %}<span class="badge badge-soft info">{{ name }}</span> {% endfor %}</td>
-                                    <td class="text-end fw-bold">{{ group.amount|number_format(0, ',', ' ') }} FCFA</td>
+                                    <td><strong>{{ payment.student.fullName }}</strong><br><small class="text-muted">{{ payment.student.matriculeInterne }}</small></td>
+                                    <td><span class="badge badge-soft info">{{ payment.fee.name }}</span></td>
+                                    <td class="text-end fw-bold">{{ payment.amount|number_format(0, ',', ' ') }} FCFA</td>
                                     <td>
-                                        <span class="{% if group.date and group.date >= date('-1 day') %}text-success{% else %}text-muted{% endif %}">{{ group.date ? group.date|date('d/m/Y') : '—' }}</span>
-                                        <br><small class="text-muted">{{ first.createdAt|date('H:i') }}</small>
+                                        <span class="{% if payment.paymentDate >= date('-1 day') %}text-success{% else %}text-muted{% endif %}">{{ payment.paymentDate|date('d/m/Y') }}</span>
+                                        <br><small class="text-muted">{{ payment.createdAt|date('H:i') }}</small>
                                     </td>
-                                    <td><span class="badge badge-soft secondary">{{ group.method_label }}</span></td>
-                                    <td><span class="badge bg-{{ group.status_color }}">{{ group.status_label }}</span></td>
+                                    <td><span class="badge badge-soft secondary">{{ payment.paymentMethodLabel }}</span></td>
+                                    <td><span class="badge bg-{{ payment.statusColor }}">{{ payment.statusLabel }}</span></td>
                                     <td class="text-end">
-                                        {% if multi %}
-                                            <div class="btn-group btn-group-sm">
-                                                <a href="{{ path('admin_payment_show', {'id': first.id}) }}" class="btn btn-outline-info" title="Voir le détail"><i class="fas fa-eye"></i></a>
-                                                {% if group.status == 'payé' %}
-                                                    <a href="{{ path('admin_payment_receipt', {'id': first.id}) }}" target="_blank" rel="noopener" class="btn btn-outline-success" title="Reçu PDF"><i class="fas fa-file-pdf"></i></a>
-                                                {% endif %}
-                                            </div>
-                                        {% else %}
-                                            {{ self.payment_actions(first) }}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% if multi %}
-                                <tr>
-                                    <td colspan="8" class="p-0 border-0">
-                                        <div class="collapse" id="receiptDetail{{ loop.index }}">
-                                            <table class="table table-sm mb-0">
-                                                <tbody>
-                                                    {% for line in group.lines %}
-                                                        <tr>
-                                                            <td class="ps-5" style="width:16%"><span class="badge badge-soft secondary">{{ line.paymentNumber }}</span></td>
-                                                            <td style="width:24%"><span class="badge badge-soft info">{{ line.fee.name }}</span></td>
-                                                            <td class="text-end" style="width:14%">{{ line.amount|number_format(0, ',', ' ') }} FCFA</td>
-                                                            <td style="width:14%"><span class="badge bg-{{ line.statusColor }}">{{ line.statusLabel }}</span></td>
-                                                            <td class="text-end">{{ self.payment_actions(line) }}</td>
-                                                        </tr>
-                                                    {% endfor %}
-                                                </tbody>
-                                            </table>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ path('admin_payment_show', {'id': payment.id}) }}" class="btn btn-outline-info" title="Voir"><i class="fas fa-eye"></i></a>
+                                            {% if payment.status == 'payé' %}
+                                                <a href="{{ path('admin_payment_receipt', {'id': payment.id}) }}" target="_blank" rel="noopener" class="btn btn-outline-success" title="Reçu PDF"><i class="fas fa-file-pdf"></i></a>
+                                            {% endif %}
+                                            {% if payment.status == 'en_attente' or payment.status == 'partiellement_payé' %}
+                                                <form method="post" action="{{ path('admin_payment_confirm', {'id': payment.id}) }}" class="d-inline">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('confirm' ~ payment.id) }}">
+                                                    <button type="submit" class="btn btn-outline-success" title="Confirmer"><i class="fas fa-check"></i></button>
+                                                </form>
+                                                <form method="post" action="{{ path('admin_payment_cancel', {'id': payment.id}) }}" class="d-inline"
+                                                      data-confirm="Voulez-vous vraiment annuler le paiement <strong>{{ payment.paymentNumber }}</strong> de <strong>{{ payment.amount|number_format(0, ',', ' ') }} FCFA</strong> de l'élève <strong>{{ payment.student.fullName }}</strong> ?"
+                                                      data-confirm-title="Annuler le paiement"
+                                                      data-confirm-btn="Oui, annuler"
+                                                      data-confirm-icon="warning">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ payment.id) }}">
+                                                    <button type="submit" class="btn btn-outline-danger" title="Annuler"><i class="fas fa-times"></i></button>
+                                                </form>
+                                            {% endif %}
+                                            {% if payment.status == 'payé' %}
+                                            <form method="post" action="{{ path('admin_payment_cancel', {'id': payment.id}) }}" class="d-inline"
+                                                  data-confirm="Voulez-vous vraiment annuler le paiement <strong>{{ payment.paymentNumber }}</strong> de <strong>{{ payment.amount|number_format(0, ',', ' ') }} FCFA</strong> de l'élève <strong>{{ payment.student.fullName }}</strong> ?<br><small class='text-muted'>Le montant sera retiré du frais de l'élève.</small>"
+                                                  data-confirm-title="Annuler le paiement"
+                                                  data-confirm-btn="Oui, annuler"
+                                                  data-confirm-icon="warning">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ payment.id) }}">
+                                                <button type="submit" class="btn btn-outline-danger" title="Annuler le paiement"><i class="fas fa-ban"></i></button>
+                                            </form>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
-                                {% endif %}
                             {% else %}
                                 <tr><td colspan="8">{{ empty_state('fa-credit-card', 'Aucun paiement', 'Aucun paiement ne correspond à vos critères.') }}</td></tr>
                             {% endfor %}
@@ -237,11 +193,6 @@
         </div>
     {% endif %}
 </div>
-
-<style>
-a[aria-expanded="true"] .js-collapse-chevron { transform: rotate(90deg); }
-.js-collapse-chevron { display: inline-block; transition: transform 0.15s ease; }
-</style>
 
 <script>
 function applyFilters() {
