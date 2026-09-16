@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Registration;
+use App\Entity\SchoolGroup;
 use App\Entity\Student;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -137,6 +138,31 @@ class RegistrationRepository extends ServiceEntityRepository
             ->andWhere('pr.existingStudent = :student OR st = :student')
             ->setParameter('student', $student)
             ->orderBy('y.startDate', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Inscriptions actives d'un groupe d'établissements sur une période donnée
+     * (date d'inscription). Sert au rapport « élèves inscrits par jour » de
+     * l'espace fondateur.
+     *
+     * @return Registration[]
+     */
+    public function findByGroupAndDateRange(SchoolGroup $group, \DateTimeInterface $start, \DateTimeInterface $end): array
+    {
+        return $this->createQueryBuilder('i')
+            ->innerJoin('i.school', 's')
+            ->innerJoin('i.preRegistration', 'pr')
+            ->andWhere('s.schoolGroup = :group')
+            ->andWhere('i.enrolledAt >= :start')
+            ->andWhere('i.enrolledAt <= :end')
+            ->andWhere('i.isActive = :active')
+            ->setParameter('group', $group)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->setParameter('active', true)
+            ->orderBy('i.enrolledAt', 'DESC')
             ->getQuery()
             ->getResult();
     }

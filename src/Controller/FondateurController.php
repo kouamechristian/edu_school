@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\CashDepositRepository;
 use App\Repository\CashRegisterRepository;
 use App\Repository\PaymentRepository;
+use App\Repository\RegistrationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -370,5 +371,79 @@ class FondateurController extends AbstractController
         }
 
         return $this->redirectToRoute('fondateur_versements');
+    }
+
+    /**
+     * Rapports du groupe : élèves inscrits par jour et paiements effectués par jour,
+     * sur une période choisie (par défaut le mois en cours).
+     */
+    #[Route('/rapports', name: 'rapports', methods: ['GET'])]
+    public function rapports(
+        Request $request,
+        RegistrationRepository $registrationRepository,
+        PaymentRepository $paymentRepository
+    ): Response {
+        /** @var User $user */
+        $user = $this->getUser();
+        $group = $user->getSchoolGroup();
+
+        $debut = $request->query->get('debut');
+        $fin = $request->query->get('fin');
+
+        try {
+            $startDate = $debut ? new \DateTime($debut.' 00:00:00') : new \DateTime('first day of this month 00:00:00');
+        } catch (\Exception) {
+            $startDate = new \DateTime('first day of this month 00:00:00');
+        }
+        try {
+            $endDate = $fin ? new \DateTime($fin.' 23:59:59') : new \DateTime('today 23:59:59');
+        } catch (\Exception) {
+            $endDate = new \DateTime('today 23:59:59');
+        }
+
+        // Bornes cohérentes même si l'utilisateur inverse les deux dates.
+        if ($startDate > $endDate) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
+        $registrations = $group !== null
+            ? $registrationRepository->findByGroupAndDateRange($group, $startDate, $endDate)
+            : [];
+        $payments = $group !== null
+            ? $paymentRepository->findByGroupAndDateRange($group, $startDate, $endDate)
+            : [];
+
+        // Regroupement par jour (clé Y-m-d), le plus récent en premier.
+        $registrationsByDay = [];
+        foreach ($registrations as $registration) {
+            $day = $registration->getEnrolledAt()?->format('Y-m-d') ?? 'inconnu';
+            $registrationsByDay[$day][] = $registration;
+        }
+        krsort($registrationsByDay);
+
+        // Un versement imputé sur plusieurs frais génère plusieurs lignes Payment
+        // partageant le même numéro de reçu (cf. PaymentController::recordImputations).
+        // On les regroupe ici par reçu pour ne compter/afficher qu'un seul encaissement :
+        // sinon un même paiement apparaît plusieurs fois dans le rapport et gonfle le total.
+        $receipts = $paymentRepository->groupByReceipt($payments);
+
+        $paymentsByDay = [];
+        foreach ($receipts as $receipt) {
+            $day = $receipt['date']?->format('Y-m-d') ?? 'inconnu';
+            $paymentsByDay[$day]['items'][] = $receipt;
+            $paymentsByDay[$day]['total'] = ($paymentsByDay[$day]['total'] ?? 0.0) + $receipt['amount'];
+        }
+        krsort($paymentsByDay);
+
+        return $this->render('fondateur/rapports.html.twig', [
+            'group' => $group,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'registrations' => $registrations,
+            'registrations_by_day' => $registrationsByDay,
+            'payments' => $receipts,
+            'payments_by_day' => $paymentsByDay,
+            'payments_total' => array_sum(array_map(static fn (array $d): float => $d['total'], $paymentsByDay)),
+        ]);
     }
 }

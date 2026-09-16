@@ -95,6 +95,93 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Paiements encaissés (payé/partiellement payé) d'un groupe d'établissements sur
+     * une période donnée. Sert au rapport « paiements par jour » de l'espace fondateur.
+     *
+     * @return Payment[]
+     */
+    public function findByGroupAndDateRange(SchoolGroup $group, \DateTimeInterface $start, \DateTimeInterface $end): array
+    {
+        return $this->createQueryBuilder('p')
+            ->join('p.cashRegister', 'cr')
+            ->join('cr.school', 's')
+            ->andWhere('s.schoolGroup = :group')
+            ->andWhere('p.paymentDate >= :start')
+            ->andWhere('p.paymentDate <= :end')
+            ->andWhere('p.status IN (:paid)')
+            ->setParameter('group', $group)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->setParameter('paid', self::PAID_STATUSES)
+            ->orderBy('p.paymentDate', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Regroupe une liste de paiements par reçu.
+     *
+     * Une imputation sur plusieurs frais génère plusieurs lignes {@see Payment}
+     * partageant le même numéro de reçu (cf. PaymentController::recordImputations).
+     * Affichées telles quelles, ces lignes apparaissent comme des paiements distincts
+     * et gonflent les compteurs, alors qu'il s'agit d'un seul encaissement : cette
+     * méthode les réunit sous une seule entrée (montant total, frais concernés, lignes
+     * d'origine conservées pour le détail).
+     *
+     * @param Payment[] $payments
+     *
+     * @return list<array{
+     *     receipt_number: string, date: ?\DateTimeInterface, student: ?Student, school: ?\App\Entity\School,
+     *     amount: float, method_label: string, status: string, status_label: string, status_color: string,
+     *     fee_names: string[], lines: Payment[]
+     * }>
+     */
+    public function groupByReceipt(array $payments): array
+    {
+        $groups = [];
+        foreach ($payments as $payment) {
+            $key = $payment->getReceiptNumber() ?? 'PN-'.$payment->getPaymentNumber();
+
+            if (!isset($groups[$key])) {
+                $groups[$key] = [
+                    'receipt_number' => $payment->getReceiptNumber() ?? $payment->getPaymentNumber(),
+                    'date' => $payment->getPaymentDate(),
+                    'student' => $payment->getStudent(),
+                    'school' => $payment->getSchool(),
+                    'amount' => (float) ($payment->getReceiptAmount() ?: $payment->getAmount()),
+                    'method_label' => $payment->getPaymentMethodLabel(),
+                    'status' => $payment->getStatus(),
+                    'status_label' => $payment->getStatusLabel(),
+                    'status_color' => $payment->getStatusColor(),
+                    'fee_names' => [],
+                    'lines' => [],
+                ];
+            }
+
+            $feeName = $payment->getFee()?->getName();
+            if ($feeName !== null && !\in_array($feeName, $groups[$key]['fee_names'], true)) {
+                $groups[$key]['fee_names'][] = $feeName;
+            }
+            $groups[$key]['lines'][] = $payment;
+        }
+
+        // Les lignes d'un même reçu sont normalement encaissées ensemble (même statut),
+        // sauf si une ligne a été annulée/confirmée individuellement depuis : dans ce cas
+        // le statut de la première ligne ne représente plus fidèlement le reçu.
+        foreach ($groups as &$group) {
+            $statuses = array_unique(array_map(static fn (Payment $p): string => (string) $p->getStatus(), $group['lines']));
+            if (\count($statuses) > 1) {
+                $group['status'] = 'mixte';
+                $group['status_label'] = 'Statuts mixtes';
+                $group['status_color'] = 'secondary';
+            }
+        }
+        unset($group);
+
+        return array_values($groups);
+    }
+
+    /**
      * Restreint une requête aux paiements d'un établissement.
      *
      * Un paiement appartient à l'établissement de son élève : les listes et les

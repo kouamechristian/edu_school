@@ -10,7 +10,11 @@
         icon: 'fa-crown',
         color: 'primary',
         breadcrumb: [ { label: 'Espace Fondateur' } ]
-    } %}{% endembed %}
+    } %}
+        {% block actions %}
+            <a href="{{ path('fondateur_rapports') }}" class="btn btn-outline-primary"><i class="fas fa-chart-column me-1"></i> Rapports</a>
+        {% endblock %}
+    {% endembed %}
 
     {% include '_flash.html.twig' %}
 
