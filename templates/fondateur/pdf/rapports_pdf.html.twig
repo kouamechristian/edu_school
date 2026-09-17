@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 22px 24px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 8.5px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 10px; }
+        .header .name { text-align: center; font-weight: bold; font-size: 14px; }
+        .title-main { text-align: center; font-weight: bold; font-size: 13px; margin: 4px 0; }
+        .period { text-align: center; font-size: 9px; margin-bottom: 10px; color: #333; }
+        .stats { width: 100%; margin-bottom: 10px; }
+        .stats td { width: 50%; border: 1px solid #000; padding: 6px 8px; text-align: center; }
+        .stats .label { font-size: 8px; text-transform: uppercase; color: #555; }
+        .stats .value { font-size: 13px; font-weight: bold; }
+        .section-title { font-weight: bold; font-size: 11px; margin: 14px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #999; }
+        table.list { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+        table.list th, table.list td { border: 1px solid #000; padding: 3px 5px; font-size: 8px; }
+        table.list th { background: #f2f2f2; font-weight: bold; text-align: left; }
+        td.num { text-align: right; }
+        td.center { text-align: center; }
+        tr.tot td { font-weight: bold; background: #f7f7f7; }
+        .green { color: #15803d; }
+        .blue { color: #0369a1; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr><td class="name">{{ group ? group.name|upper : 'RAPPORT' }}</td></tr>
+    </table>
+
+    <div class="title-main">RAPPORT D'INSCRIPTIONS ET PAIEMENTS</div>
+    <div class="period">
+        Période du {{ start_date|date('d/m/Y') }} au {{ end_date|date('d/m/Y') }}
+        — édité le {{ generated_at|date('d/m/Y H:i') }}
+    </div>
+
+    <table class="stats">
+        <tr>
+            <td>
+                <div class="label">Élèves inscrits</div>
+                <div class="value green">{{ registrations|length }}</div>
+            </td>
+            <td>
+                <div class="label">Paiements effectués</div>
+                <div class="value blue">{{ payments|length }} ({{ payments_total|number_format(0, ',', ' ') }} F)</div>
+            </td>
+        </tr>
+    </table>
+
+    {# ── Élèves inscrits ── #}
+    <div class="section-title">ÉLÈVES INSCRITS PAR JOUR</div>
+    <table class="list">
+        <thead><tr><th>Date</th><th style="width:20%">Nombre d'inscrits</th></tr></thead>
+        <tbody>
+            {% for day, items in registrations_by_day %}
+                <tr><td>{{ day != 'inconnu' ? day|date('d/m/Y') : 'Date inconnue' }}</td><td class="num">{{ items|length }}</td></tr>
+            {% else %}
+                <tr><td colspan="2" class="center">Aucune inscription sur cette période.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if registrations is not empty %}
+    <div class="section-title">LISTE DES ÉLÈVES INSCRITS</div>
+    <table class="list">
+        <thead>
+            <tr>
+                <th style="width:10%">Date</th>
+                <th>Élève</th>
+                <th style="width:10%">Matricule</th>
+                <th style="width:18%">Établissement</th>
+                <th style="width:12%">Classe</th>
+                <th style="width:12%">Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for registration in registrations %}
+                {% set student = registration.student %}
+                <tr>
+                    <td class="center">{{ registration.enrolledAt ? registration.enrolledAt|date('d/m/Y') : '—' }}</td>
+                    <td>{{ student ? student.fullName : '—' }}</td>
+                    <td>{{ student ? (student.matriculeInterne ?: '—') : '—' }}</td>
+                    <td>{{ registration.school ? registration.school.name : '—' }}</td>
+                    <td>{{ registration.classroom ? registration.classroom.name : '—' }}</td>
+                    <td>{{ registration.repeating ? 'Redoublant' : 'Nouvelle inscription' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {# ── Paiements ── #}
+    <div class="section-title">PAIEMENTS EFFECTUÉS PAR JOUR</div>
+    <table class="list">
+        <thead>
+            <tr><th>Date</th><th style="width:22%">Nombre de paiements</th><th style="width:22%">Montant total</th></tr>
+        </thead>
+        <tbody>
+            {% for day, data in payments_by_day %}
+                <tr>
+                    <td>{{ day != 'inconnu' ? day|date('d/m/Y') : 'Date inconnue' }}</td>
+                    <td class="num">{{ data.items|length }}</td>
+                    <td class="num">{{ data.total|number_format(0, ',', ' ') }} F</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="3" class="center">Aucun paiement sur cette période.</td></tr>
+            {% endfor %}
+            {% if payments_by_day is not empty %}
+                <tr class="tot"><td>Total</td><td class="num">{{ payments|length }}</td><td class="num">{{ payments_total|number_format(0, ',', ' ') }} F</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if payments is not empty %}
+    <div class="section-title">LISTE DES PAIEMENTS</div>
+    <table class="list">
+        <thead>
+            <tr>
+                <th style="width:8%">Date</th>
+                <th style="width:10%">Reçu</th>
+                <th>Élève</th>
+                <th style="width:14%">Établissement</th>
+                <th style="width:14%">Frais imputés</th>
+                <th style="width:9%">Montant</th>
+                <th style="width:8%">Mode</th>
+                <th style="width:8%">Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payment in payments %}
+                <tr>
+                    <td class="center">{{ payment.date ? payment.date|date('d/m/Y') : '—' }}</td>
+                    <td>{{ payment.receipt_number }}</td>
+                    <td>{{ payment.student ? payment.student.fullName : '—' }}</td>
+                    <td>{{ payment.school ? payment.school.name : '—' }}</td>
+                    <td>{{ payment.fee_names|join(', ') ?: '—' }}</td>
+                    <td class="num">{{ payment.amount|number_format(0, ',', ' ') }} F</td>
+                    <td class="center">{{ payment.method_label }}</td>
+                    <td class="center">{{ payment.status_label }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</body>
+</html>

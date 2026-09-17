@@ -2,8 +2,10 @@
 
 namespace App\Controller;
 
+use App\Controller\Concern\RendersDocuments;
 use App\Entity\CashDeposit;
 use App\Entity\CashRegister;
+use App\Entity\SchoolGroup;
 use App\Entity\User;
 use App\Repository\CashDepositRepository;
 use App\Repository\CashRegisterRepository;
@@ -24,6 +26,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_FONDATEUR')]
 class FondateurController extends AbstractController
 {
+    use RendersDocuments;
+
+
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(
         CashRegisterRepository $cashRegisterRepository,
@@ -387,6 +392,44 @@ class FondateurController extends AbstractController
         $user = $this->getUser();
         $group = $user->getSchoolGroup();
 
+        return $this->render('fondateur/rapports.html.twig', array_merge(
+            ['group' => $group],
+            $this->buildRapportsData($request, $group, $registrationRepository, $paymentRepository)
+        ));
+    }
+
+    /**
+     * Export PDF du rapport d'inscriptions/paiements du fondateur, sur la même
+     * période (et le même groupe) que la vue {@see self::rapports()}.
+     */
+    #[Route('/rapports/export/pdf', name: 'rapports_pdf', methods: ['GET'])]
+    public function rapportsPdf(
+        Request $request,
+        RegistrationRepository $registrationRepository,
+        PaymentRepository $paymentRepository
+    ): Response {
+        /** @var User $user */
+        $user = $this->getUser();
+        $group = $user->getSchoolGroup();
+
+        return $this->renderPdf('fondateur/pdf/rapports_pdf.html.twig', array_merge([
+            'group' => $group,
+            'generated_at' => new \DateTime(),
+        ], $this->buildRapportsData($request, $group, $registrationRepository, $paymentRepository)), 'rapport_fondateur_' . date('Ymd_His') . '.pdf', 'landscape');
+    }
+
+    /**
+     * Données du rapport d'inscriptions/paiements du fondateur (vue et export PDF),
+     * sur une période choisie (par défaut le mois en cours).
+     *
+     * @return array<string, mixed>
+     */
+    private function buildRapportsData(
+        Request $request,
+        ?SchoolGroup $group,
+        RegistrationRepository $registrationRepository,
+        PaymentRepository $paymentRepository
+    ): array {
         $debut = $request->query->get('debut');
         $fin = $request->query->get('fin');
 
@@ -435,8 +478,7 @@ class FondateurController extends AbstractController
         }
         krsort($paymentsByDay);
 
-        return $this->render('fondateur/rapports.html.twig', [
-            'group' => $group,
+        return [
             'start_date' => $startDate,
             'end_date' => $endDate,
             'registrations' => $registrations,
@@ -444,6 +486,6 @@ class FondateurController extends AbstractController
             'payments' => $receipts,
             'payments_by_day' => $paymentsByDay,
             'payments_total' => array_sum(array_map(static fn (array $d): float => $d['total'], $paymentsByDay)),
-        ]);
+        ];
     }
 }
