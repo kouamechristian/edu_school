@@ -14,6 +14,7 @@
     } %}
         {% block actions %}
             {% if current_school %}
+                <a href="{{ path('admin_payment_export_pdf', app.request.query.all) }}" target="_blank" rel="noopener" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i> PDF</a>
                 {% if cash_register_open and cash_register_validated %}
                     <a href="{{ path('admin_payment_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau Paiement</a>
                 {% else %}

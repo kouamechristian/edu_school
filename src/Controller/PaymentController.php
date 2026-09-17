@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Controller\Concern\HandlesEntityDeletion;
+use App\Controller\Concern\RendersDocuments;
 use App\Entity\CashRegister;
 use App\Entity\Payment;
 use App\Entity\Student;
@@ -31,6 +32,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class PaymentController extends AbstractController
 {
     use HandlesEntityDeletion;
+    use RendersDocuments;
 
     /** Saisies en cours (étape 1 validée, imputation pas encore enregistrée), par jeton. */
     private const DRAFT_SESSION_KEY = 'payment_drafts';
@@ -275,6 +277,46 @@ class PaymentController extends AbstractController
             'cash_register_open' => $cashRegisterOpen,
             'cash_register_validated' => $cashRegisterValidated,
         ]);
+    }
+
+    /**
+     * Export PDF de la liste des paiements, avec les mêmes filtres (recherche,
+     * statut, méthode) que la vue {@see self::index()}, mais sans pagination :
+     * l'export contient tous les paiements correspondant aux critères.
+     */
+    #[Route('/export/pdf', name: 'export_pdf', methods: ['GET'])]
+    public function exportPdf(Request $request, PaymentRepository $paymentRepository, SchoolContextService $contextService): Response
+    {
+        $currentSchool = $contextService->getCurrentSchool();
+        if (!$currentSchool) {
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        $status = $request->query->get('status');
+        $method = $request->query->get('method');
+        $search = $request->query->get('search');
+        $schoolId = $currentSchool->getId();
+
+        if ($search) {
+            $payments = $paymentRepository->searchByNumberOrReference($search, $schoolId);
+        } elseif ($status) {
+            $payments = $paymentRepository->findByStatus($status, $schoolId);
+        } elseif ($method) {
+            $payments = $paymentRepository->findByPaymentMethod($method, $schoolId);
+        } else {
+            $payments = $paymentRepository->findAllForSchool($schoolId);
+        }
+
+        return $this->renderPdf('payment/pdf/index_pdf.html.twig', [
+            'school' => $currentSchool,
+            'logo_data' => $this->logoData($currentSchool),
+            'payments' => $payments,
+            'total_amount' => array_sum(array_map(static fn (Payment $p): float => (float) $p->getAmount(), $payments)),
+            'current_status' => $status,
+            'current_method' => $method,
+            'search_term' => $search,
+            'generated_at' => new \DateTime(),
+        ], 'paiements_' . date('Ymd_His') . '.pdf', 'landscape');
     }
 
     /**
