@@ -62,6 +62,8 @@ class CashRegisterController extends AbstractController
             krsort($dailyTotals);
         }
 
+        $todayTotal = $dailyTotals[(new \DateTime())->format('Y-m-d')]['total'] ?? 0.0;
+
         // Solde actuel = ouverture + encaissements PHYSIQUES (arriérés compris) - versements approuvés - dépenses.
         // On garde le total physique ici : l'argent d'arriéré est réellement en caisse et doit rester versable.
         $currentBalance = $cashRegister
@@ -89,6 +91,7 @@ class CashRegisterController extends AbstractController
             'daily_totals' => $dailyTotals,
             'daily_totals_amount' => array_sum(array_column($dailyTotals, 'total')),
             'daily_totals_count' => array_sum(array_column($dailyTotals, 'count')),
+            'today_total' => $todayTotal,
             'current_balance' => $currentBalance,
             'online_cash_register' => $onlineCashRegister,
             'online_total' => $onlineTotal,

@@ -80,6 +80,12 @@
                 </div></div>
             </div>
             <div class="col-6 col-xl-3">
+                <div class="stat-card info h-100"><div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Montant encaissé ce jour</div><div class="stat-value" style="font-size:1.1rem;">{{ today_total|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
+                    <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+                </div></div>
+            </div>
+            <div class="col-6 col-xl-3">
                 <div class="stat-card danger h-100"><div class="card-body d-flex align-items-center justify-content-between">
                     <div><div class="stat-label mb-1">Versements</div><div class="stat-value text-danger" style="font-size:1.1rem;">{{ deposits_total|number_format(0, ',', ' ') }} <small class="text-muted">F</small></div></div>
                     <div class="stat-icon"><i class="fas fa-money-bill-transfer"></i></div>
