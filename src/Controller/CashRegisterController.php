@@ -42,6 +42,7 @@ class CashRegisterController extends AbstractController
         $depositsTotal = 0.0;
         $depensesTotal = 0.0;
         $deposits = [];
+        $dailyTotals = [];
         if ($cashRegister) {
             $paymentsTotal = $paymentRepository->getTotalAmountByCashRegister($cashRegister->getId());
             $paymentsRevenue = $paymentRepository->getRevenueTotalByCashRegister($cashRegister->getId());
@@ -50,6 +51,15 @@ class CashRegisterController extends AbstractController
             $depositsTotal = $cashDepositRepository->getApprovedTotalByCashRegister($cashRegister->getId());
             $depensesTotal = $depenseRepository->getTotalByCashRegister($cashRegister->getId());
             $deposits = $cashDepositRepository->findByCashRegister($cashRegister->getId());
+
+            // Montant total encaissé par jour (utile quand la caisse reste ouverte sur
+            // plusieurs jours avant d'être versée/clôturée).
+            foreach ($paymentRepository->findEncaissementsByCashRegister($cashRegister->getId()) as $encaissement) {
+                $day = $encaissement->getPaymentDate()?->format('Y-m-d') ?? 'inconnu';
+                $dailyTotals[$day]['total'] = ($dailyTotals[$day]['total'] ?? 0.0) + (float) $encaissement->getAmount();
+                $dailyTotals[$day]['count'] = ($dailyTotals[$day]['count'] ?? 0) + 1;
+            }
+            krsort($dailyTotals);
         }
 
         // Solde actuel = ouverture + encaissements PHYSIQUES (arriérés compris) - versements approuvés - dépenses.
@@ -76,6 +86,9 @@ class CashRegisterController extends AbstractController
             'deposits_total' => $depositsTotal,
             'depenses_total' => $depensesTotal,
             'deposits' => $deposits,
+            'daily_totals' => $dailyTotals,
+            'daily_totals_amount' => array_sum(array_column($dailyTotals, 'total')),
+            'daily_totals_count' => array_sum(array_column($dailyTotals, 'count')),
             'current_balance' => $currentBalance,
             'online_cash_register' => $onlineCashRegister,
             'online_total' => $onlineTotal,

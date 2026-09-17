@@ -484,6 +484,23 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Paiements encaissés (hors annulés) d'une caisse, pour ventilation par jour.
+     *
+     * @return Payment[]
+     */
+    public function findEncaissementsByCashRegister(int $cashRegisterId): array
+    {
+        return $this->createQueryBuilder('p')
+            ->andWhere('p.cashRegister = :cashRegisterId')
+            ->andWhere('p.status != :cancelled')
+            ->setParameter('cashRegisterId', $cashRegisterId)
+            ->setParameter('cancelled', 'annulé')
+            ->orderBy('p.paymentDate', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Compte les paiements par statut
      */
     public function countByStatus(?int $schoolId = null): array
