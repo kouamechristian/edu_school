@@ -522,6 +522,20 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Tous les paiements d'un établissement, du plus récent au plus ancien
+     * (sans limite : destiné à être paginé par l'appelant).
+     *
+     * @return Payment[]
+     */
+    public function findAllForSchool(?int $schoolId = null): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->orderBy('p.createdAt', 'DESC');
+
+        return $this->restrictToSchool($qb, $schoolId)->getQuery()->getResult();
+    }
+
+    /**
      * Lignes encaissées du reçu auquel appartient ce paiement (imputations d'un même
      * encaissement). Un paiement sans numéro de reçu forme un reçu à lui seul.
      *

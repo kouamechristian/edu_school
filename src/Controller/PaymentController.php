@@ -225,7 +225,6 @@ class PaymentController extends AbstractController
             $this->addFlash('warning', 'Veuillez sélectionner un établissement pour voir les paiements.');
             return $this->render('payment/index.html.twig', [
                 'payments' => [],
-                'stats' => [],
                 'current_status' => null,
                 'current_method' => null,
                 'search_term' => null,
@@ -262,30 +261,13 @@ class PaymentController extends AbstractController
         } elseif ($method) {
             $payments = $paymentRepository->findByPaymentMethod($method, $schoolId);
         } else {
-            $payments = $paymentRepository->findRecent(50, $schoolId);
+            $payments = $paymentRepository->findAllForSchool($schoolId);
         }
 
-        // Statistiques (du seul établissement courant, comme la liste)
-        $stats = [
-            'total' => count($payments),
-            'by_status' => $paymentRepository->countByStatus($schoolId),
-            'by_method' => $paymentRepository->countByPaymentMethod($schoolId),
-            'total_amount' => $paymentRepository->getTotalAmountByDateRange(
-                new \DateTime('-30 days'),
-                new \DateTime(),
-                $schoolId
-            )
-        ];
-
-        // Liste complète conservée pour les cartes de statistiques (qui parcourent la
-        // collection) ; la table est paginée à 50/page.
-        $allPayments = $payments;
-        $payments = $paginator->paginate($payments, $request->query->getInt('page', 1), 50);
+        $payments = $paginator->paginate($payments, $request->query->getInt('page', 1), 25);
 
         return $this->render('payment/index.html.twig', [
             'payments' => $payments,
-            'all_payments' => $allPayments,
-            'stats' => $stats,
             'current_status' => $status,
             'current_method' => $method,
             'search_term' => $search,
