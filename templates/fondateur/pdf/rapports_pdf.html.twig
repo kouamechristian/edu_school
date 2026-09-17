@@ -120,8 +120,7 @@
                 <th style="width:8%">Date</th>
                 <th style="width:10%">Reçu</th>
                 <th>Élève</th>
-                <th style="width:14%">Établissement</th>
-                <th style="width:14%">Frais imputés</th>
+                <th style="width:26%">Frais imputés</th>
                 <th style="width:9%">Montant</th>
                 <th style="width:8%">Mode</th>
                 <th style="width:8%">Statut</th>
@@ -133,7 +132,6 @@
                     <td class="center">{{ payment.date ? payment.date|date('d/m/Y') : '—' }}</td>
                     <td>{{ payment.receipt_number }}</td>
                     <td>{{ payment.student ? payment.student.fullName : '—' }}</td>
-                    <td>{{ payment.school ? payment.school.name : '—' }}</td>
                     <td>{{ payment.fee_names|join(', ') ?: '—' }}</td>
                     <td class="num">{{ payment.amount|number_format(0, ',', ' ') }} F</td>
                     <td class="center">{{ payment.method_label }}</td>
