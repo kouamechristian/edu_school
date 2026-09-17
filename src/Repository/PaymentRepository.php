@@ -128,6 +128,13 @@ class PaymentRepository extends ServiceEntityRepository
      * méthode les réunit sous une seule entrée (montant total, frais concernés, lignes
      * d'origine conservées pour le détail).
      *
+     * Le montant du groupe est la SOMME des lignes reçues (et non le « montant versé »
+     * déclaré à la saisie) : $payments étant généralement déjà filtré par statut (ex.
+     * paiements encaissés uniquement), une ligne annulée séparément n'y figure plus. En
+     * sommant, le montant du reçu diminue en conséquence ; il ne resterait égal au
+     * montant déclaré à l'origine que si on se basait sur ce dernier — ce qui gonflerait
+     * les totaux d'un reçu partiellement annulé.
+     *
      * @param Payment[] $payments
      *
      * @return list<array{
@@ -148,7 +155,7 @@ class PaymentRepository extends ServiceEntityRepository
                     'date' => $payment->getPaymentDate(),
                     'student' => $payment->getStudent(),
                     'school' => $payment->getSchool(),
-                    'amount' => (float) ($payment->getReceiptAmount() ?: $payment->getAmount()),
+                    'amount' => 0.0,
                     'method_label' => $payment->getPaymentMethodLabel(),
                     'status' => $payment->getStatus(),
                     'status_label' => $payment->getStatusLabel(),
@@ -157,6 +164,8 @@ class PaymentRepository extends ServiceEntityRepository
                     'lines' => [],
                 ];
             }
+
+            $groups[$key]['amount'] += (float) $payment->getAmount();
 
             $feeName = $payment->getFee()?->getName();
             if ($feeName !== null && !\in_array($feeName, $groups[$key]['fee_names'], true)) {
