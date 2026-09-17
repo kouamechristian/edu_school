@@ -43,32 +43,30 @@
     <table class="list">
         <thead>
             <tr>
-                <th style="width:14%">N° Paiement</th>
+                <th style="width:16%">N° Paiement</th>
                 <th>Élève</th>
-                <th style="width:16%">Frais</th>
-                <th style="width:10%">Montant</th>
-                <th style="width:9%">Date</th>
-                <th style="width:10%">Méthode</th>
-                <th style="width:10%">Statut</th>
+                <th style="width:12%">Montant</th>
+                <th style="width:10%">Date</th>
+                <th style="width:12%">Méthode</th>
+                <th style="width:12%">Statut</th>
             </tr>
         </thead>
         <tbody>
-            {% for payment in payments %}
+            {% for receipt in receipts %}
                 <tr>
-                    <td>{{ payment.paymentNumber }}</td>
-                    <td>{{ payment.student.fullName }} <span style="color:#666;">({{ payment.student.matriculeInterne }})</span></td>
-                    <td>{{ payment.fee.name }}</td>
-                    <td class="num">{{ payment.amount|number_format(0, ',', ' ') }} F</td>
-                    <td class="center">{{ payment.paymentDate|date('d/m/Y') }}</td>
-                    <td class="center">{{ payment.paymentMethodLabel }}</td>
-                    <td class="center">{{ payment.statusLabel }}</td>
+                    <td>{{ receipt.receipt_number }}{% if receipt.lines|length > 1 %}<br><span style="color:#666;">{{ receipt.lines|length }} frais imputés</span>{% endif %}</td>
+                    <td>{{ receipt.student.fullName }} <span style="color:#666;">({{ receipt.student.matriculeInterne }})</span></td>
+                    <td class="num">{{ receipt.amount|number_format(0, ',', ' ') }} F</td>
+                    <td class="center">{{ receipt.date ? receipt.date|date('d/m/Y') : '—' }}</td>
+                    <td class="center">{{ receipt.method_label }}</td>
+                    <td class="center">{{ receipt.status_label }}</td>
                 </tr>
             {% else %}
-                <tr><td colspan="7" class="center">Aucun paiement.</td></tr>
+                <tr><td colspan="6" class="center">Aucun paiement.</td></tr>
             {% endfor %}
-            {% if payments|length > 0 %}
+            {% if receipts|length > 0 %}
                 <tr class="tot">
-                    <td colspan="3" class="num">TOTAL ({{ payments|length }})</td>
+                    <td colspan="2" class="num">TOTAL ({{ receipts|length }})</td>
                     <td class="num">{{ total_amount|number_format(0, ',', ' ') }} F</td>
                     <td colspan="3"></td>
                 </tr>

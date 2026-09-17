@@ -266,7 +266,13 @@ class PaymentController extends AbstractController
             $payments = $paymentRepository->findAllForSchool($schoolId);
         }
 
-        $payments = $paginator->paginate($payments, $request->query->getInt('page', 1), 25);
+        // Un versement imputé sur plusieurs frais génère plusieurs lignes Payment
+        // partageant le même numéro de reçu (cf. recordImputations) : on les réunit
+        // ici pour n'afficher qu'une seule ligne par encaissement, comme sur le reçu
+        // remis au parent.
+        $receipts = $paymentRepository->groupByReceipt($payments);
+
+        $payments = $paginator->paginate($receipts, $request->query->getInt('page', 1), 25);
 
         return $this->render('payment/index.html.twig', [
             'payments' => $payments,
@@ -307,11 +313,15 @@ class PaymentController extends AbstractController
             $payments = $paymentRepository->findAllForSchool($schoolId);
         }
 
+        // Même regroupement par reçu que la vue : un encaissement imputé sur
+        // plusieurs frais ne doit apparaître qu'une seule fois dans l'export.
+        $receipts = $paymentRepository->groupByReceipt($payments);
+
         return $this->renderPdf('payment/pdf/index_pdf.html.twig', [
             'school' => $currentSchool,
             'logo_data' => $this->logoData($currentSchool),
-            'payments' => $payments,
-            'total_amount' => array_sum(array_map(static fn (Payment $p): float => (float) $p->getAmount(), $payments)),
+            'receipts' => $receipts,
+            'total_amount' => array_sum(array_map(static fn (array $r): float => $r['amount'], $receipts)),
             'current_status' => $status,
             'current_method' => $method,
             'search_term' => $search,
@@ -863,8 +873,14 @@ class PaymentController extends AbstractController
         return $this->redirectToRoute('admin_payment_show', ['id' => $payment->getId()], Response::HTTP_SEE_OTHER);
     }
 
+    /**
+     * Annule un paiement. Un encaissement imputé sur plusieurs frais partage un même
+     * numéro de reçu (cf. recordImputations) et est affiché comme une seule ligne dans
+     * la liste : on annule donc ici toutes les lignes du reçu, pas seulement celle dont
+     * l'id a été transmis, pour que l'annulation porte sur l'encaissement entier.
+     */
     #[Route('/{id}/cancel', name: 'cancel', methods: ['POST'])]
-    public function cancel(Request $request, Payment $payment, EntityManagerInterface $entityManager): Response
+    public function cancel(Request $request, Payment $payment, EntityManagerInterface $entityManager, PaymentRepository $paymentRepository): Response
     {
         if ($this->isCsrfTokenValid('cancel'.$payment->getId(), $request->request->get('_token'))) {
             if ($payment->getStatus() === 'annulé') {
@@ -873,13 +889,24 @@ class PaymentController extends AbstractController
                 return $this->redirectToRoute('admin_payment_show', ['id' => $payment->getId()], Response::HTTP_SEE_OTHER);
             }
 
-            // Si le paiement avait été encaissé, on retire le montant imputé au frais de l'élève.
-            if ($payment->getStatus() === 'payé' && ($studentFee = $payment->getStudentFee()) !== null) {
-                $newPaid = max(0.0, ((float) $studentFee->getPaidAmount()) - (float) $payment->getAmount());
-                $studentFee->setPaidAmount((string) number_format($newPaid, 2, '.', ''));
+            $lines = $payment->getReceiptNumber() !== null
+                ? $paymentRepository->findReceiptLines($payment)
+                : [$payment];
+
+            foreach ($lines as $line) {
+                if ($line->getStatus() === 'annulé') {
+                    continue;
+                }
+
+                // Si le paiement avait été encaissé, on retire le montant imputé au frais de l'élève.
+                if ($line->getStatus() === 'payé' && ($studentFee = $line->getStudentFee()) !== null) {
+                    $newPaid = max(0.0, ((float) $studentFee->getPaidAmount()) - (float) $line->getAmount());
+                    $studentFee->setPaidAmount((string) number_format($newPaid, 2, '.', ''));
+                }
+
+                $line->setStatus('annulé');
             }
 
-            $payment->setStatus('annulé');
             $entityManager->flush();
 
             $this->addFlash('success', 'Le paiement a été annulé avec succès.');
