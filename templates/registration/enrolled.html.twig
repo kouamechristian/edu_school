@@ -116,18 +116,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                    {% if total_count > 0 %}
-                    <tfoot>
-                        <tr class="fw-bold border-top">
-                            <td colspan="3" class="text-end">Totaux (tous les inscrits)</td>
-                            <td class="text-end">{{ totals.tuition|number_format(0, ',', ' ') }}</td>
-                            <td class="text-end text-success">{{ totals.paid|number_format(0, ',', ' ') }}</td>
-                            <td class="text-end text-danger">{{ totals.cancelled|number_format(0, ',', ' ') }}</td>
-                            <td class="text-end">{{ totals.remaining|number_format(0, ',', ' ') }}</td>
-                            <td colspan="2"></td>
-                        </tr>
-                    </tfoot>
-                    {% endif %}
+                    
                 </table>
             </div>
             {% include '_pagination.html.twig' with { pagination: registrations } %}
