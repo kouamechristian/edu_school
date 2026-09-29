@@ -17,8 +17,10 @@
             <a href="{{ path('admin_registration_index') }}" class="btn btn-success"><i class="fas fa-graduation-cap me-1"></i> Affectation en classe</a>
         {% endblock %}
     {% endembed %}
-
-    {# ── Statistiques ── #}
+    
+    
+    {# ── Statistiques (réservées au fondateur) ── #}
+    {% if is_granted('ROLE_FONDATEUR') %}
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-6">
             <div class="stat-card primary h-100">
@@ -53,6 +55,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     {# ── Liste des inscrits ── #}
     <div class="card table-card mb-4">
