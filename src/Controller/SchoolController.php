@@ -6,6 +6,8 @@ use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\School;
 use App\Form\SchoolType;
 use App\Repository\SchoolRepository;
+use App\Security\SchoolManagementScope;
+use App\Security\Voter\SchoolManagementVoter;
 use App\Service\GeniusPay\GeniusPayConfigResolver;
 use App\Service\GeniusPay\GeniusPayCredentialsUpdater;
 use Doctrine\ORM\EntityManagerInterface;
@@ -42,6 +44,8 @@ class SchoolController extends AbstractController
         GeniusPayCredentialsUpdater $credentialsUpdater,
         GeniusPayConfigResolver $configResolver,
     ): Response {
+        $this->denyAccessUnlessGranted(SchoolManagementVoter::MANAGE, $school);
+
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('geniuspay' . $school->getId(), (string) $request->request->get('_token'))) {
                 $this->addFlash('error', 'Jeton de sécurité invalide.');
@@ -75,10 +79,12 @@ class SchoolController extends AbstractController
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(SchoolRepository $schoolRepository, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator): Response
+    public function index(SchoolRepository $schoolRepository, \Symfony\Component\HttpFoundation\Request $request, \Knp\Component\Pager\PaginatorInterface $paginator, SchoolManagementScope $scope): Response
     {
-        $schools = $paginator->paginate($schoolRepository->findAll(), $request->query->getInt('page', 1), 50);
-        $countByType = $schoolRepository->countByType();
+        // Un administrateur ne voit que les établissements de son groupe (cf. SchoolManagementScope).
+        $query = $scope->restrict($schoolRepository->createQueryBuilder('s'), 's')->orderBy('s.name', 'ASC');
+        $schools = $paginator->paginate($query, $request->query->getInt('page', 1), 50);
+        $countByType = $schoolRepository->countByType($scope);
 
         return $this->render('school/index.html.twig', [
             'schools' => $schools,
@@ -92,8 +98,14 @@ class SchoolController extends AbstractController
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
         GeniusPayCredentialsUpdater $credentialsUpdater,
+        SchoolManagementScope $scope,
     ): Response {
         $school = new School();
+        // Rattaché d'office au groupe de l'administrateur : sans cela, il perdrait
+        // aussitôt l'accès à l'établissement qu'il vient de créer.
+        if (!$scope->isUnrestricted()) {
+            $school->setSchoolGroup($scope->group());
+        }
         $form = $this->createForm(SchoolType::class, $school);
         $form->handleRequest($request);
 
@@ -121,6 +133,8 @@ class SchoolController extends AbstractController
     #[Route('/{id}', name: 'show', methods: ['GET'])]
     public function show(School $school): Response
     {
+        $this->denyAccessUnlessGranted(SchoolManagementVoter::MANAGE, $school);
+
         return $this->render('school/show.html.twig', [
             'school' => $school,
         ]);
@@ -134,6 +148,8 @@ class SchoolController extends AbstractController
         SluggerInterface $slugger,
         GeniusPayCredentialsUpdater $credentialsUpdater,
     ): Response {
+        $this->denyAccessUnlessGranted(SchoolManagementVoter::MANAGE, $school);
+
         $form = $this->createForm(SchoolType::class, $school, [
             'geniuspay_enabled' => $school->isGeniuspayEnabled(),
         ]);
@@ -163,6 +179,8 @@ class SchoolController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function delete(Request $request, School $school, EntityManagerInterface $entityManager): Response
     {
+        $this->denyAccessUnlessGranted(SchoolManagementVoter::MANAGE, $school);
+
         if ($this->isCsrfTokenValid('delete'.$school->getId(), $request->request->get('_token'))) {
             $this->deleteEntity(
                 $entityManager,
@@ -178,6 +196,8 @@ class SchoolController extends AbstractController
     #[Route('/{id}/toggle', name: 'toggle', methods: ['POST'])]
     public function toggle(Request $request, School $school, EntityManagerInterface $entityManager): Response
     {
+        $this->denyAccessUnlessGranted(SchoolManagementVoter::MANAGE, $school);
+
         if ($this->isCsrfTokenValid('toggle'.$school->getId(), $request->request->get('_token'))) {
             $school->setIsActive(!$school->isActive());
             $entityManager->flush();

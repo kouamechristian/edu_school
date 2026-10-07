@@ -3,6 +3,7 @@
 namespace App\Form;
 
 use App\Entity\SchoolGroup;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -12,6 +13,10 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class SchoolGroupType extends AbstractType
 {
+    public function __construct(private readonly Security $security)
+    {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -40,15 +45,19 @@ class SchoolGroupType extends AbstractType
                     'placeholder' => 'Description du groupe d\'établissements...',
                 ],
             ])
-            ->add('isActive', ChoiceType::class, [
+        ;
+
+        // Désactiver un groupe est réservé au super-administrateur (cf. SchoolGroupController).
+        if ($this->security->isGranted('ROLE_SUPER_ADMIN')) {
+            $builder->add('isActive', ChoiceType::class, [
                 'label' => 'Statut',
                 'choices' => [
                     'Actif' => true,
                     'Inactif' => false,
                 ],
                 'attr' => ['class' => 'form-select'],
-            ])
-        ;
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

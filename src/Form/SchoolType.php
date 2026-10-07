@@ -4,6 +4,7 @@ namespace App\Form;
 
 use App\Entity\School;
 use App\Entity\SchoolGroup;
+use App\Security\SchoolManagementScope;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -20,8 +21,17 @@ use Symfony\Component\Validator\Constraints\Regex;
 
 class SchoolType extends AbstractType
 {
+    public function __construct(private readonly SchoolManagementScope $scope)
+    {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        // Un administrateur ne peut rattacher l'établissement qu'à son propre groupe
+        // (sinon il le sortirait de son périmètre ou l'insérerait dans celui d'un autre).
+        $groupIds = $this->scope->selectableGroupIds();
+        $groupRequired = !$this->scope->isUnrestricted() && $this->scope->group() !== null;
+
         $builder
             ->add('name', TextType::class, [
                 'label' => 'Nom de l\'établissement',
@@ -38,13 +48,19 @@ class SchoolType extends AbstractType
                 'class' => SchoolGroup::class,
                 'choice_label' => 'name',
                 'attr' => ['class' => 'form-select'],
-                'placeholder' => 'Sélectionnez un groupe',
-                'required' => false,
-                'query_builder' => function ($repository) {
-                    return $repository->createQueryBuilder('sg')
+                'placeholder' => $groupRequired ? false : 'Sélectionnez un groupe',
+                'required' => $groupRequired,
+                'query_builder' => function ($repository) use ($groupIds) {
+                    $qb = $repository->createQueryBuilder('sg')
                         ->where('sg.isActive = :active')
                         ->setParameter('active', true)
                         ->orderBy('sg.name', 'ASC');
+
+                    if ($groupIds !== null) {
+                        $qb->andWhere('sg.id IN (:groups)')->setParameter('groups', $groupIds ?: [0]);
+                    }
+
+                    return $qb;
                 },
             ])
             ->add('type', ChoiceType::class, [

@@ -172,7 +172,11 @@ class SchoolContextService
     /**
      * Obtenir les établissements disponibles pour l'utilisateur courant.
      *
-     * Un utilisateur ne voit que les établissements (actifs) auxquels il est rattaché.
+     * Un administrateur (ou fondateur) rattaché à un groupe d'établissements voit les
+     * établissements actifs de ce groupe — comme sur l'écran Établissements (cf.
+     * SchoolManagementScope). Les autres utilisateurs ne voient que les établissements
+     * (actifs) auxquels ils sont rattachés : pour eux, le groupe ne sert qu'à filtrer
+     * la sélection dans le formulaire utilisateur et n'ouvre aucun accès.
      * Les super-administrateurs (ou les utilisateurs sans rattachement) voient tous les
      * établissements actifs.
      */
@@ -185,14 +189,18 @@ class SchoolContextService
         $isRealSuperAdmin = $user instanceof User && in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true);
 
         if ($user instanceof User && !$isRealSuperAdmin) {
+            $group = $user->getSchoolGroup();
             $schools = [];
-            foreach ($user->getSchools() as $school) {
-                if ($school->isActive()) {
-                    $schools[] = $school;
-                }
+
+            if ($group !== null && $this->security->isGranted('ROLE_ADMIN')) {
+                $schools = $this->activeOnly($group->getSchools());
             }
 
-            // Si l'utilisateur est rattaché à au moins un établissement, on se limite à ceux-ci.
+            // Pas de groupe (ou groupe sans établissement actif) : établissements du compte.
+            if (empty($schools)) {
+                $schools = $this->activeOnly($user->getSchools());
+            }
+
             if (!empty($schools)) {
                 usort($schools, fn (School $a, School $b) => strcmp((string) $a->getName(), (string) $b->getName()));
                 return $schools;
@@ -201,6 +209,23 @@ class SchoolContextService
 
         // Super-admin ou utilisateur sans rattachement : tous les établissements actifs.
         return $this->schoolRepository->findActive();
+    }
+
+    /**
+     * @param iterable<School> $schools
+     *
+     * @return School[]
+     */
+    private function activeOnly(iterable $schools): array
+    {
+        $active = [];
+        foreach ($schools as $school) {
+            if ($school->isActive()) {
+                $active[] = $school;
+            }
+        }
+
+        return $active;
     }
 
     /**

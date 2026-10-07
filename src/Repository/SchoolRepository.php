@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\School;
+use App\Security\SchoolManagementScope;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -59,16 +60,20 @@ class SchoolRepository extends ServiceEntityRepository
 
     /**
      * Compter le nombre d'établissements par type
+     *
+     * @param SchoolManagementScope|null $scope limite le décompte au périmètre de l'utilisateur
      */
-    public function countByType(): array
+    public function countByType(?SchoolManagementScope $scope = null): array
     {
-        return $this->createQueryBuilder('s')
+        $qb = $this->createQueryBuilder('s')
             ->select('s.type, COUNT(s.id) as count')
             ->andWhere('s.isActive = :active')
             ->setParameter('active', true)
-            ->groupBy('s.type')
-            ->getQuery()
-            ->getResult();
+            ->groupBy('s.type');
+
+        $scope?->restrict($qb, 's');
+
+        return $qb->getQuery()->getResult();
     }
 }
 
