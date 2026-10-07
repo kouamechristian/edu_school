@@ -14,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[ORM\Entity(repositoryClass: CashDepositRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-class CashDeposit
+class CashDeposit implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -198,5 +198,13 @@ class CashDeposit
     {
         $this->createdAt = $createdAt;
         return $this;
+    }
+
+    /**
+     * Établissement déduit de la caisse (cf. SchoolOwnedInterface).
+     */
+    public function getSchool(): ?School
+    {
+        return $this->cashRegister?->getSchool();
     }
 }

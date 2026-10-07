@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: CourseRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[NoScheduleConflict]
-class Course
+class Course implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -223,6 +223,14 @@ class Course
     public function getEndTime(): ?\DateTimeInterface
     {
         return $this->timeSlot?->getEndTime();
+    }
+
+    /**
+     * Établissement déduit de la classe (cf. SchoolOwnedInterface).
+     */
+    public function getSchool(): ?School
+    {
+        return $this->classroom?->getSchool();
     }
 }
 

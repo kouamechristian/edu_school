@@ -10,7 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'bulletin_line')]
-class BulletinLine
+class BulletinLine implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -126,5 +126,13 @@ class BulletinLine
     {
         $this->mention = $mention;
         return $this;
+    }
+
+    /**
+     * Établissement déduit du bulletin (cf. SchoolOwnedInterface).
+     */
+    public function getSchool(): ?School
+    {
+        return $this->bulletin?->getSchool();
     }
 }

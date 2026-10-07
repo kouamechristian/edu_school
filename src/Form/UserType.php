@@ -5,7 +5,10 @@ namespace App\Form;
 use App\Entity\School;
 use App\Entity\SchoolGroup;
 use App\Entity\User;
+use App\Security\RoleGrantPolicy;
+use App\Service\SchoolContextService;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -21,9 +24,25 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 
 class UserType extends AbstractType
 {
+    public function __construct(
+        private readonly Security $security,
+        private readonly RoleGrantPolicy $roleGrantPolicy,
+        private readonly SchoolContextService $context,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $isEdit = $options['is_edit'] ?? false;
+
+        // Rôles et établissements proposés : limités à ce que l'utilisateur connecté
+        // peut lui-même attribuer (cf. RoleGrantPolicy) et aux établissements qu'il
+        // gère. ChoiceType/EntityType rejettent toute valeur soumise hors de ces choix.
+        $actor = $this->security->getUser();
+        $roleChoices = $actor instanceof User ? $this->roleGrantPolicy->grantableChoices($actor) : [];
+        $allowedSchoolIds = $actor instanceof User && RoleGrantPolicy::isRealSuperAdmin($actor)
+            ? null
+            : array_map(static fn (School $school) => $school->getId(), $this->context->getAvailableSchools());
 
         $builder
             ->add('username', TextType::class, [
@@ -120,33 +139,24 @@ class UserType extends AbstractType
                 'attr' => ['class' => 'form-select', 'size' => 5, 'id' => 'user_schools'],
                 'required' => false,
                 'help' => 'Sélectionnez un ou plusieurs établissements (Ctrl+Clic pour sélection multiple)',
-                'query_builder' => function ($repository) {
-                    return $repository->createQueryBuilder('s')
+                'query_builder' => function ($repository) use ($allowedSchoolIds) {
+                    $qb = $repository->createQueryBuilder('s')
                         ->leftJoin('s.schoolGroup', 'sg')
                         ->where('s.isActive = :active')
                         ->setParameter('active', true)
                         ->orderBy('sg.name', 'ASC')
                         ->addOrderBy('s.name', 'ASC');
+
+                    if ($allowedSchoolIds !== null) {
+                        $qb->andWhere('s.id IN (:allowed)')->setParameter('allowed', $allowedSchoolIds ?: [0]);
+                    }
+
+                    return $qb;
                 },
             ])
             ->add('roles', ChoiceType::class, [
                 'label' => 'Rôles',
-                'choices' => [
-                    'Super administrateur (ROLE_SUPER_ADMIN)' => 'ROLE_SUPER_ADMIN',
-                    'Fondateur (ROLE_FONDATEUR)' => 'ROLE_FONDATEUR',
-                    'Administrateur (ROLE_ADMIN)' => 'ROLE_ADMIN',
-                    'Directeur (ROLE_DIRECTEUR)' => 'ROLE_DIRECTEUR',
-                    'Agent d\'inscription (ROLE_INSCRIPTION)' => 'ROLE_INSCRIPTION',
-                    'Caissier (ROLE_CAISSE)' => 'ROLE_CAISSE',
-                    'Comptable (ROLE_COMPTABLE)' => 'ROLE_COMPTABLE',
-                    'Agent de recouvrement (ROLE_RECOUVREMENT)' => 'ROLE_RECOUVREMENT',
-                    'Ressources Humaines (ROLE_RH)' => 'ROLE_RH',
-                    'Enseignant (ROLE_ENSEIGNANT)' => 'ROLE_ENSEIGNANT',
-                    'Éducateur (ROLE_EDUCATEUR)' => 'ROLE_EDUCATEUR',
-                    'Correspondant fichier (ROLE_CORRESPONDANT_FICHIER)' => 'ROLE_CORRESPONDANT_FICHIER',
-                    'Parent (ROLE_PARENT)' => 'ROLE_PARENT',
-                    'Élève (ROLE_ELEVE)' => 'ROLE_ELEVE',
-                ],
+                'choices' => $roleChoices,
                 'multiple' => true,
                 'expanded' => true,
                 'attr' => ['class' => 'roles-checkboxes'],

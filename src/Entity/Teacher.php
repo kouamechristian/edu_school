@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: TeacherRepository::class)]
 #[ORM\Table(name: 'teacher')]
 #[ORM\HasLifecycleCallbacks]
-class Teacher
+class Teacher implements MultiSchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -238,5 +238,15 @@ class Teacher
     public function __toString(): string
     {
         return $this->getFullName();
+    }
+
+    /**
+     * Établissements de l'employé associé (cf. MultiSchoolOwnedInterface).
+     *
+     * @return iterable<School>
+     */
+    public function getSchools(): iterable
+    {
+        return $this->employee?->getSchools() ?? [];
     }
 }

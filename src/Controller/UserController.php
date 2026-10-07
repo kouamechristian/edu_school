@@ -6,6 +6,8 @@ use App\Controller\Concern\HandlesEntityDeletion;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
+use App\Security\RoleGrantPolicy;
+use App\Security\Voter\UserManagementVoter;
 use App\Service\SchoolContextService;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -154,6 +156,8 @@ class UserController extends AbstractController
     #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function show(User $user): Response
     {
+        $this->denyAccessUnlessGranted(UserManagementVoter::MANAGE, $user);
+
         return $this->render('user/show.html.twig', [
             'user' => $user,
         ]);
@@ -164,14 +168,33 @@ class UserController extends AbstractController
         Request $request,
         User $user,
         EntityManagerInterface $entityManager,
-        UserPasswordHasherInterface $passwordHasher
+        UserPasswordHasherInterface $passwordHasher,
+        SchoolContextService $contextService
     ): Response {
+        $this->denyAccessUnlessGranted(UserManagementVoter::MANAGE, $user);
+
+        // Le formulaire ne propose que les établissements gérés par l'utilisateur
+        // connecté : on mémorise les autres pour ne pas les retirer à la soumission.
+        $available = $contextService->getAvailableSchools();
+        $hiddenSchools = [];
+        if (!RoleGrantPolicy::isRealSuperAdmin($this->getUser())) {
+            foreach ($user->getSchools() as $school) {
+                if (!$contextService->isSchoolAllowed($school, $available)) {
+                    $hiddenSchools[] = $school;
+                }
+            }
+        }
+
         $form = $this->createForm(UserType::class, $user, [
             'is_edit' => true,
         ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            foreach ($hiddenSchools as $school) {
+                $user->addSchool($school);
+            }
+
             // Hash le nouveau mot de passe si fourni
             $plainPassword = $form->get('plainPassword')->getData();
             if ($plainPassword) {
@@ -205,6 +228,8 @@ class UserController extends AbstractController
     #[Route('/{id}', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function delete(Request $request, User $user, EntityManagerInterface $entityManager): Response
     {
+        $this->denyAccessUnlessGranted(UserManagementVoter::MANAGE, $user);
+
         if ($this->isCsrfTokenValid('delete'.$user->getId(), $request->request->get('_token'))) {
             // Empêcher la suppression de son propre compte
             if ($this->getUser() === $user) {
@@ -226,6 +251,8 @@ class UserController extends AbstractController
     #[Route('/{id}/toggle', name: 'toggle', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function toggle(Request $request, User $user, EntityManagerInterface $entityManager): Response
     {
+        $this->denyAccessUnlessGranted(UserManagementVoter::MANAGE, $user);
+
         if ($this->isCsrfTokenValid('toggle'.$user->getId(), $request->request->get('_token'))) {
             // Empêcher la désactivation de son propre compte
             if ($this->getUser() === $user) {

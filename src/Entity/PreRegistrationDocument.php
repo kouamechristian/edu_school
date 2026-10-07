@@ -10,7 +10,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: PreRegistrationDocumentRepository::class)]
 #[ORM\Table(name: 'pre_registration_document')]
 #[ORM\HasLifecycleCallbacks]
-class PreRegistrationDocument
+class PreRegistrationDocument implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -250,5 +250,13 @@ class PreRegistrationDocument
     public function __toString(): string
     {
         return $this->originalFileName ?? 'Document';
+    }
+
+    /**
+     * Établissement déduit de la pré-inscription (cf. SchoolOwnedInterface).
+     */
+    public function getSchool(): ?School
+    {
+        return $this->preRegistration?->getSchool();
     }
 }

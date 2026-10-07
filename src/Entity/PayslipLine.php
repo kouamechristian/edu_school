@@ -11,7 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity(repositoryClass: PayslipLineRepository::class)]
 #[ORM\Table(name: 'payslip_line')]
-class PayslipLine
+class PayslipLine implements SchoolOwnedInterface
 {
     public const KIND_GAIN = 'gain';
     public const KIND_DEDUCTION = 'deduction';
@@ -157,5 +157,13 @@ class PayslipLine
     {
         $this->sortOrder = $sortOrder;
         return $this;
+    }
+
+    /**
+     * Établissement déduit du bulletin de paie (cf. SchoolOwnedInterface).
+     */
+    public function getSchool(): ?School
+    {
+        return $this->payslip?->getSchool();
     }
 }

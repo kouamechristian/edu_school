@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: FeeScheduleRepository::class)]
 #[ORM\Table(name: 'fee_schedule')]
-class FeeSchedule
+class FeeSchedule implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -97,5 +97,13 @@ class FeeSchedule
     public function __toString(): string
     {
         return sprintf('Échéance #%d - %s FCFA', $this->orderNumber ?? 0, number_format((float)($this->amount ?? 0), 0, ',', ' '));
+    }
+
+    /**
+     * Établissement déduit du frais (cf. SchoolOwnedInterface).
+     */
+    public function getSchool(): ?School
+    {
+        return $this->fee?->getSchool();
     }
 }

@@ -10,7 +10,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: GradeRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: '`grade`')]
-class Grade
+class Grade implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -186,6 +186,14 @@ class Grade
     public function __toString(): string
     {
         return $this->getDisplayValue();
+    }
+
+    /**
+     * Établissement déduit de l'évaluation, à défaut de l'élève (cf. SchoolOwnedInterface).
+     */
+    public function getSchool(): ?School
+    {
+        return $this->evaluation?->getSchool() ?? $this->student?->getSchool();
     }
 }
 

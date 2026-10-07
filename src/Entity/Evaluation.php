@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: EvaluationRepository::class)]
 #[ORM\HasLifecycleCallbacks]
-class Evaluation
+class Evaluation implements SchoolOwnedInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -343,6 +343,14 @@ class Evaluation
             $this->subject?->getName() ?? '',
             $this->date?->format('d/m/Y') ?? ''
         );
+    }
+
+    /**
+     * Établissement déduit de la classe (cloisonnement, cf. SchoolOwnedInterface).
+     */
+    public function getSchool(): ?School
+    {
+        return $this->classroom?->getSchool();
     }
 }
 
