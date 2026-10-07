@@ -7,6 +7,7 @@ use App\Entity\Student;
 use App\Entity\User;
 use App\Repository\StudentRepository;
 use App\Repository\UserRepository;
+use App\Service\MaintenanceMode;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -41,6 +42,7 @@ class MobileApiController extends AbstractController
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private SchoolContextService $schoolContext,
+        private MaintenanceMode $maintenance,
     ) {
     }
 
@@ -72,6 +74,10 @@ class MobileApiController extends AbstractController
         );
         if ($staffRoles === []) {
             return $this->error('forbidden', "Ce compte n'est pas autorisé à utiliser l'application.", Response::HTTP_FORBIDDEN);
+        }
+
+        if ($this->maintenance->isEnabled() && !$this->maintenance->canBypass($user)) {
+            return $this->error('maintenance', "L'application est en maintenance. Veuillez réessayer plus tard.", Response::HTTP_SERVICE_UNAVAILABLE);
         }
 
         $token = bin2hex(random_bytes(32));

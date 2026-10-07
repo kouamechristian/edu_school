@@ -1,0 +1,12 @@
+{# Avertissement affiché sur les pages de connexion pendant la maintenance. #}
+{% set state = maintenance() %}
+{% if state.enabled %}
+    <div class="alert alert-warning mb-3" role="alert">
+        <i class="fas fa-screwdriver-wrench me-2"></i>
+        <strong>Application en maintenance.</strong>
+        <span style="white-space: pre-line;">{{ state.message|default('La connexion est temporairement suspendue. Merci de réessayer plus tard.') }}</span>
+        {% if state.until %}
+            <div class="small mt-1"><i class="far fa-clock me-1"></i>Retour prévu : {{ state.until|date('d/m/Y à H:i') }}</div>
+        {% endif %}
+    </div>
+{% endif %}

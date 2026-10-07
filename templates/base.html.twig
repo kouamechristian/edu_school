@@ -688,7 +688,7 @@
                Visible pour ROLE_ADMIN (admins, super admins)
                ============================================================== #}
             {% if is_granted('ROLE_ADMIN') %}
-            {% set admin_active = current_route starts with 'admin_school' or current_route starts with 'admin_user' or current_route starts with 'admin_subject_type' or current_route starts with 'admin_mobile_money_log' or current_route starts with 'admin_mouchard' %}
+            {% set admin_active = current_route starts with 'admin_school' or current_route starts with 'admin_user' or current_route starts with 'admin_subject_type' or current_route starts with 'admin_mobile_money_log' or current_route starts with 'admin_mouchard' or current_route starts with 'admin_maintenance' %}
             <div class="nav-section">Administration</div>
             <li class="nav-item">
                 <a href="#" class="nav-link dropdown-toggle {{ admin_active ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#menuAdmin" aria-expanded="{{ admin_active ? 'true' : 'false' }}">
@@ -736,6 +736,13 @@
                             <i class="fas fa-user-secret"></i><span>Mouchard</span>
                         </a>
                     </li>
+                    {% if is_granted('ROLE_SUPER_ADMIN') %}
+                    <li class="nav-item">
+                        <a href="{{ path('admin_maintenance_index') }}" class="nav-link {{ current_route starts with 'admin_maintenance' ? 'active' : '' }}">
+                            <i class="fas fa-screwdriver-wrench"></i><span>Mode maintenance</span>
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
             </li>
             {% endif %}
@@ -1545,6 +1552,15 @@
        CONTENU PRINCIPAL
        ================================================================ #}
     <div class="content-wrapper">
+        {# Rappel au super-administrateur : les autres utilisateurs sont bloqués. #}
+        {% if maintenance().enabled %}
+            <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3" role="alert">
+                <span><i class="fas fa-screwdriver-wrench me-2"></i><strong>Mode maintenance actif</strong> — seuls les super-administrateurs ont accès à l'application.</span>
+                {% if is_granted('ROLE_SUPER_ADMIN') %}
+                    <a href="{{ path('admin_maintenance_index') }}" class="btn btn-sm btn-outline-dark">Gérer</a>
+                {% endif %}
+            </div>
+        {% endif %}
         {% block body %}{% endblock %}
 
         {# Footer #}

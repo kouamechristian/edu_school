@@ -118,6 +118,8 @@
             <h2 class="login-title">Connexion Élève</h2>
             <p class="login-subtitle">Connecte-toi avec ton matricule national et ta date de naissance</p>
 
+            {% include 'security/_maintenance_notice.html.twig' %}
+
             {% if error %}
                 <div class="alert alert-danger fade show mb-3" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>

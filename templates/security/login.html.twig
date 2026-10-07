@@ -201,6 +201,8 @@
             <h2 class="login-title">Connexion</h2>
             <p class="login-subtitle">Accédez à votre espace personnel</p>
 
+            {% include 'security/_maintenance_notice.html.twig' %}
+
             {% for label, messages in app.flashes(['success', 'error', 'warning', 'info']) %}
                 {% for message in messages %}
                     <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">

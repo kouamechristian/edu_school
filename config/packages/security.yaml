@@ -77,6 +77,9 @@ security:
             # Avec plusieurs authenticators, l'entry_point détermine la page de
             # connexion présentée à un visiteur anonyme (défaut = personnel/parent).
             entry_point: App\Security\MainAuthenticator
+            # Refuse la connexion des comptes désactivés et, pendant la maintenance,
+            # de tout compte autre que le super-administrateur.
+            user_checker: App\Security\UserChecker
             logout:
                 path: app_logout
                 # where to redirect after logout

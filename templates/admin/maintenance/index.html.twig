@@ -1,0 +1,102 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mode maintenance{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Mode maintenance',
+        subtitle: 'Suspendre temporairement l\'accès à l\'application',
+        icon: 'fa-screwdriver-wrench',
+        color: maintenance.enabled ? 'warning' : 'primary',
+        breadcrumb: [ { label: 'Administration' }, { label: 'Mode maintenance' } ]
+    } %}{% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="row g-4">
+        {# ── État actuel ── #}
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-circle-info me-2"></i>État actuel</h6>
+                </div>
+                <div class="card-body">
+                    {% if maintenance.enabled %}
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-warning text-dark fs-6"><i class="fas fa-triangle-exclamation me-1"></i>Maintenance active</span>
+                        </div>
+                        <dl class="row mb-0">
+                            {% if maintenance.enabledAt %}
+                                <dt class="col-sm-5">Activée le</dt>
+                                <dd class="col-sm-7">{{ maintenance.enabledAt|date('d/m/Y à H:i') }}</dd>
+                            {% endif %}
+                            {% if maintenance.enabledBy %}
+                                <dt class="col-sm-5">Par</dt>
+                                <dd class="col-sm-7">{{ maintenance.enabledBy }}</dd>
+                            {% endif %}
+                            <dt class="col-sm-5">Fin prévue</dt>
+                            <dd class="col-sm-7">{{ maintenance.until ? maintenance.until|date('d/m/Y à H:i') : 'Non précisée' }}</dd>
+                            <dt class="col-sm-5">Message</dt>
+                            <dd class="col-sm-7">{{ maintenance.message|default('Message par défaut') }}</dd>
+                        </dl>
+                    {% else %}
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-success fs-6"><i class="fas fa-check me-1"></i>Application accessible</span>
+                        </div>
+                        <p class="text-muted mb-0">Tous les utilisateurs peuvent se connecter normalement.</p>
+                    {% endif %}
+
+                    <hr>
+                    <p class="small text-muted mb-0">
+                        <i class="fas fa-shield-halved me-1"></i>
+                        Pendant la maintenance, seuls les <strong>super-administrateurs</strong> peuvent se connecter.
+                        Les autres utilisateurs (personnel, parents, élèves, application mobile) voient un message
+                        indiquant que l'application est en maintenance, y compris ceux déjà connectés.
+                        Les paiements en ligne reçus continuent d'être enregistrés.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {# ── Action ── #}
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="m-0 fw-bold text-primary">
+                        <i class="fas fa-power-off me-2"></i>{{ maintenance.enabled ? 'Désactiver la maintenance' : 'Activer la maintenance' }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if maintenance.enabled %}
+                        <p>Remettez l'application à disposition de tous les utilisateurs.</p>
+                        <form method="post" action="{{ path('admin_maintenance_disable') }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('maintenance_toggle') }}">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-play me-1"></i> Désactiver le mode maintenance
+                            </button>
+                        </form>
+                    {% else %}
+                        <form method="post" action="{{ path('admin_maintenance_enable') }}"
+                              onsubmit="return confirm('Activer le mode maintenance ? Les utilisateurs autres que les super-administrateurs n\'auront plus accès à l\'application.');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('maintenance_toggle') }}">
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Message affiché aux utilisateurs <span class="text-muted">(facultatif)</span></label>
+                                <textarea name="message" id="message" rows="3" maxlength="1000" class="form-control"
+                                          placeholder="Ex. : Mise à jour du logiciel en cours. Merci de votre patience."></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="until" class="form-label">Fin prévue <span class="text-muted">(facultatif, indicative)</span></label>
+                                <input type="datetime-local" name="until" id="until" class="form-control">
+                            </div>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-screwdriver-wrench me-1"></i> Activer le mode maintenance
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
