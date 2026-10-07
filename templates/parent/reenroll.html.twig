@@ -16,19 +16,19 @@
 <style>
     .pp-form .row-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 1.25rem; }
     @media (max-width:640px){ .pp-form .row-grid { grid-template-columns:1fr; } }
-    .pp-form label { display:block; font-weight:600; color:#1e3a5f; margin-bottom:.35rem; font-size:.88rem; }
+    .pp-form label { display:block; font-weight:600; color:var(--pp-navy); margin-bottom:.35rem; font-size:.88rem; }
     .pp-form .form-control,
     .pp-form .form-select {
         width:100%; border:1px solid #e3e8f0; border-radius:12px;
-        padding:.6rem .9rem; font-size:.95rem; color:#1e3a5f; background:#fff; margin-bottom:1rem;
+        padding:.6rem .9rem; font-size:.95rem; color:var(--pp-navy); background:#fff; margin-bottom:1rem;
     }
     .pp-form .form-control:focus,
-    .pp-form .form-select:focus { outline:none; border-color:#1e3a5f; box-shadow:0 0 0 3px rgba(30,58,95,.08); }
+    .pp-form .form-select:focus { outline:none; border-color:var(--pp-navy); box-shadow:0 0 0 3px rgba(var(--pp-navy-rgb),.08); }
     .pp-form .form-help { font-size:.8rem; color:#64748b; margin:-.7rem 0 1rem; }
     .pp-form .invalid-feedback,
     .pp-form .form-error { color:#dc2626; font-size:.82rem; margin:-.7rem 0 .9rem; display:block; }
     .pp-section-title {
-        font-weight:700; color:#1e3a5f; font-size:.95rem; margin:1.4rem 0 1rem;
+        font-weight:700; color:var(--pp-navy); font-size:.95rem; margin:1.4rem 0 1rem;
         padding-bottom:.5rem; border-bottom:1px solid #eef2f7;
     }
     .pp-section-title:first-of-type { margin-top:0; }

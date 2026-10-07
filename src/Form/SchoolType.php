@@ -133,6 +133,7 @@ class SchoolType extends AbstractType
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: Ministère de l\'Éducation Nationale'],
                 'help' => 'Nom de l\'organisme de tutelle. Laisser vide si aucun.',
             ])
+            ->add('theme', SchoolThemeType::class)
             ->add('isActive', ChoiceType::class, [
                 'label' => 'Statut',
                 'choices' => [

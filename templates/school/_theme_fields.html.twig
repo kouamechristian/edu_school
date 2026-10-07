@@ -1,0 +1,162 @@
+{#
+    Personnalisation du design de l'établissement, avec aperçu en direct.
+    Inclus par school/new et school/edit ; attend la variable « form ».
+#}
+<hr>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h6 class="text-muted mb-0"><i class="fas fa-palette me-2"></i>Personnalisation du design</h6>
+    <button type="button" class="btn btn-sm btn-light" id="theme-reset">
+        <i class="fas fa-undo me-1"></i> Thème par défaut
+    </button>
+</div>
+<p class="small text-muted">
+    Ces réglages s'appliquent à toute l'interface lorsque cet établissement est sélectionné,
+    ainsi qu'aux espaces élève, parent et enseignant de ses utilisateurs.
+    Le logo de l'établissement sert aussi d'icône d'onglet.
+</p>
+
+<div class="row" id="theme-fields"
+     data-defaults="{{ constant('App\\Theme\\SchoolTheme::DEFAULTS')|json_encode|e('html_attr') }}">
+    <div class="col-lg-6">
+        <div class="row">
+            <div class="col-6 mb-3">{{ form_row(form.theme.primaryColor) }}</div>
+            <div class="col-6 mb-3">{{ form_row(form.theme.accentColor) }}</div>
+            <div class="col-6 mb-3">{{ form_row(form.theme.sidebarColor) }}</div>
+            <div class="col-6 mb-3">{{ form_row(form.theme.sidebarStyle) }}</div>
+            <div class="col-6 mb-3">{{ form_row(form.theme.bodyBackground) }}</div>
+            <div class="col-6 mb-3">{{ form_row(form.theme.cornerStyle) }}</div>
+            <div class="col-6 mb-3">{{ form_row(form.theme.headingFont) }}</div>
+            <div class="col-6 mb-3">{{ form_row(form.theme.bodyFont) }}</div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-3">
+        <span class="d-block small text-muted mb-2">Aperçu</span>
+        <div class="theme-preview" id="theme-preview">
+            <aside class="tp-sidebar">
+                <div class="tp-brand"><span class="tp-brand-icon"><i class="fas fa-graduation-cap"></i></span> EDU-SCHOOL</div>
+                <div class="tp-section">Navigation</div>
+                <div class="tp-link tp-active"><i class="fas fa-home"></i> Tableau de bord</div>
+                <div class="tp-link"><i class="fas fa-user-graduate"></i> Élèves</div>
+                <div class="tp-link"><i class="fas fa-wallet"></i> Paiements</div>
+            </aside>
+            <div class="tp-main">
+                <div class="tp-topbar"></div>
+                <div class="tp-card">
+                    <div class="tp-title">Inscriptions 2026-2027</div>
+                    <p class="tp-text">Voici l'apparence du texte courant dans les pages de l'application.</p>
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <span class="tp-btn">Enregistrer</span>
+                        <span class="tp-btn-outline">Annuler</span>
+                        <span class="tp-badge">Nouveau</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .theme-preview {
+        --tp-primary: #1e3a5f; --tp-accent: #10b981; --tp-accent-rgb: 16,185,129;
+        --tp-sidebar: #1e3a5f; --tp-ink: 255,255,255; --tp-ink-solid: #fff;
+        --tp-body: #f4f6f9; --tp-radius: 0.75rem; --tp-radius-sm: 0.5rem;
+        --tp-font-heading: 'Poppins', sans-serif; --tp-font-body: 'Inter', sans-serif;
+        display: flex; min-height: 240px; overflow: hidden;
+        border: 1px solid var(--es-border, #e5e9f0); border-radius: var(--tp-radius);
+        background: var(--tp-body); font-family: var(--tp-font-body); font-size: .8rem;
+    }
+    .tp-sidebar { width: 38%; padding: .75rem .5rem; background: var(--tp-sidebar); color: var(--tp-ink-solid); }
+    .tp-brand { display: flex; align-items: center; gap: .4rem; font-family: var(--tp-font-heading); font-weight: 700; padding: 0 .35rem .6rem; border-bottom: 1px solid rgba(var(--tp-ink), .1); }
+    .tp-brand-icon { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: #fff; background: linear-gradient(135deg, var(--tp-accent), #0ea5e9); font-size: .7rem; }
+    .tp-section { font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; color: rgba(var(--tp-ink), .38); padding: .7rem .4rem .3rem; }
+    .tp-link { display: flex; align-items: center; gap: .5rem; padding: .4rem .5rem; margin: 2px 0; border-radius: var(--tp-radius-sm); color: rgba(var(--tp-ink), .72); white-space: nowrap; }
+    .tp-link i { width: 14px; text-align: center; }
+    .tp-active { color: var(--tp-ink-solid); font-weight: 600; background: rgba(var(--tp-accent-rgb), .22); box-shadow: inset 3px 0 0 var(--tp-accent); }
+    .tp-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .tp-topbar { height: 28px; background: #fff; border-bottom: 1px solid #e5e9f0; }
+    .tp-card { margin: .75rem; padding: .85rem; background: #fff; border-radius: var(--tp-radius); box-shadow: 0 1px 3px rgba(15,23,42,.06); color: #475569; }
+    .tp-title { font-family: var(--tp-font-heading); font-weight: 600; font-size: .95rem; color: #1e293b; margin-bottom: .35rem; }
+    .tp-text { margin-bottom: .6rem; line-height: 1.5; }
+    .tp-btn, .tp-btn-outline { padding: .3rem .7rem; border-radius: var(--tp-radius-sm); font-weight: 500; border: 1px solid var(--tp-primary); }
+    .tp-btn { background: var(--tp-primary); color: #fff; }
+    .tp-btn-outline { color: var(--tp-primary); }
+    .tp-badge { padding: .15rem .5rem; border-radius: 999px; font-size: .7rem; font-weight: 600; color: var(--tp-accent); background: rgba(var(--tp-accent-rgb), .14); }
+</style>
+
+<script>
+(function () {
+    var fields = document.getElementById('theme-fields');
+    var preview = document.getElementById('theme-preview');
+    if (!fields || !preview) return;
+
+    var defaults = JSON.parse(fields.dataset.defaults);
+    var radii = { square: ['0.2rem', '0.3rem'], soft: ['0.5rem', '0.75rem'], rounded: ['0.8rem', '1.15rem'] };
+    var loadedFonts = { 'Inter': true, 'Poppins': true };
+
+    function input(key) { return fields.querySelector('[data-theme-key="' + key + '"]'); }
+    function value(key) { var el = input(key); return el && el.value ? el.value : defaults[key]; }
+    function channels(hex) { return [1, 3, 5].map(function (i) { return parseInt(hex.substr(i, 2), 16); }); }
+    function mix(hex, ratio) {
+        return '#' + channels(hex).map(function (c) {
+            return Math.round(c * (1 - ratio)).toString(16).padStart(2, '0');
+        }).join('');
+    }
+    // Même calcul que SchoolThemeExtension::luminance() (WCAG).
+    function luminance(hex) {
+        var l = channels(hex).map(function (c) {
+            c /= 255;
+            return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2];
+    }
+    function loadFont(font) {
+        if (loadedFonts[font]) return;
+        loadedFonts[font] = true;
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://fonts.googleapis.com/css2?family=' + font.replace(/ /g, '+') + ':wght@400;600;700&display=swap';
+        document.head.appendChild(link);
+    }
+
+    function render() {
+        var sidebar = value('sidebarColor');
+        var light = luminance(sidebar) > 0.4;
+        var corner = radii[value('cornerStyle')] || radii.soft;
+        var vars = {
+            '--tp-primary': value('primaryColor'),
+            '--tp-accent': value('accentColor'),
+            '--tp-accent-rgb': channels(value('accentColor')).join(','),
+            '--tp-sidebar': value('sidebarStyle') === 'flat'
+                ? sidebar
+                : 'linear-gradient(190deg, ' + sidebar + ' 0%, ' + mix(sidebar, 0.35) + ' 100%)',
+            '--tp-ink': light ? '15,23,42' : '255,255,255',
+            '--tp-ink-solid': light ? '#0f172a' : '#fff',
+            '--tp-body': value('bodyBackground'),
+            '--tp-radius-sm': corner[0],
+            '--tp-radius': corner[1],
+            '--tp-font-heading': "'" + value('headingFont') + "', sans-serif",
+            '--tp-font-body': "'" + value('bodyFont') + "', sans-serif"
+        };
+        Object.keys(vars).forEach(function (k) { preview.style.setProperty(k, vars[k]); });
+        loadFont(value('headingFont'));
+        loadFont(value('bodyFont'));
+    }
+
+    fields.addEventListener('input', render);
+    fields.addEventListener('change', render);
+
+    document.getElementById('theme-reset').addEventListener('click', function () {
+        Object.keys(defaults).forEach(function (key) {
+            var el = input(key);
+            if (!el) return;
+            el.value = defaults[key];
+            // Tom Select (selects améliorés) doit être resynchronisé.
+            if (el.tomselect) el.tomselect.setValue(defaults[key], true);
+        });
+        render();
+    });
+
+    render();
+})();
+</script>

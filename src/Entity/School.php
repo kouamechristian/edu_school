@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\SchoolRepository;
+use App\Theme\SchoolTheme;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -57,6 +58,15 @@ class School
     #[ORM\Column(length: 20, nullable: true)]
     #[Assert\Length(max: 20)]
     private ?string $badgeBackgroundColor = null;
+
+    /**
+     * Personnalisation graphique (couleurs, polices, arrondis) : seules les valeurs
+     * différentes du thème par défaut sont stockées. Cf. SchoolTheme.
+     *
+     * @var array<string, string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $theme = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Length(max: 255)]
@@ -220,6 +230,17 @@ class School
     public function setBadgeBackgroundColor(?string $badgeBackgroundColor): static
     {
         $this->badgeBackgroundColor = $badgeBackgroundColor;
+        return $this;
+    }
+
+    public function getTheme(): SchoolTheme
+    {
+        return SchoolTheme::fromArray($this->theme);
+    }
+
+    public function setTheme(SchoolTheme $theme): static
+    {
+        $this->theme = $theme->toArray() ?: null;
         return $this;
     }
 

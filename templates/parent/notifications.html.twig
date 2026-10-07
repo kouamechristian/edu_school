@@ -40,7 +40,7 @@
                 <span class="pp-notif-icon"><i class="fas {{ n.icon|default('fa-bell') }}"></i></span>
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;align-items:center;gap:.5rem;">
-                        <strong style="color:#1e3a5f;">{{ n.title }}</strong>
+                        <strong style="color:var(--pp-navy);">{{ n.title }}</strong>
                         {% if not n.isRead %}<span class="pp-badge red">Nouveau</span>{% endif %}
                     </div>
                     <div class="pp-child-sub" style="margin-top:.25rem;line-height:1.5;">{{ n.message }}</div>

@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    {% set portal_school = portal_school() %}
+    {% set portal_logo = portal_school and portal_school.logo ? asset(portal_school.logo|trim('/', 'left')) : asset('images/logo-edu-school.png') %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Espace Enseignant{% endblock %} · EDU-SCHOOL</title>
 
-    <link rel="icon" type="image/png" href="{{ asset('images/logo-edu-school.png') }}">
+    <link rel="icon" href="{{ portal_logo }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/parent-portal.css', 'versioned') }}">
+    {# Personnalisation graphique de l'établissement (couleurs, polices, arrondis) #}
+    {{ portal_theme_head(portal_school) }}
     {% block stylesheets %}{% endblock %}
 </head>
 <body class="pp-body">
@@ -18,7 +22,7 @@
     <header class="pp-navbar">
         <div class="pp-navbar-inner">
             <a href="{{ path('enseignant_dashboard') }}" class="pp-brand">
-                <span class="pp-brand-chip"><img src="{{ asset('images/logo-edu-school.png') }}" alt="EDU-SCHOOL"></span>
+                <span class="pp-brand-chip"><img src="{{ portal_logo }}" alt="{{ portal_school ? portal_school.name : 'EDU-SCHOOL' }}"></span>
                 <span>EDU-SCHOOL<small>Espace Enseignant</small></span>
             </a>
 

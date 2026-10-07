@@ -40,7 +40,7 @@
             <ul style="list-style:none;display:flex;flex-direction:column;gap:.55rem;">
                 {% for hw in homework|slice(0, 5) %}
                     <li>
-                        <a href="{{ path('eleve_homework_show', {id: hw.id}) }}" style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.55rem .7rem;border:1px solid #eef1f6;border-radius:10px;text-decoration:none;color:#1e3a5f;">
+                        <a href="{{ path('eleve_homework_show', {id: hw.id}) }}" style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.55rem .7rem;border:1px solid #eef1f6;border-radius:10px;text-decoration:none;color:var(--pp-navy);">
                             <span><strong>{{ hw.title }}</strong>{% if hw.subject %}<br><small style="color:#5a6b80;">{{ hw.subject.name }}</small>{% endif %}</span>
                             <span class="pp-badge navy">{{ hw.dueDate|date('d/m') }}</span>
                         </a>

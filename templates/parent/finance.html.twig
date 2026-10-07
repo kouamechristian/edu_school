@@ -76,7 +76,7 @@
         <div style="margin-bottom:1rem;">
             <label for="pp-fee" class="pp-child-sub" style="display:block;margin-bottom:.4rem;font-weight:600;">Frais à régler</label>
             <select id="pp-fee" name="student_fee_id" required
-                    style="width:100%;border:1px solid #e3e8f0;border-radius:12px;padding:.7rem 1rem;font-size:1rem;color:#1e3a5f;background:#fff;">
+                    style="width:100%;border:1px solid #e3e8f0;border-radius:12px;padding:.7rem 1rem;font-size:1rem;color:var(--pp-navy);background:#fff;">
                 {% for sf in unpaid_fees %}
                     <option value="{{ sf.id }}" data-remaining="{{ sf.remainingAmount }}">
                         {{ sf.fee.name }} — Reste à payer : {{ sf.remainingAmount|number_format(0, ',', ' ') }} F
@@ -88,7 +88,7 @@
         <div style="margin-bottom:1rem;">
             <label for="pp-amount" class="pp-child-sub" style="display:block;margin-bottom:.4rem;font-weight:600;">Montant (F CFA)</label>
             <input type="number" id="pp-amount" name="amount" min="1" step="1" required
-                   style="width:100%;border:1px solid #e3e8f0;border-radius:12px;padding:.7rem 1rem;font-size:1rem;color:#1e3a5f;background:#fff;">
+                   style="width:100%;border:1px solid #e3e8f0;border-radius:12px;padding:.7rem 1rem;font-size:1rem;color:var(--pp-navy);background:#fff;">
         </div>
 
         {# Le moyen de paiement se choisit sur la page sécurisée de GeniusPay :

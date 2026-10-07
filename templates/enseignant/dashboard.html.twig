@@ -28,7 +28,7 @@
             <ul style="list-style:none;display:flex;flex-direction:column;gap:.55rem;">
                 {% for hw in homeworks %}
                     <li>
-                        <a href="{{ path('enseignant_homework_show', {id: hw.id}) }}" style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.55rem .7rem;border:1px solid #eef1f6;border-radius:10px;text-decoration:none;color:#1e3a5f;">
+                        <a href="{{ path('enseignant_homework_show', {id: hw.id}) }}" style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.55rem .7rem;border:1px solid #eef1f6;border-radius:10px;text-decoration:none;color:var(--pp-navy);">
                             <span><strong>{{ hw.title }}</strong><br><small style="color:#5a6b80;">{{ hw.classroom ? hw.classroom.name : '—' }}{{ hw.subject ? ' · ' ~ hw.subject.name : '' }}</small></span>
                             <span class="pp-badge {{ hw.upcoming ? 'green' : 'red' }}">{{ hw.dueDate|date('d/m') }}</span>
                         </a>
