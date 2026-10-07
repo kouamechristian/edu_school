@@ -14,6 +14,21 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class ContextController extends AbstractController
 {
+    /**
+     * Page d'attente d'un compte du personnel rattaché à aucun établissement
+     * (cf. NoSchoolAssignedSubscriber).
+     */
+    #[Route('/aucun-etablissement', name: 'no_school', methods: ['GET'])]
+    public function noSchool(SchoolContextService $contextService): Response
+    {
+        // Établissement attribué entre-temps : retour à l'application.
+        if ($contextService->getAvailableSchools() !== []) {
+            return $this->redirectToRoute('app_home');
+        }
+
+        return $this->render('security/no_school.html.twig', [], new Response('', Response::HTTP_FORBIDDEN));
+    }
+
     #[Route('/switch-school/{id}', name: 'switch_school', methods: ['GET'])]
     public function switchSchool(School $school, SchoolContextService $contextService): Response
     {

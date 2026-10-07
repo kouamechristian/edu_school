@@ -7,6 +7,7 @@ use App\Entity\Student;
 use App\Entity\User;
 use App\Repository\StudentRepository;
 use App\Repository\UserRepository;
+use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -39,6 +40,7 @@ class MobileApiController extends AbstractController
         private StudentRepository $studentRepository,
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
+        private SchoolContextService $schoolContext,
     ) {
     }
 
@@ -103,20 +105,24 @@ class MobileApiController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
         $allowed = $this->allowedSchoolIds($user);
-        $scope = $allowed;
+        // [] = recherche sans filtre pour findOneByMatriculeInSchools : réservé au super-admin.
+        $scope = $allowed ?? [];
 
         // Établissement sélectionné dans l'app (bascule multi-établissement). Il doit
         // faire partie des établissements autorisés (sauf super-admin non restreint).
         $schoolIdParam = $request->query->get('schoolId');
         if ($schoolIdParam !== null && $schoolIdParam !== '') {
             $schoolId = (int) $schoolIdParam;
-            if ($allowed !== [] && !in_array($schoolId, $allowed, true)) {
+            if ($allowed !== null && !in_array($schoolId, $allowed, true)) {
                 return $this->error('forbidden_school', 'Établissement non autorisé.', Response::HTTP_FORBIDDEN);
             }
             $scope = [$schoolId];
         }
 
-        $student = $this->studentRepository->findOneByMatriculeInSchools($matricule, $scope);
+        // Compte restreint sans aucun établissement : aucune recherche possible.
+        $student = $scope === [] && $allowed !== null
+            ? null
+            : $this->studentRepository->findOneByMatriculeInSchools($matricule, $scope);
 
         if ($student === null) {
             return $this->error('not_found', 'Aucun élève trouvé pour ce matricule.', Response::HTTP_NOT_FOUND);
@@ -137,7 +143,7 @@ class MobileApiController extends AbstractController
 
         $student = $this->studentRepository->find($id);
         if ($student === null
-            || ($allowed !== [] && !in_array($student->getSchool()?->getId(), $allowed, true))) {
+            || ($allowed !== null && !in_array($student->getSchool()?->getId(), $allowed, true))) {
             return $this->error('not_found', 'Élève introuvable.', Response::HTTP_NOT_FOUND);
         }
 
@@ -176,26 +182,22 @@ class MobileApiController extends AbstractController
     }
 
     /**
-     * Identifiants des établissements autorisés pour l'utilisateur. Un tableau vide
-     * signifie « aucune restriction » (super-administrateur ou compte non rattaché),
-     * comme dans SchoolContextService.
+     * Identifiants des établissements autorisés pour l'utilisateur, selon les mêmes
+     * règles que l'application web (SchoolContextService). null = aucune restriction
+     * (super-administrateur réel) ; [] = aucun établissement, donc aucun accès.
      *
-     * @return int[]
+     * @return int[]|null
      */
-    private function allowedSchoolIds(User $user): array
+    private function allowedSchoolIds(User $user): ?array
     {
         if (in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
-            return [];
+            return null;
         }
 
-        $ids = [];
-        foreach ($user->getSchools() as $school) {
-            if ($school->getId() !== null) {
-                $ids[] = $school->getId();
-            }
-        }
-
-        return $ids;
+        return array_map(
+            static fn ($school) => $school->getId(),
+            $this->schoolContext->getAvailableSchoolsFor($user),
+        );
     }
 
     /**
@@ -204,7 +206,7 @@ class MobileApiController extends AbstractController
     private function schoolsPayload(User $user): array
     {
         $schools = [];
-        foreach ($user->getSchools() as $school) {
+        foreach ($this->schoolContext->getAvailableSchoolsFor($user) as $school) {
             $schools[] = ['id' => $school->getId(), 'name' => $school->getName()];
         }
 

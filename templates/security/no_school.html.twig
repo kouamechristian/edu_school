@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aucun établissement attribué — EDU-SCHOOL</title>
+
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-edu-school.png') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: linear-gradient(160deg, #eef2f8 0%, #f8fafc 100%);
+            color: #475569;
+        }
+        .ns-card {
+            max-width: 460px;
+            width: 100%;
+            background: #fff;
+            border-radius: 1rem;
+            padding: 2.25rem 2rem;
+            text-align: center;
+            box-shadow: 0 12px 34px -14px rgba(15, 28, 46, 0.25);
+        }
+        .ns-icon {
+            width: 64px; height: 64px;
+            margin: 0 auto 1.25rem;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 18px;
+            font-size: 1.6rem;
+            color: #b45309;
+            background: rgba(245, 158, 11, 0.14);
+        }
+        h1 { font-family: 'Poppins', sans-serif; font-size: 1.3rem; color: #1e3a5f; margin-bottom: .75rem; }
+        p { line-height: 1.6; margin-bottom: 1.5rem; }
+        .btn-navy { background: #1e3a5f; color: #fff; border-radius: .6rem; padding: .6rem 1.4rem; }
+        .btn-navy:hover { background: #14273f; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="ns-card">
+        <div class="ns-icon"><i class="fas fa-school-circle-exclamation"></i></div>
+        <h1>Aucun établissement attribué</h1>
+        <p>
+            Bonjour {{ app.user ? app.user.fullName : '' }}, votre compte n'est rattaché à aucun établissement :
+            vous ne pouvez donc accéder à aucune donnée pour le moment.<br>
+            Contactez l'administrateur de votre établissement pour qu'il vous en attribue un.
+        </p>
+        <a href="{{ path('app_logout') }}" class="btn btn-navy">
+            <i class="fas fa-arrow-right-from-bracket me-1"></i> Se déconnecter
+        </a>
+    </div>
+</body>
+</html>

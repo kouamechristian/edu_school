@@ -10,6 +10,7 @@ use App\Repository\SchoolYearRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
 
 class SchoolContextService
 {
@@ -21,7 +22,8 @@ class SchoolContextService
         private SchoolRepository $schoolRepository,
         private SchoolYearRepository $schoolYearRepository,
         private Security $security,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private RoleHierarchyInterface $roleHierarchy,
     ) {
     }
 
@@ -177,38 +179,53 @@ class SchoolContextService
      * SchoolManagementScope). Les autres utilisateurs ne voient que les établissements
      * (actifs) auxquels ils sont rattachés : pour eux, le groupe ne sert qu'à filtrer
      * la sélection dans le formulaire utilisateur et n'ouvre aucun accès.
-     * Les super-administrateurs (ou les utilisateurs sans rattachement) voient tous les
-     * établissements actifs.
+     * Seul le super-administrateur voit tous les établissements actifs ; un compte
+     * sans aucun rattachement n'en voit aucun (cf. NoSchoolAssignedSubscriber).
+     *
+     * Les requêtes anonymes (pages publiques) gardent la liste complète : elles
+     * n'ouvrent l'accès à aucune donnée.
      */
     public function getAvailableSchools(): array
     {
         $user = $this->security->getUser();
 
-        // Seul un super-administrateur « réel » (rôle stocké, hors héritage) voit tout.
-        // Le fondateur, bien qu'héritant de ROLE_SUPER_ADMIN, reste limité à ses établissements.
-        $isRealSuperAdmin = $user instanceof User && in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true);
-
-        if ($user instanceof User && !$isRealSuperAdmin) {
-            $group = $user->getSchoolGroup();
-            $schools = [];
-
-            if ($group !== null && $this->security->isGranted('ROLE_ADMIN')) {
-                $schools = $this->activeOnly($group->getSchools());
-            }
-
-            // Pas de groupe (ou groupe sans établissement actif) : établissements du compte.
-            if (empty($schools)) {
-                $schools = $this->activeOnly($user->getSchools());
-            }
-
-            if (!empty($schools)) {
-                usort($schools, fn (School $a, School $b) => strcmp((string) $a->getName(), (string) $b->getName()));
-                return $schools;
-            }
+        if (!$user instanceof User) {
+            return $this->schoolRepository->findActive();
         }
 
-        // Super-admin ou utilisateur sans rattachement : tous les établissements actifs.
-        return $this->schoolRepository->findActive();
+        return $this->getAvailableSchoolsFor($user);
+    }
+
+    /**
+     * Établissements accessibles à un utilisateur donné, sans dépendre de la
+     * requête courante (utilisable avant authentification, ex. connexion mobile).
+     *
+     * @return School[]
+     */
+    public function getAvailableSchoolsFor(User $user): array
+    {
+        // Seul un super-administrateur « réel » (rôle stocké, hors héritage) voit tout.
+        // Le fondateur, bien qu'héritant de ROLE_SUPER_ADMIN, reste limité à ses établissements.
+        if (in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
+            return $this->schoolRepository->findActive();
+        }
+
+        $group = $user->getSchoolGroup();
+        $schools = [];
+
+        $isAdmin = in_array('ROLE_ADMIN', $this->roleHierarchy->getReachableRoleNames($user->getRoles()), true);
+        if ($group !== null && $isAdmin) {
+            $schools = $this->activeOnly($group->getSchools());
+        }
+
+        // Pas de groupe (ou groupe sans établissement actif) : établissements du compte.
+        if (empty($schools)) {
+            $schools = $this->activeOnly($user->getSchools());
+        }
+
+        usort($schools, fn (School $a, School $b) => strcmp((string) $a->getName(), (string) $b->getName()));
+
+        return $schools;
     }
 
     /**
