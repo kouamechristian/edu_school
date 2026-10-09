@@ -24,7 +24,8 @@
 ###< symfony/asset-mapper ###
 
 ###> uploads (runtime generated) ###
-/public/uploads/
+/public/uploads/*
+!/public/uploads/.htaccess
 ###< uploads (runtime generated) ###
 
 ###> ide ###

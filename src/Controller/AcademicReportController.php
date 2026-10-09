@@ -449,6 +449,29 @@ class AcademicReportController extends AbstractController
     }
 
     /**
+     * Charge une période par son identifiant (issu de la requête) uniquement si
+     * elle appartient à l'établissement courant. Évite qu'un utilisateur passe
+     * l'ID d'une période d'un autre établissement (BOLA / IDOR) : SchoolYear
+     * étant partagée entre établissements, vérifier l'année ne suffit pas.
+     */
+    private function findCurrentSchoolPeriod(int $periodId): ?\App\Entity\Period
+    {
+        if ($periodId <= 0) {
+            return null;
+        }
+        $period = $this->periodRepository->find($periodId);
+        $school = $this->schoolContextService->getCurrentSchool();
+        if (!$period || !$school) {
+            return null;
+        }
+        if ($period->getSchool() !== null && $period->getSchool()->getId() !== $school->getId()) {
+            return null;
+        }
+
+        return $period;
+    }
+
+    /**
      * Paramètres communs des rapports « majors » : établissement/année courants,
      * nombre de majors (borné) et période demandée. Le 5ᵉ élément est une réponse de
      * redirection à retourner immédiatement si un paramètre est invalide, sinon null.
@@ -469,7 +492,7 @@ class AcademicReportController extends AbstractController
         if ($top > 50) { $top = 50; }
 
         $periodId = (int) $request->query->get('periode', '0');
-        $period = $periodId > 0 ? $this->periodRepository->find($periodId) : null;
+        $period = $periodId > 0 ? $this->findCurrentSchoolPeriod($periodId) : null;
         if (!$period || $period->getSchoolYear()?->getId() !== $year?->getId()) {
             $this->addFlash('warning', 'Veuillez sélectionner une période valide pour générer ce rapport.');
             return [$school, $year, $top, null, $this->redirectToRoute('admin_academic_report_index')];
@@ -661,7 +684,7 @@ class AcademicReportController extends AbstractController
 
         // Période obligatoire.
         $pid = (int) $request->query->get('periode', '0');
-        $period = $pid > 0 ? $this->periodRepository->find($pid) : null;
+        $period = $pid > 0 ? $this->findCurrentSchoolPeriod($pid) : null;
         if (!$period || $period->getSchoolYear()?->getId() !== $yearId) {
             $this->addFlash('warning', 'Veuillez sélectionner une période valide pour générer ce rapport.');
             return $this->redirectToRoute('admin_academic_report_index');
@@ -826,7 +849,7 @@ class AcademicReportController extends AbstractController
 
         // Période obligatoire.
         $pid = (int) $request->query->get('periode', '0');
-        $period = $pid > 0 ? $this->periodRepository->find($pid) : null;
+        $period = $pid > 0 ? $this->findCurrentSchoolPeriod($pid) : null;
         if (!$period || $period->getSchoolYear()?->getId() !== $year?->getId()) {
             $this->addFlash('warning', 'Veuillez sélectionner une période valide pour générer ce rapport.');
             return $this->redirectToRoute('admin_academic_report_index');
@@ -935,7 +958,7 @@ class AcademicReportController extends AbstractController
 
         $year = $this->schoolContextService->getCurrentSchoolYear();
         $pid = (int) $request->query->get('periode', '0');
-        $period = $pid > 0 ? $this->periodRepository->find($pid) : null;
+        $period = $pid > 0 ? $this->findCurrentSchoolPeriod($pid) : null;
         if (!$period || $period->getSchoolYear()?->getId() !== $year?->getId()) {
             $this->addFlash('warning', 'Veuillez sélectionner une période valide pour un résultat trimestriel.');
             return [null, null, 'trimestriel', $this->redirectToRoute('admin_academic_report_index')];
@@ -1032,7 +1055,7 @@ class AcademicReportController extends AbstractController
 
         // Période obligatoire.
         $pid = (int) $request->query->get('periode', '0');
-        $period = $pid > 0 ? $this->periodRepository->find($pid) : null;
+        $period = $pid > 0 ? $this->findCurrentSchoolPeriod($pid) : null;
         if (!$period || $period->getSchoolYear()?->getId() !== $yearId) {
             $this->addFlash('warning', 'Veuillez sélectionner une période valide pour générer ce rapport.');
             return $this->redirectToRoute('admin_academic_report_index');
@@ -1139,7 +1162,7 @@ class AcademicReportController extends AbstractController
 
         // Ce rapport est trimestriel : une période est obligatoire.
         $pid = (int) $request->query->get('periode', '0');
-        $period = $pid > 0 ? $this->periodRepository->find($pid) : null;
+        $period = $pid > 0 ? $this->findCurrentSchoolPeriod($pid) : null;
         if (!$period || $period->getSchoolYear()?->getId() !== $yearId) {
             $this->addFlash('warning', 'Veuillez sélectionner une période valide pour générer ce rapport.');
             return $this->redirectToRoute('admin_academic_report_index');
@@ -1647,7 +1670,7 @@ class AcademicReportController extends AbstractController
 
         // Période obligatoire.
         $pid = (int) $request->query->get('periode', '0');
-        $period = $pid > 0 ? $this->periodRepository->find($pid) : null;
+        $period = $pid > 0 ? $this->findCurrentSchoolPeriod($pid) : null;
         if (!$period || $period->getSchoolYear()?->getId() !== $yearId) {
             $this->addFlash('warning', 'Veuillez sélectionner une période valide pour générer ce rapport.');
             return $this->redirectToRoute('admin_academic_report_index');
@@ -1780,7 +1803,7 @@ class AcademicReportController extends AbstractController
 
         // Ce rapport est trimestriel : une période est obligatoire.
         $pid = (int) $request->query->get('periode', '0');
-        $period = $pid > 0 ? $this->periodRepository->find($pid) : null;
+        $period = $pid > 0 ? $this->findCurrentSchoolPeriod($pid) : null;
         if (!$period || $period->getSchoolYear()?->getId() !== $year?->getId()) {
             $this->addFlash('warning', 'Veuillez sélectionner une période valide pour générer ce rapport.');
             return $this->redirectToRoute('admin_academic_report_index');
@@ -1985,6 +2008,11 @@ class AcademicReportController extends AbstractController
             return $this->redirectToRoute('admin_academic_report_index');
         }
         $level = $this->levelRepository->find($niveauId);
+        // Cloisonnement : le niveau demandé doit appartenir à l'établissement courant.
+        if (!$level || ($level->getSchool() !== null && $level->getSchool()->getId() !== $school->getId())) {
+            $this->addFlash('warning', 'Veuillez sélectionner un niveau valide pour générer ce rapport.');
+            return $this->redirectToRoute('admin_academic_report_index');
+        }
 
         // Coefficient de chaque matière (pour le total des points).
         $coefBySubject = [];

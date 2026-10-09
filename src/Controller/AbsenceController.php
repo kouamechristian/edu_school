@@ -67,8 +67,13 @@ class AbsenceController extends AbstractController
         $absences = $absenceRepository->findBySchool($currentSchool->getId());
 
         // Appliquer les filtres
+        // Cloisonnement : la classe demandée doit appartenir à l'établissement
+        // courant, sinon on ignorerait le filtre d'établissement (BOLA / IDOR).
         if ($classroomId) {
-            $absences = $absenceRepository->findByClassroom($classroomId);
+            $allowedClassroomIds = array_map(static fn ($c) => $c->getId(), $classrooms);
+            $absences = in_array($classroomId, $allowedClassroomIds, true)
+                ? $absenceRepository->findByClassroom($classroomId)
+                : [];
         }
         
         if ($periodId) {
@@ -361,8 +366,17 @@ class AbsenceController extends AbstractController
 
         $report = null;
         if ($classroomId && $periodId) {
-            $period = $periodRepository->find($periodId);
-            if ($period) {
+            // Cloisonnement : classe et période doivent appartenir à l'établissement
+            // (et à l'année) courants — on ne charge que parmi les listes autorisées.
+            $allowedClassroomIds = array_map(static fn ($c) => $c->getId(), $classrooms);
+            $period = null;
+            foreach ($periods as $p) {
+                if ($p->getId() === $periodId) {
+                    $period = $p;
+                    break;
+                }
+            }
+            if ($period && in_array($classroomId, $allowedClassroomIds, true)) {
                 $report = $attendanceService->calculateClassroomAttendanceStats($classroomId, $period);
             }
         }

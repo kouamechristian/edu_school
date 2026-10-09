@@ -1,0 +1,33 @@
+# Sécurité : aucun script ne doit jamais s'exécuter depuis le dossier des
+# fichiers téléversés. Même si un fichier .php arrivait ici, Apache le
+# servirait comme un fichier inerte (ou le refuserait) au lieu de l'exécuter.
+
+# Désactive le moteur PHP dans ce dossier (mod_php)
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Ne jamais associer un handler de script (PHP-FPM / CGI)
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .pl .py .cgi .sh .shtml
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
+
+# Refuse purement et simplement l'accès aux extensions exécutables
+<FilesMatch "(?i)\.(php\d?|phtml|phar|pl|py|cgi|sh|shtml|htaccess|html?|xhtml|js)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes -ExecCGI
+
+# Les logos peuvent être en SVG : on les sert, mais sans jamais exécuter de script.
+<IfModule mod_headers.c>
+    <FilesMatch "(?i)\.svg$">
+        Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+        Header set X-Content-Type-Options "nosniff"
+    </FilesMatch>
+</IfModule>
