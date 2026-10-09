@@ -93,7 +93,7 @@
                 <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-bolt me-2"></i>Actions</h6></div>
                 <div class="card-body d-grid gap-2">
                     {% if is_granted('ROLE_SUPER_ADMIN') %}
-                    <form method="post" action="{{ path('admin_user_reset_password', {'id': user.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe ?');">
+                    <form method="post" action="{{ path('admin_user_reset_password', {'id': user.id}) }}" onsubmit="return confirm('Réinitialiser le mot de passe à « 123456 » ? Il devra être changé à la prochaine connexion.');">
                         <input type="hidden" name="_token" value="{{ csrf_token('reset-password' ~ user.id) }}">
                         <button type="submit" class="btn btn-warning w-100"><i class="fas fa-key me-1"></i> Réinitialiser MDP</button>
                     </form>

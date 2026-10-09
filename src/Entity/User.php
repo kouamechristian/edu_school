@@ -19,6 +19,13 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    /**
+     * Mot de passe attribué lors d'une réinitialisation ou d'une création de
+     * compte par un administrateur. L'utilisateur est forcé de le changer à la
+     * première connexion (voir mustChangePassword).
+     */
+    public const DEFAULT_PASSWORD = '123456';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

@@ -92,6 +92,9 @@ class UserController extends AbstractController
                 $hashedPassword = $passwordHasher->hashPassword($user, $plainPassword);
                 $user->setPassword($hashedPassword);
             }
+            // Mot de passe défini par l'administrateur : changement obligatoire
+            // à la première connexion.
+            $user->setMustChangePassword(true);
 
             // L'Employee associé (et le Teacher éventuel) est créé automatiquement
             // par UserEmployeeSubscriber::postPersist selon le type d'utilisateur.
@@ -215,6 +218,12 @@ class UserController extends AbstractController
             if ($plainPassword) {
                 $hashedPassword = $passwordHasher->hashPassword($user, $plainPassword);
                 $user->setPassword($hashedPassword);
+                // Mot de passe imposé par un administrateur : l'utilisateur doit
+                // le remplacer (sauf s'il modifie son propre compte).
+                if ($user !== $this->getUser()) {
+                    $user->setMustChangePassword(true);
+                    $user->setApiToken(null);
+                }
             }
 
             // L'Employee associé est synchronisé automatiquement par
@@ -294,14 +303,18 @@ class UserController extends AbstractController
         UserPasswordHasherInterface $passwordHasher
     ): Response {
         if ($this->isCsrfTokenValid('reset-password'.$user->getId(), $request->request->get('_token'))) {
-            // Générer un mot de passe temporaire
-            $tempPassword = bin2hex(random_bytes(8));
-            $hashedPassword = $passwordHasher->hashPassword($user, $tempPassword);
-            $user->setPassword($hashedPassword);
-            
+            // Mot de passe par défaut, à changer obligatoirement à la prochaine connexion.
+            $user->setPassword($passwordHasher->hashPassword($user, User::DEFAULT_PASSWORD));
+            $user->setMustChangePassword(true);
+            // Révoque le jeton de l'application mobile éventuellement en cours.
+            $user->setApiToken(null);
+
             $entityManager->flush();
 
-            $this->addFlash('success', "Le mot de passe a été réinitialisé. Nouveau mot de passe temporaire : {$tempPassword}");
+            $this->addFlash('success', sprintf(
+                'Le mot de passe a été réinitialisé à « %s ». L\'utilisateur devra le changer à sa prochaine connexion.',
+                User::DEFAULT_PASSWORD
+            ));
         }
 
         return $this->redirectToRoute('admin_user_show', ['id' => $user->getId()], Response::HTTP_SEE_OTHER);

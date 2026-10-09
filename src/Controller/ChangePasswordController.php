@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Form\ChangePasswordType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -29,6 +30,17 @@ class ChangePasswordController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $plainPassword = $form->get('plainPassword')->getData();
+
+            if ($passwordHasher->isPasswordValid($user, $plainPassword)) {
+                $form->get('plainPassword')->get('first')->addError(
+                    new FormError('Le nouveau mot de passe doit être différent de l\'actuel.')
+                );
+
+                return $this->render('security/change_password.html.twig', [
+                    'changePasswordForm' => $form->createView(),
+                    'forced' => $user->isMustChangePassword(),
+                ]);
+            }
 
             $user->setPassword($passwordHasher->hashPassword($user, $plainPassword));
             $user->setMustChangePassword(false);

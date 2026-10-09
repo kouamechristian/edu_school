@@ -80,6 +80,12 @@ class MobileApiController extends AbstractController
             return $this->error('maintenance', "L'application est en maintenance. Veuillez réessayer plus tard.", Response::HTTP_SERVICE_UNAVAILABLE);
         }
 
+        // Mot de passe par défaut / réinitialisé : il doit d'abord être changé
+        // depuis l'interface web avant tout accès à l'application.
+        if ($user->isMustChangePassword()) {
+            return $this->error('password_change_required', 'Vous devez changer votre mot de passe depuis le site web avant de vous connecter à l\'application.', Response::HTTP_FORBIDDEN);
+        }
+
         $token = bin2hex(random_bytes(32));
         $user->setApiToken($token);
         $user->setLastLogin(new \DateTime());

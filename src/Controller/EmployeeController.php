@@ -96,8 +96,8 @@ class EmployeeController extends AbstractController
             $user->setRoles($this->defaultRolesForType($employee->getEmployeeType()));
             $user->setIsActive($employee->isActive());
 
-            // Mot de passe temporaire à changer à la première connexion.
-            $tempPassword = bin2hex(random_bytes(5));
+            // Mot de passe par défaut à changer à la première connexion.
+            $tempPassword = User::DEFAULT_PASSWORD;
             $user->setPassword($passwordHasher->hashPassword($user, $tempPassword));
             $user->setMustChangePassword(true);
 

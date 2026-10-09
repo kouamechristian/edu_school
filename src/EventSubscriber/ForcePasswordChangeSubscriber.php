@@ -5,7 +5,9 @@ namespace App\EventSubscriber;
 use App\Entity\User;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -58,6 +60,16 @@ class ForcePasswordChangeSubscriber implements EventSubscriberInterface
             if (str_starts_with($path, $prefix)) {
                 return;
             }
+        }
+
+        // L'API mobile attend du JSON, pas une redirection vers une page HTML.
+        if (str_starts_with($path, '/api/')) {
+            $event->setResponse(new JsonResponse([
+                'error' => 'password_change_required',
+                'message' => 'Vous devez changer votre mot de passe depuis le site web.',
+            ], Response::HTTP_FORBIDDEN));
+
+            return;
         }
 
         $event->setResponse(
