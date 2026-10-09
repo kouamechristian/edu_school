@@ -123,10 +123,10 @@ class UserController extends AbstractController
      * Comptes Parents : liste des utilisateurs disposant du rôle ROLE_PARENT.
      */
     #[Route('/parents', name: 'parents', methods: ['GET'])]
-    public function parents(Request $request, UserRepository $userRepository, \Knp\Component\Pager\PaginatorInterface $paginator): Response
+    public function parents(Request $request, UserRepository $userRepository, SchoolContextService $contextService, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         $search = $request->query->get('search');
-        $accounts = $userRepository->findAccountsByRole('ROLE_PARENT', $search);
+        $accounts = $this->findPortalAccounts('ROLE_PARENT', $search, $userRepository, $contextService);
         $accounts = $paginator->paginate($accounts, $request->query->getInt('page', 1), 50);
 
         return $this->render('user/accounts.html.twig', [
@@ -140,10 +140,10 @@ class UserController extends AbstractController
      * Comptes Élèves : liste des utilisateurs disposant du rôle ROLE_ELEVE.
      */
     #[Route('/eleves', name: 'students', methods: ['GET'])]
-    public function students(Request $request, UserRepository $userRepository, \Knp\Component\Pager\PaginatorInterface $paginator): Response
+    public function students(Request $request, UserRepository $userRepository, SchoolContextService $contextService, \Knp\Component\Pager\PaginatorInterface $paginator): Response
     {
         $search = $request->query->get('search');
-        $accounts = $userRepository->findAccountsByRole('ROLE_ELEVE', $search);
+        $accounts = $this->findPortalAccounts('ROLE_ELEVE', $search, $userRepository, $contextService);
         $accounts = $paginator->paginate($accounts, $request->query->getInt('page', 1), 50);
 
         return $this->render('user/accounts.html.twig', [
@@ -151,6 +151,21 @@ class UserController extends AbstractController
             'kind' => 'eleve',
             'search_term' => $search,
         ]);
+    }
+
+    /**
+     * Comptes portail (parents/élèves) de l'établissement courant uniquement.
+     */
+    private function findPortalAccounts(string $role, ?string $search, UserRepository $userRepository, SchoolContextService $contextService): array
+    {
+        $currentSchool = $contextService->getCurrentSchool();
+        if (!$currentSchool) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour voir les comptes.');
+
+            return [];
+        }
+
+        return $userRepository->findAccountsByRole($role, $search, $currentSchool->getId());
     }
 
     #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'], methods: ['GET'])]

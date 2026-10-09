@@ -109,13 +109,32 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
      *
      * @return User[]
      */
-    public function findAccountsByRole(string $role, ?string $search = null): array
+    public function findAccountsByRole(string $role, ?string $search = null, ?int $schoolId = null): array
     {
         $qb = $this->createQueryBuilder('u')
             ->andWhere('u.roles LIKE :role')
             ->setParameter('role', '%"'.$role.'"%')
             ->orderBy('u.lastName', 'ASC')
             ->addOrderBy('u.username', 'ASC');
+
+        // Restreint aux comptes rattachés à l'établissement : un élève via sa fiche
+        // (Student.studentUser), un parent via son inscription (User.schools) ou via
+        // un enfant inscrit (Student.parentUser ou lien historique par e-mail).
+        if ($schoolId !== null) {
+            $studentExists = 'EXISTS (SELECT 1 FROM App\Entity\Student st_%1$s WHERE st_%1$s.school = :accountSchool AND %2$s)';
+
+            if ($role === 'ROLE_ELEVE') {
+                $qb->andWhere(sprintf($studentExists, 'e', 'st_e.studentUser = u'));
+            } else {
+                $qb->andWhere($qb->expr()->orX(
+                    ':accountSchool MEMBER OF u.schools',
+                    sprintf($studentExists, 'p', 'st_p.parentUser = u'),
+                    sprintf($studentExists, 'm', 'st_m.parentEmail = u.email'),
+                ));
+            }
+
+            $qb->setParameter('accountSchool', $schoolId);
+        }
 
         if ($search !== null && trim($search) !== '') {
             $qb->andWhere('u.username LIKE :term OR u.email LIKE :term OR u.firstName LIKE :term OR u.lastName LIKE :term')
