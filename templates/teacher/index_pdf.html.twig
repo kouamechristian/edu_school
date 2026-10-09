@@ -55,6 +55,7 @@
             <tr>
                 <th>N°</th>
                 <th>Nom &amp; Prénom</th>
+                <th>Nom d'utilisateur</th>
                 <th>Email</th>
                 <th>Téléphone</th>
                 <th>Matières enseignées</th>
@@ -62,12 +63,13 @@
         </thead>
         <tbody>
             {% if teachers is empty %}
-                <tr><td class="empty" colspan="5">Aucune information disponible</td></tr>
+                <tr><td class="empty" colspan="6">Aucune information disponible</td></tr>
             {% else %}
                 {% for teacher in teachers %}
                 <tr>
                     <td class="num">{{ loop.index }}</td>
                     <td>{{ teacher.fullName }}</td>
+                    <td>{{ teacher.username ?: '—' }}</td>
                     <td>{{ teacher.email ?: '' }}</td>
                     <td>{{ teacher.phone ?: '' }}</td>
                     <td>
