@@ -63,14 +63,7 @@ class PreRegistrationController extends AbstractController
         $status = $request->query->get('status');
         $search = $request->query->get('search');
 
-        // Filtrer les préinscriptions selon l'établissement et l'année courante
-        if ($search) {
-            $preRegistrations = $preRegistrationRepository->searchByName($search, $schoolId, $schoolYearId);
-        } elseif ($status) {
-            $preRegistrations = $preRegistrationRepository->findBySchoolAndStatus($schoolId, $status, $schoolYearId);
-        } else {
-            $preRegistrations = $preRegistrationRepository->findBySchool($schoolId, $schoolYearId);
-        }
+        $preRegistrations = $this->findFiltered($preRegistrationRepository, $schoolId, $schoolYearId, $status, $search);
 
         // Statistiques filtrées par établissement et année
         $stats = $preRegistrationRepository->countByStatusInSchool($schoolId, $schoolYearId);
@@ -85,6 +78,73 @@ class PreRegistrationController extends AbstractController
             'current_school' => $currentSchool,
             'current_school_year' => $currentSchoolYear,
         ]);
+    }
+
+    /**
+     * Export Excel des préinscriptions de l'établissement et de l'année courants,
+     * avec les mêmes filtres (statut, recherche) que la liste.
+     */
+    #[Route('/export', name: 'export', methods: ['GET'])]
+    public function export(
+        Request $request,
+        PreRegistrationRepository $preRegistrationRepository,
+        SchoolContextService $contextService,
+        \App\Service\PreRegistrationImporter $spreadsheetService
+    ): Response {
+        $currentSchool = $contextService->getCurrentSchool();
+        if (!$currentSchool) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour exporter les préinscriptions.');
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        $currentSchoolYear = $contextService->getCurrentSchoolYear();
+        $preRegistrations = $this->findFiltered(
+            $preRegistrationRepository,
+            $currentSchool->getId(),
+            $currentSchoolYear?->getId(),
+            $request->query->get('status'),
+            $request->query->get('search')
+        );
+
+        $spreadsheet = $spreadsheetService->buildExport($preRegistrations);
+        $filename = sprintf(
+            'preinscriptions_%s%s_%s.xlsx',
+            $currentSchool->getCode() ?: 'export',
+            $currentSchoolYear ? '_' . $currentSchoolYear->getName() : '',
+            date('Ymd_His')
+        );
+
+        return $this->streamSpreadsheet($spreadsheet, $filename);
+    }
+
+    /**
+     * Préinscriptions de l'établissement (et de l'année si fournie), filtrées par
+     * recherche ou statut — utilisé par la liste et l'export.
+     *
+     * @return PreRegistration[]
+     */
+    private function findFiltered(PreRegistrationRepository $repository, int $schoolId, ?int $schoolYearId, ?string $status, ?string $search): array
+    {
+        if ($search) {
+            return $repository->searchByName($search, $schoolId, $schoolYearId);
+        }
+        if ($status) {
+            return $repository->findBySchoolAndStatus($schoolId, $status, $schoolYearId);
+        }
+
+        return $repository->findBySchool($schoolId, $schoolYearId);
+    }
+
+    private function streamSpreadsheet(\PhpOffice\PhpSpreadsheet\Spreadsheet $spreadsheet, string $filename): Response
+    {
+        $response = new \Symfony\Component\HttpFoundation\StreamedResponse(function () use ($spreadsheet) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
+        });
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
     }
 
     /**
@@ -238,15 +298,7 @@ class PreRegistrationController extends AbstractController
             return $this->redirectToRoute('admin_pre_registration_index');
         }
 
-        $spreadsheet = $importer->buildTemplate($school);
-        $response = new \Symfony\Component\HttpFoundation\StreamedResponse(function () use ($spreadsheet) {
-            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
-        });
-        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        $response->headers->set('Content-Disposition', 'attachment; filename="modele_import_preinscriptions.xlsx"');
-        $response->headers->set('Cache-Control', 'max-age=0');
-
-        return $response;
+        return $this->streamSpreadsheet($importer->buildTemplate($school), 'modele_import_preinscriptions.xlsx');
     }
 
     /**

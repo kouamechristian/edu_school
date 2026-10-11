@@ -17,6 +17,9 @@
            {% if is_granted('ROLE_INSCRIPTION') %}
             <a href="{{ path('admin_registration_index') }}" class="btn btn-success"><i class="fas fa-user-graduate me-1"></i> Inscription</a>
            {% endif %}
+           {% if current_school %}
+            <a href="{{ path('admin_pre_registration_export', {status: current_status, search: search_term}|filter(v => v)) }}" class="btn btn-outline-success" title="Exporter la liste affichée (filtres appliqués)"><i class="fas fa-file-excel me-1"></i> Exporter Excel</a>
+           {% endif %}
            {% if is_granted('ROLE_SUPER_ADMIN') and current_school %}
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal"><i class="fas fa-file-import me-1"></i> Importer</button>
            {% endif %}

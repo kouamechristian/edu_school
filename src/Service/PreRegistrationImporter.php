@@ -124,6 +124,72 @@ class PreRegistrationImporter
     }
 
     /**
+     * Export Excel d'une liste de préinscriptions. Les colonnes reprennent celles
+     * du modèle d'import (le fichier peut donc être ré-importé), suivies du
+     * matricule interne, du type, du statut et de la date de création.
+     *
+     * @param iterable<PreRegistration> $preRegistrations
+     */
+    public function buildExport(iterable $preRegistrations): Spreadsheet
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Préinscriptions');
+
+        $headers = array_merge(self::HEADERS, ['Matricule interne', 'Type', 'Statut', 'Date de préinscription']);
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->getFont()->setBold(true);
+
+        $rowNum = 2;
+        foreach ($preRegistrations as $p) {
+            $row = [
+                $p->getRequestedLevel()?->getName(),
+                $p->getLastName(),
+                $p->getFirstName(),
+                $p->getGender(),
+                $p->getEmergencyContact(),
+                $p->getEmergencyPhone(),
+                $p->getMatriculeNational(),
+                $p->getDateOfBirth()?->format('d/m/Y'),
+                $p->getPlaceOfBirth(),
+                $p->getNationality(),
+                $p->getPhone(),
+                $p->getEmail(),
+                $p->getAddress(),
+                $p->getLastSchoolAttended(),
+                $p->isRepeating() ? 'Oui' : 'Non',
+                $p->getFatherLastName(),
+                $p->getFatherFirstName(),
+                $p->getFatherPhone(),
+                $p->getMotherLastName(),
+                $p->getMotherFirstName(),
+                $p->getMotherPhone(),
+                $p->getParentEmail(),
+                $p->getMedicalInfo(),
+                $p->getNotes(),
+                $p->getMatriculeInterne(),
+                $p->getTypeLabel(),
+                $p->getStatusLabel(),
+                $p->getCreatedAt()?->format('d/m/Y H:i'),
+            ];
+
+            // Écriture en texte explicite : conserve le 0 initial des numéros de téléphone.
+            foreach ($row as $col => $value) {
+                $sheet->setCellValueExplicit([$col + 1, $rowNum], (string) ($value ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            }
+            $rowNum++;
+        }
+
+        foreach ($sheet->getColumnIterator() as $column) {
+            $sheet->getColumnDimension($column->getColumnIndex())->setAutoSize(true);
+        }
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter($sheet->calculateWorksheetDimension());
+
+        return $spreadsheet;
+    }
+
+    /**
      * Importe le fichier. Une ligne invalide est ignorée et signalée, sans bloquer les autres.
      *
      * @return array{created: int, errors: list<string>, fatal: ?string}
