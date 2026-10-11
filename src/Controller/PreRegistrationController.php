@@ -225,6 +225,87 @@ class PreRegistrationController extends AbstractController
         ]);
     }
 
+    /**
+     * Modèle Excel d'import des préinscriptions (super-administrateur uniquement).
+     */
+    #[Route('/import/template', name: 'import_template', methods: ['GET'])]
+    #[IsGranted('ROLE_SUPER_ADMIN')]
+    public function importTemplate(SchoolContextService $contextService, \App\Service\PreRegistrationImporter $importer): Response
+    {
+        $school = $contextService->getCurrentSchool();
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement.');
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        $spreadsheet = $importer->buildTemplate($school);
+        $response = new \Symfony\Component\HttpFoundation\StreamedResponse(function () use ($spreadsheet) {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
+        });
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="modele_import_preinscriptions.xlsx"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
+    }
+
+    /**
+     * Import de préinscriptions depuis un fichier Excel / CSV (super-administrateur uniquement).
+     */
+    #[Route('/import', name: 'import', methods: ['POST'])]
+    #[IsGranted('ROLE_SUPER_ADMIN')]
+    public function import(
+        Request $request,
+        SchoolContextService $contextService,
+        \App\Service\PreRegistrationImporter $importer
+    ): Response {
+        if (!$this->isCsrfTokenValid('import_pre_registrations', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        $school = $contextService->getCurrentSchool();
+        $schoolYear = $contextService->getCurrentSchoolYear();
+        if (!$school || !$schoolYear) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement et une année scolaire avant d\'importer.');
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        $file = $request->files->get('file');
+        if (!$file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile || !$file->isValid()) {
+            $this->addFlash('error', 'Veuillez sélectionner un fichier à importer.');
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        if (!in_array(strtolower($file->getClientOriginalExtension()), ['xlsx', 'xls', 'csv'], true)) {
+            $this->addFlash('error', 'Format de fichier invalide. Formats acceptés : XLSX, XLS, CSV.');
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        $user = $this->getUser();
+        $result = $importer->import($file->getPathname(), $school, $schoolYear, $user instanceof \App\Entity\User ? $user : null);
+
+        if ($result['fatal']) {
+            $this->addFlash('error', $result['fatal']);
+            return $this->redirectToRoute('admin_pre_registration_index');
+        }
+
+        if ($result['created'] > 0) {
+            $this->addFlash('success', sprintf('%d préinscription(s) importée(s) pour l\'année %s.', $result['created'], $schoolYear->getName()));
+        } else {
+            $this->addFlash('warning', 'Aucune préinscription importée.');
+        }
+
+        if ($result['errors']) {
+            $shown = array_slice($result['errors'], 0, 15);
+            $more = count($result['errors']) - count($shown);
+            $this->addFlash('warning', sprintf('%d ligne(s) non importée(s) : ', count($result['errors']))
+                . implode(' ', $shown) . ($more > 0 ? sprintf(' … et %d autre(s).', $more) : ''));
+        }
+
+        return $this->redirectToRoute('admin_pre_registration_index');
+    }
+
     #[Route('/{id}', name: 'show', methods: ['GET'])]
     public function show(
         PreRegistration $preRegistration,

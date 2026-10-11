@@ -17,6 +17,9 @@
            {% if is_granted('ROLE_INSCRIPTION') %}
             <a href="{{ path('admin_registration_index') }}" class="btn btn-success"><i class="fas fa-user-graduate me-1"></i> Inscription</a>
            {% endif %}
+           {% if is_granted('ROLE_SUPER_ADMIN') and current_school %}
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal"><i class="fas fa-file-import me-1"></i> Importer</button>
+           {% endif %}
             <a href="{{ path('admin_pre_registration_choose') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouvelle Préinscription</a>
         {% endblock %}
     {% endembed %}
@@ -138,5 +141,52 @@
             {% endif %}
         </div>
     </div>
+
+    {% if is_granted('ROLE_SUPER_ADMIN') and current_school %}
+    {# ── Modale d'import Excel (super-administrateur) ── #}
+    <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{{ path('admin_pre_registration_import') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="_token" value="{{ csrf_token('import_pre_registrations') }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-file-import me-2 text-primary"></i>Importer des préinscriptions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-2">
+                            Fichier <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong>. Les colonnes sont reconnues par leur en-tête.
+                            Champs obligatoires sur chaque ligne :
+                        </p>
+                        <ul class="small mb-2">
+                            <li><strong>Niveau demandé</strong> (nom exact d'un niveau de l'établissement)</li>
+                            <li><strong>Nom</strong> et <strong>Prénom</strong></li>
+                            <li><strong>Genre</strong> (M ou F)</li>
+                            <li><strong>Contact d'urgence</strong></li>
+                        </ul>
+                        <p class="text-muted small">
+                            Les préinscriptions sont créées « En attente » dans <strong>{{ current_school.name }}</strong>
+                            {% if current_school_year is defined and current_school_year %}pour l'année <strong>{{ current_school_year.name }}</strong>{% endif %}.
+                            Les lignes incomplètes ou déjà préinscrites sont ignorées et signalées.
+                        </p>
+                        <div class="mb-3">
+                            <a href="{{ path('admin_pre_registration_import_template') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-download me-1"></i> Télécharger le modèle
+                            </a>
+                        </div>
+                        <div class="mb-2">
+                            <label for="importFile" class="form-label">Fichier à importer</label>
+                            <input type="file" class="form-control" id="importFile" name="file" accept=".xlsx,.xls,.csv" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-1"></i> Importer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
