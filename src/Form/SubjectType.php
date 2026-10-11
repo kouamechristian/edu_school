@@ -43,8 +43,11 @@ class SubjectType extends AbstractType
                     'placeholder' => 'Ex: Mathématiques',
                 ],
             ])
-        
-            ->add('level', EntityType::class, [
+        ;
+
+        // Le niveau est masqué quand il est déjà imposé (création depuis la page d'un niveau).
+        if ($options['show_level']) {
+            $builder->add('level', EntityType::class, [
                 'label' => 'Niveau',
                 'class' => Level::class,
                 'choice_label' => 'name',
@@ -68,7 +71,10 @@ class SubjectType extends AbstractType
                     
                     return $qb;
                 },
-            ])
+            ]);
+        }
+
+        $builder
             ->add('type', EntityType::class, [
                 'label' => 'Type de matière',
                 'class' => SubjectTypeEntity::class,
@@ -178,7 +184,9 @@ class SubjectType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Subject::class,
+            'show_level' => true,
         ]);
+        $resolver->setAllowedTypes('show_level', 'bool');
     }
 }
 

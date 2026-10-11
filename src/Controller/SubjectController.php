@@ -107,7 +107,9 @@ class SubjectController extends AbstractController
             }
         }
 
-        $form = $this->createForm(SubjectType::class, $subject);
+        $form = $this->createForm(SubjectType::class, $subject, [
+            'show_level' => $presetLevel === null,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {

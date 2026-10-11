@@ -31,7 +31,9 @@
                             <div class="col-md-6 mb-3">{{ form_row(form.bulletinOrderNumber) }}</div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">{{ form_row(form.level) }}</div>
+                            {% if form.level is defined %}
+                                <div class="col-md-6 mb-3">{{ form_row(form.level) }}</div>
+                            {% endif %}
                             <div class="col-md-6 mb-3">{{ form_row(form.subjectEquivalent) }}</div>
                         </div>
                         <div class="row">
