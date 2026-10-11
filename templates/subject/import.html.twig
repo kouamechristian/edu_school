@@ -1,0 +1,95 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Importer des matières — {{ level.name }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Importer des matières',
+        subtitle: 'Copier dans « ' ~ level.name ~ ' » des matières d\'un autre niveau',
+        icon: 'fa-copy',
+        color: 'primary',
+        breadcrumb: [
+            { label: 'Matières', path: path('admin_subject_index') },
+            { label: level.name, path: path('admin_subject_by_level', {'id': level.id}) },
+            { label: 'Importer' }
+        ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_subject_by_level', {'id': level.id}) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" action="{{ path('admin_subject_import', {'id': level.id}) }}" class="row g-2 align-items-end">
+                <div class="col-md-6">
+                    <label for="source" class="form-label">Niveau source</label>
+                    <select id="source" name="source" class="form-select" onchange="this.form.submit()">
+                        <option value="">Sélectionnez un niveau</option>
+                        {% for l in source_levels %}
+                            <option value="{{ l.id }}" {{ source_level and source_level.id == l.id ? 'selected' }}>{{ l.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <noscript><div class="col-auto"><button type="submit" class="btn btn-outline-primary">Afficher</button></div></noscript>
+            </form>
+        </div>
+    </div>
+
+    {% if source_level %}
+    <div class="card table-card">
+        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Matières de « {{ source_level.name }} » <span class="badge badge-soft ms-1">{{ source_subjects|length }}</span></h6></div>
+        <div class="card-body">
+            {% if source_subjects is empty %}
+                {{ empty_state('fa-book', 'Aucune matière', 'Ce niveau ne contient aucune matière active.') }}
+            {% else %}
+                <form method="post" action="{{ path('admin_subject_import', {'id': level.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('import_subjects' ~ level.id) }}">
+                    <input type="hidden" name="source" value="{{ source_level.id }}">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th width="40"><input type="checkbox" class="form-check-input" id="check-all" title="Tout cocher" checked></th>
+                                    <th>Nom</th><th>Type</th><th>Coef.</th><th>Heures/sem.</th><th>Ordre bulletin</th><th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject in source_subjects %}
+                                    {% set already = existing_names[subject.name|trim|lower] is defined %}
+                                    <tr class="{{ already ? 'text-muted' }}">
+                                        <td><input type="checkbox" class="form-check-input subject-check" name="subjects[]" value="{{ subject.id }}" {{ already ? 'disabled' : 'checked' }}></td>
+                                        <td>{{ subject.name }}</td>
+                                        <td>{{ subject.type ? subject.typeLabel : '—' }}</td>
+                                        <td>{{ subject.coefficient ?? '—' }}</td>
+                                        <td>{{ subject.hoursPerWeek ?? '—' }}</td>
+                                        <td>{{ subject.bulletinOrderNumber ?? '—' }}</td>
+                                        <td>{% if already %}<span class="badge badge-soft warning">Déjà dans ce niveau</span>{% else %}<span class="badge badge-soft success">À importer</span>{% endif %}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                        <a href="{{ path('admin_subject_by_level', {'id': level.id}) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Annuler</a>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-copy me-1"></i> Importer la sélection</button>
+                    </div>
+                </form>
+                <script>
+                    (function () {
+                        var all = document.getElementById('check-all');
+                        all.addEventListener('change', function () {
+                            document.querySelectorAll('.subject-check:not(:disabled)').forEach(function (cb) { cb.checked = all.checked; });
+                        });
+                    })();
+                </script>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

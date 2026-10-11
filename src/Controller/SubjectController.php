@@ -80,6 +80,118 @@ class SubjectController extends AbstractController
         ]);
     }
 
+    /**
+     * Copie dans ce niveau des matières déjà créées dans un autre niveau de
+     * l'établissement (les matières portant déjà le même nom sont ignorées).
+     */
+    #[Route('/level/{id}/import', name: 'import', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    public function import(
+        Level $level,
+        Request $request,
+        SubjectRepository $subjectRepository,
+        LevelRepository $levelRepository,
+        EntityManagerInterface $entityManager,
+        SchoolContextService $contextService
+    ): Response {
+        $currentSchool = $contextService->getCurrentSchool();
+
+        if (!$currentSchool || $level->getSchool()?->getId() !== $currentSchool->getId()) {
+            $this->addFlash('warning', "Ce niveau n'appartient pas à l'établissement courant.");
+            return $this->redirectToRoute('admin_subject_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        // Noms des matières déjà présentes dans le niveau cible (comparaison insensible à la casse).
+        $existingNames = [];
+        foreach ($subjectRepository->findByLevel($level->getId()) as $existing) {
+            $existingNames[mb_strtolower(trim($existing->getName()))] = true;
+        }
+
+        // Niveaux sources possibles : les autres niveaux de l'établissement.
+        $sourceLevels = array_values(array_filter(
+            $levelRepository->findBySchool($currentSchool->getId()),
+            fn (Level $l) => $l->getId() !== $level->getId()
+        ));
+
+        $sourceLevel = null;
+        $sourceId = $request->isMethod('POST') ? $request->request->getInt('source') : $request->query->getInt('source');
+        foreach ($sourceLevels as $candidate) {
+            if ($candidate->getId() === $sourceId) {
+                $sourceLevel = $candidate;
+                break;
+            }
+        }
+
+        $sourceSubjects = $sourceLevel ? $subjectRepository->findByLevel($sourceLevel->getId()) : [];
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('import_subjects' . $level->getId(), $request->request->get('_token'))) {
+                $this->addFlash('danger', 'Jeton de sécurité invalide. Veuillez réessayer.');
+                return $this->redirectToRoute('admin_subject_import', ['id' => $level->getId()], Response::HTTP_SEE_OTHER);
+            }
+
+            $selectedIds = array_map('intval', $request->request->all('subjects'));
+            $created = 0;
+            $skipped = 0;
+
+            foreach ($sourceSubjects as $source) {
+                if (!in_array($source->getId(), $selectedIds, true)) {
+                    continue;
+                }
+
+                $key = mb_strtolower(trim($source->getName()));
+                if (isset($existingNames[$key])) {
+                    ++$skipped;
+                    continue;
+                }
+
+                $copy = (new Subject())
+                    ->setName($source->getName())
+                    ->setSchool($currentSchool)
+                    ->setLevel($level)
+                    ->setType($source->getType())
+                    ->setSubjectEquivalent($source->getSubjectEquivalent())
+                    ->setCoefficient($source->getCoefficient())
+                    ->setHoursPerWeek($source->getHoursPerWeek())
+                    ->setBulletinOrderNumber($source->getBulletinOrderNumber())
+                    ->setNoteSurBulletin($source->getNoteSurBulletin())
+                    ->setLv($source->getLv())
+                    ->setMatiereConduite($source->getMatiereConduite())
+                    ->setArtMusique($source->getArtMusique())
+                    ->setColor($source->getColor())
+                    ->setDescription($source->getDescription());
+
+                $entityManager->persist($copy);
+                $existingNames[$key] = true;
+                ++$created;
+            }
+
+            if ($created > 0) {
+                $entityManager->flush();
+            }
+
+            if ($created === 0 && $skipped === 0) {
+                $this->addFlash('warning', 'Aucune matière sélectionnée.');
+                return $this->redirectToRoute('admin_subject_import', ['id' => $level->getId(), 'source' => $sourceLevel?->getId()], Response::HTTP_SEE_OTHER);
+            }
+
+            $message = sprintf('%d matière(s) importée(s) depuis « %s ».', $created, $sourceLevel->getName());
+            if ($skipped > 0) {
+                $message .= sprintf(' %d ignorée(s) car déjà présente(s) dans ce niveau.', $skipped);
+            }
+            $this->addFlash($created > 0 ? 'success' : 'info', $message);
+
+            return $this->redirectToRoute('admin_subject_by_level', ['id' => $level->getId()], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('subject/import.html.twig', [
+            'level' => $level,
+            'source_levels' => $sourceLevels,
+            'source_level' => $sourceLevel,
+            'source_subjects' => $sourceSubjects,
+            'existing_names' => $existingNames,
+        ]);
+    }
+
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(
         Request $request,
