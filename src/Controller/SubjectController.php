@@ -76,8 +76,73 @@ class SubjectController extends AbstractController
 
         return $this->render('subject/by_level.html.twig', [
             'level' => $level,
-            'subjects' => $subjectRepository->findByLevel($level->getId()),
+            'subjects' => $this->subjectsInBulletinOrder($subjectRepository, $level),
         ]);
+    }
+
+    /**
+     * Monte / descend une matière dans l'ordre du bulletin de son niveau.
+     */
+    #[Route('/{id}/move/{direction}', name: 'move', requirements: ['id' => '\d+', 'direction' => 'up|down'], methods: ['POST'])]
+    public function move(
+        Request $request,
+        Subject $subject,
+        string $direction,
+        SubjectRepository $subjectRepository,
+        EntityManagerInterface $entityManager,
+        SchoolContextService $contextService
+    ): Response {
+        $level = $subject->getLevel();
+        $currentSchool = $contextService->getCurrentSchool();
+
+        if (!$level || !$currentSchool || $subject->getSchool()?->getId() !== $currentSchool->getId()) {
+            return $this->redirectToRoute('admin_subject_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        if ($this->isCsrfTokenValid('move' . $subject->getId(), $request->request->get('_token'))) {
+            $subjects = $this->subjectsInBulletinOrder($subjectRepository, $level);
+
+            $index = null;
+            foreach ($subjects as $i => $s) {
+                if ($s->getId() === $subject->getId()) {
+                    $index = $i;
+                    break;
+                }
+            }
+
+            if ($index !== null) {
+                $target = $direction === 'up' ? $index - 1 : $index + 1;
+
+                if ($target >= 0 && $target < count($subjects)) {
+                    // Échange les positions puis réattribue un ordre séquentiel (1..n).
+                    [$subjects[$index], $subjects[$target]] = [$subjects[$target], $subjects[$index]];
+
+                    foreach ($subjects as $position => $s) {
+                        $s->setBulletinOrderNumber($position + 1);
+                    }
+
+                    $entityManager->flush();
+                    $this->addFlash('success', 'L\'ordre des matières sur le bulletin a été mis à jour.');
+                }
+            }
+        }
+
+        return $this->redirectToRoute('admin_subject_by_level', ['id' => $level->getId()], Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * Matières d'un niveau dans l'ordre du bulletin (sans numéro en dernier, puis par nom).
+     *
+     * @return Subject[]
+     */
+    private function subjectsInBulletinOrder(SubjectRepository $subjectRepository, Level $level): array
+    {
+        $subjects = $subjectRepository->findByLevel($level->getId());
+
+        usort($subjects, fn (Subject $a, Subject $b) => [$a->getBulletinOrderNumber() ?? PHP_INT_MAX, $a->getName()]
+            <=> [$b->getBulletinOrderNumber() ?? PHP_INT_MAX, $b->getName()]);
+
+        return $subjects;
     }
 
     /**

@@ -37,11 +37,26 @@
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
-                            <tr><th>Code</th><th>Nom</th><th>Équivalence</th><th>Type</th><th>Coef.</th><th>Heures/sem.</th><th>Couleur</th><th>Statut</th><th class="text-end" width="160">Actions</th></tr>
+                            <tr><th width="110">Ordre bulletin</th><th>Code</th><th>Nom</th><th>Équivalence</th><th>Type</th><th>Coef.</th><th>Heures/sem.</th><th>Couleur</th><th>Statut</th><th class="text-end" width="160">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for subject in subjects %}
                             <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="badge badge-soft secondary">{{ subject.bulletinOrderNumber ?? '—' }}</span>
+                                        <div class="btn-group btn-group-sm">
+                                            <form method="post" action="{{ path('admin_subject_move', {'id': subject.id, 'direction': 'up'}) }}" class="d-inline">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('move' ~ subject.id) }}">
+                                                <button type="submit" class="btn btn-outline-secondary px-1 py-0" title="Monter"{{ loop.first ? ' disabled' : '' }}><i class="fas fa-arrow-up"></i></button>
+                                            </form>
+                                            <form method="post" action="{{ path('admin_subject_move', {'id': subject.id, 'direction': 'down'}) }}" class="d-inline">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('move' ~ subject.id) }}">
+                                                <button type="submit" class="btn btn-outline-secondary px-1 py-0" title="Descendre"{{ loop.last ? ' disabled' : '' }}><i class="fas fa-arrow-down"></i></button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td><strong>{{ subject.code }}</strong></td>
                                 <td>{{ subject.name }}</td>
                                 <td>{% if subject.subjectEquivalent %}<span class="badge badge-soft info me-1" title="{{ subject.subjectEquivalent.libelle }}">{{ subject.subjectEquivalent.code }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
