@@ -80,6 +80,13 @@
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des Élèves</h6>
             <div class="d-flex gap-2">
+                {% if is_granted('ROLE_SUPER_ADMIN') %}
+                <form method="post" action="{{ path('admin_student_bulk_delete') }}" id="bulkDeleteForm" class="d-none"
+                      onsubmit="return confirm('Supprimer définitivement les ' + document.querySelectorAll('.js-student-check:checked').length + ' élève(s) sélectionné(s) ? Cette action est irréversible.')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_students') }}">
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Supprimer la sélection (<span id="bulkDeleteCount">0</span>)</button>
+                </form>
+                {% endif %}
                 <a href="{{ path('admin_student_export', {'search': search, 'status': status, 'level': level}) }}" class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel me-1"></i> Exporter Excel</a>
                 <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal"><i class="fas fa-file-import me-1"></i> Importer Excel</button>
                 <a href="{{ path('admin_registration_index') }}" class="btn btn-success btn-sm"><i class="fas fa-graduation-cap me-1"></i> Inscriptions</a>
@@ -100,6 +107,9 @@
                 <table class="table table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
+                            {% if is_granted('ROLE_SUPER_ADMIN') %}
+                            <th style="width:1%"><input type="checkbox" class="form-check-input" id="checkAllStudents" title="Tout sélectionner"></th>
+                            {% endif %}
                             <th>Mle interne</th>
                             <th>Mle national</th>
                             <th>Nom &amp; Prénoms</th>
@@ -113,6 +123,9 @@
                     <tbody>
                         {% for student in students %}
                         <tr class="js-student-row">
+                            {% if is_granted('ROLE_SUPER_ADMIN') %}
+                            <td><input type="checkbox" class="form-check-input js-student-check" name="ids[]" value="{{ student.id }}" form="bulkDeleteForm"></td>
+                            {% endif %}
                             <td><span class="fw-semibold text-primary">{{ student.matriculeInterne ?: '—' }}</span></td>
                             <td><span class="text-muted">{{ student.matriculeNational ?: '—' }}</span></td>
                             <td class="fw-semibold">{{ student.lastName }} {{ student.firstName }}</td>
@@ -233,6 +246,38 @@
 
         input.addEventListener('input', applyFilter);
         if (clearBtn) clearBtn.addEventListener('click', function () { input.value = ''; applyFilter(); input.focus(); });
+    })();
+
+    // Suppression multiple (super-administrateur) : le bouton n'apparaît qu'avec au moins un élève coché.
+    (function () {
+        var form = document.getElementById('bulkDeleteForm');
+        var checkAll = document.getElementById('checkAllStudents');
+        if (!form || !checkAll) return;
+        var countEl = document.getElementById('bulkDeleteCount');
+
+        function checks() { return Array.prototype.slice.call(document.querySelectorAll('.js-student-check')); }
+        function visibleChecks() { return checks().filter(function (c) { return c.closest('tr').style.display !== 'none'; }); }
+
+        function refresh() {
+            var visible = visibleChecks();
+            var n = checks().filter(function (c) { return c.checked; }).length;
+            var nVisible = visible.filter(function (c) { return c.checked; }).length;
+            countEl.textContent = n;
+            form.classList.toggle('d-none', n === 0);
+            checkAll.checked = visible.length > 0 && nVisible === visible.length;
+            checkAll.indeterminate = nVisible > 0 && nVisible < visible.length;
+        }
+
+        checkAll.addEventListener('change', function () {
+            visibleChecks().forEach(function (c) { c.checked = checkAll.checked; });
+            refresh();
+        });
+        document.addEventListener('change', function (e) {
+            if (e.target.classList && e.target.classList.contains('js-student-check')) refresh();
+        });
+        var search = document.getElementById('stuSearch');
+        if (search) search.addEventListener('input', refresh);
+        refresh();
     })();
 </script>
 {% endblock %}

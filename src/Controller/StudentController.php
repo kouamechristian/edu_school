@@ -863,6 +863,63 @@ class StudentController extends AbstractController
         return null;
     }
 
+    /**
+     * Suppression multiple d'élèves cochés dans la liste (super-administrateur uniquement).
+     * Chaque élève est supprimé indépendamment : ceux encore liés à des données
+     * (paiements, inscriptions, notes...) sont ignorés et signalés.
+     */
+    #[Route('/bulk-delete', name: 'bulk_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_SUPER_ADMIN')]
+    public function bulkDelete(Request $request, StudentRepository $studentRepository, \Doctrine\Persistence\ManagerRegistry $registry): Response
+    {
+        if (!$this->isCsrfTokenValid('bulk_delete_students', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', $request->request->all('ids')))));
+        if (!$ids) {
+            $this->addFlash('warning', 'Aucun élève sélectionné.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $school = $this->schoolContextService->getCurrentSchool();
+        $deleted = 0;
+        $failed = [];
+
+        foreach ($ids as $id) {
+            $student = $studentRepository->find($id);
+            // On ne supprime que les élèves de l'établissement courant.
+            if (!$student || ($school && $student->getSchool()?->getId() !== $school->getId())) {
+                continue;
+            }
+            $label = trim($student->getLastName() . ' ' . $student->getFirstName());
+
+            try {
+                $this->entityManager->remove($student);
+                $this->entityManager->flush();
+                $deleted++;
+            } catch (\Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException) {
+                // L'EntityManager est fermé après l'échec : on le réinitialise pour continuer.
+                $registry->resetManager();
+                $failed[] = $label;
+            }
+        }
+
+        if ($deleted > 0) {
+            $this->addFlash('success', sprintf('%d élève(s) supprimé(s) avec succès.', $deleted));
+        }
+        if ($failed) {
+            $this->addFlash('error', sprintf(
+                'Suppression impossible pour %d élève(s) encore lié(s) à des données (paiements, inscriptions, notes...) : %s.',
+                count($failed),
+                implode(', ', $failed)
+            ));
+        }
+
+        return $this->redirectToRoute('admin_student_index');
+    }
+
     #[Route('/{id}', name: 'show', methods: ['GET'])]
     public function show(
         Student $student,
