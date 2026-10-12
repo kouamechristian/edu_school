@@ -10,9 +10,11 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints as Assert;
 
 class PaymentType extends AbstractType
 {
@@ -80,6 +82,13 @@ class PaymentType extends AbstractType
                 ]
             ])
 
+            ->add('reference', TextType::class, [
+                'label' => 'Référence',
+                'required' => false,
+                'help' => 'N° de transaction / bordereau. Laisser vide pour une référence automatique.',
+                'constraints' => [new Assert\Length(max: 100, maxMessage: 'La référence ne peut pas dépasser {{ limit }} caractères.')],
+                'attr' => ['class' => 'form-control', 'maxlength' => 100, 'placeholder' => 'Ex. N° de transaction ECOBANK'],
+            ])
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes',
                 'required' => false,

@@ -8,6 +8,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -65,6 +66,13 @@ class PaymentStartType extends AbstractType
                 ],
                 'constraints' => [new Assert\NotBlank(message: 'La méthode de paiement est obligatoire')],
                 'attr' => ['class' => 'form-select no-search'],
+            ])
+            ->add('reference', TextType::class, [
+                'label' => 'Référence',
+                'required' => false,
+                'help' => 'N° de transaction / bordereau. Laisser vide pour une référence automatique.',
+                'constraints' => [new Assert\Length(max: 100, maxMessage: 'La référence ne peut pas dépasser {{ limit }} caractères.')],
+                'attr' => ['class' => 'form-control', 'maxlength' => 100, 'placeholder' => 'Ex. N° de transaction ECOBANK'],
             ])
             ->add('notes', TextareaType::class, [
                 'label' => 'Notes',

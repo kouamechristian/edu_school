@@ -52,6 +52,7 @@
                             <i class="fas fa-calendar me-1 text-muted"></i>{{ draft.payment_date|date('d/m/Y') }}
                             <span class="mx-1">·</span>
                             <i class="fas fa-wallet me-1 text-muted"></i>{{ payment_method_label }}
+                            {% if draft.reference ?? '' %}<span class="mx-1">·</span><i class="fas fa-hashtag me-1 text-muted"></i>{{ draft.reference }}{% endif %}
                         </div>
                     </div>
                 </div>

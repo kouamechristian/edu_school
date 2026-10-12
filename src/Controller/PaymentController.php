@@ -371,6 +371,7 @@ class PaymentController extends AbstractController
             $data['paymentDate'] = new \DateTime($draft['payment_date']);
             $data['paymentMethod'] = $draft['payment_method'];
             $data['notes'] = $draft['notes'];
+            $data['reference'] = $draft['reference'] ?? null;
         }
 
         $form = $this->createForm(PaymentStartType::class, $data, [
@@ -399,6 +400,7 @@ class PaymentController extends AbstractController
                     'payment_date' => $form->get('paymentDate')->getData()->format('Y-m-d'),
                     'payment_method' => (string) $form->get('paymentMethod')->getData(),
                     'notes' => $form->get('notes')->getData(),
+                    'reference' => trim((string) $form->get('reference')->getData()),
                 ]);
 
                 return $this->redirectToRoute('admin_payment_imputation', ['token' => $token], Response::HTTP_SEE_OTHER);
@@ -557,7 +559,10 @@ class PaymentController extends AbstractController
         array $feesById
     ): array {
         $receiptNumber = 'REC-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
-        $reference = $this->generatePaymentReference($draft['payment_method']);
+        // Référence saisie (n° de transaction, bordereau...) ou, à défaut, générée.
+        $reference = ($draft['reference'] ?? '') !== ''
+            ? $draft['reference']
+            : $this->generatePaymentReference($draft['payment_method']);
         $paymentDate = new \DateTime($draft['payment_date']);
         $usedNumbers = [];
         $payments = [];
@@ -776,6 +781,10 @@ class PaymentController extends AbstractController
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Référence vidée : on en régénère une plutôt que de la perdre.
+            if (trim((string) $payment->getReference()) === '') {
+                $payment->setReference($this->generatePaymentReference((string) $payment->getPaymentMethod()));
+            }
             $entityManager->flush();
 
             $this->addFlash('success', 'Le paiement a été modifié avec succès.');
