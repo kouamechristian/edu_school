@@ -425,6 +425,28 @@ class StudentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Indique si un matricule national est déjà porté par un élève, tous établissements
+     * confondus (requête SQL directe : le filtre Doctrine par établissement ne s'applique
+     * pas). Sert à empêcher les doublons avant l'enregistrement.
+     */
+    public function nationalMatriculeExists(?string $matriculeNational, ?int $excludeStudentId = null): bool
+    {
+        $normalized = mb_strtolower(trim((string) $matriculeNational));
+        if ($normalized === '') {
+            return false;
+        }
+
+        $sql = 'SELECT 1 FROM student WHERE LOWER(TRIM(matricule_national)) = :mn';
+        $params = ['mn' => $normalized];
+        if ($excludeStudentId !== null) {
+            $sql .= ' AND id <> :id';
+            $params['id'] = $excludeStudentId;
+        }
+
+        return (bool) $this->getEntityManager()->getConnection()->fetchOne($sql . ' LIMIT 1', $params);
+    }
+
+    /**
      * Retrouve un élève actif à partir de son seul matricule national (tous
      * établissements confondus). Sert à l'auto-inscription d'un parent qui rattache
      * son enfant — déjà connu de l'établissement — via le matricule national.

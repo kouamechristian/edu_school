@@ -119,6 +119,14 @@ class EnrollmentService
      */
     private function createStudent(PreRegistration $pre): Student
     {
+        // Matricule national unique : un élève déjà connu doit passer par la réinscription.
+        if ($this->entityManager->getRepository(Student::class)->nationalMatriculeExists($pre->getMatriculeNational())) {
+            throw new \RuntimeException(sprintf(
+                'Un élève avec le matricule national « %s » existe déjà. Utilisez la réinscription (ancien élève) au lieu d\'une nouvelle inscription.',
+                trim((string) $pre->getMatriculeNational())
+            ));
+        }
+
         $student = new Student();
 
         // Identité (figée à la création).

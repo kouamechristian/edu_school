@@ -603,7 +603,7 @@ class StudentController extends AbstractController
     }
 
     #[Route('/import', name: 'import', methods: ['POST'])]
-    public function import(Request $request): Response
+    public function import(Request $request, StudentRepository $studentRepository): Response
     {
         $school = $this->schoolContextService->getCurrentSchool();
 
@@ -659,6 +659,8 @@ class StudentController extends AbstractController
         // à une classe (inscription) se fait ensuite via le module d'inscription.
         $created = 0;
         $skipped = 0;
+        $duplicates = [];
+        $seenNationals = [];
 
         foreach ($rows as $i => $row) {
             if ($i === 0) {
@@ -680,6 +682,18 @@ class StudentController extends AbstractController
                 continue;
             }
 
+            // Matricule national unique : on écarte les élèves déjà enregistrés
+            // (tous établissements) ou présents plusieurs fois dans le fichier.
+            $national = $cell($row, $colIndex['matriculeNational'] ?? null);
+            if ($national !== null) {
+                $key = mb_strtolower($national);
+                if (isset($seenNationals[$key]) || $studentRepository->nationalMatriculeExists($national)) {
+                    $duplicates[] = $national;
+                    continue;
+                }
+                $seenNationals[$key] = true;
+            }
+
             $student = new Student();
             $student->setLastName($lastName);
             $student->setFirstName($firstName);
@@ -688,7 +702,7 @@ class StudentController extends AbstractController
                 $matricule = $this->matriculeGenerator->generate($this->entityManager, Student::class);
             }
             $student->setMatriculeInterne($matricule);
-            $student->setMatriculeNational($cell($row, $colIndex['matriculeNational'] ?? null));
+            $student->setMatriculeNational($national);
 
             $gender = strtoupper((string) ($cell($row, $colIndex['gender'] ?? null) ?? ''));
             if (in_array($gender, ['M', 'F'], true)) {
@@ -737,6 +751,14 @@ class StudentController extends AbstractController
             $this->addFlash('success', $message);
         } else {
             $this->addFlash('warning', 'Aucun élève importé.' . ($skipped > 0 ? " {$skipped} ligne(s) ignorée(s)." : ''));
+        }
+
+        if ($duplicates) {
+            $this->addFlash('warning', sprintf(
+                '%d ligne(s) ignorée(s) : matricule national déjà existant ou en double dans le fichier (%s).',
+                count($duplicates),
+                implode(', ', array_slice($duplicates, 0, 20)) . (count($duplicates) > 20 ? '…' : '')
+            ));
         }
 
         return $this->redirectToRoute('admin_student_index');
@@ -1042,10 +1064,16 @@ class StudentController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Student $student, SluggerInterface $slugger): Response
+    public function edit(Request $request, Student $student, SluggerInterface $slugger, StudentRepository $studentRepository): Response
     {
         $form = $this->createForm(StudentType::class, $student);
         $form->handleRequest($request);
+
+        // Matricule national unique tous établissements confondus (le validateur de
+        // l'entité ne voit que l'établissement courant, à cause du filtre Doctrine).
+        if ($form->isSubmitted() && $studentRepository->nationalMatriculeExists($student->getMatriculeNational(), $student->getId())) {
+            $form->get('matriculeNational')->addError(new \Symfony\Component\Form\FormError('Un élève avec ce matricule national existe déjà.'));
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             if ($photo = $this->uploadFile($form->get('photoFile')->getData(), 'students', $slugger)) {

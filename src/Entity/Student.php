@@ -7,10 +7,15 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: StudentRepository::class)]
 #[ORM\Table(name: 'student')]
+// Le matricule national identifie un élève de façon unique (tous établissements) :
+// un ancien élève est réinscrit sur sa fiche existante, jamais dupliqué.
+#[ORM\UniqueConstraint(name: 'uniq_student_matricule_national', columns: ['matricule_national'])]
+#[UniqueEntity(fields: ['matriculeNational'], message: 'Un élève avec ce matricule national existe déjà.')]
 #[ORM\HasLifecycleCallbacks]
 class Student implements SchoolOwnedInterface
 {
@@ -324,7 +329,10 @@ class Student implements SchoolOwnedInterface
 
     public function setMatriculeNational(?string $matriculeNational): static
     {
-        $this->matriculeNational = $matriculeNational;
+        // Normalisation : espaces retirés et chaîne vide → null (plusieurs élèves
+        // sans matricule national restent autorisés par l'index unique).
+        $matriculeNational = $matriculeNational !== null ? trim($matriculeNational) : null;
+        $this->matriculeNational = $matriculeNational === '' ? null : $matriculeNational;
         return $this;
     }
 
