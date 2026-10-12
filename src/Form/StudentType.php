@@ -30,6 +30,7 @@ class StudentType extends AbstractType
             ])
             ->add('dateOfBirth', DateType::class, [
                 'label' => 'Date de naissance',
+                'required' => false,
                 'widget' => 'single_text',
                 'attr' => ['class' => 'form-control']
             ])
