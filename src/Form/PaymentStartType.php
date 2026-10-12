@@ -34,6 +34,9 @@ class PaymentStartType extends AbstractType
                     return trim(($matricule ? $matricule . ' — ' : '') . $s->getFullName());
                 },
                 'placeholder' => 'Rechercher un élève (matricule, nom, prénom)…',
+                // Non mappé : l'élève ne fait pas partie des données du formulaire, sinon le
+                // validateur contrôlerait toute sa fiche (téléphones...) et bloquerait le paiement.
+                'mapped' => false,
                 'constraints' => [new Assert\NotBlank(message: 'L\'élève est obligatoire')],
                 'attr' => ['class' => 'form-select js-student-select'],
             ])

@@ -361,10 +361,11 @@ class PaymentController extends AbstractController
         }
 
         $data = ['paymentDate' => new \DateTime(), 'paymentMethod' => 'espèces'];
+        $draftStudent = null;
         if ($draft !== null) {
             foreach ($studentChoices as $choice) {
                 if ($choice->getId() === $draft['student_id']) {
-                    $data['student'] = $choice;
+                    $draftStudent = $choice;
                 }
             }
             $data['amount'] = $draft['amount'];
@@ -377,6 +378,8 @@ class PaymentController extends AbstractController
         $form = $this->createForm(PaymentStartType::class, $data, [
             'student_choices' => $studentChoices,
         ]);
+        // Champ élève non mappé : pré-rempli directement (reprise d'un brouillon).
+        $form->get('student')->setData($draftStudent);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
