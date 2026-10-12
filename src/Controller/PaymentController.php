@@ -304,21 +304,22 @@ class PaymentController extends AbstractController
 
     /**
      * Import de paiements, étape 1 : analyse du fichier, sans rien enregistrer. Le
-     * fichier est conservé (var/imports) le temps de la confirmation.
+     * fichier est conservé (var/imports) le temps de la confirmation. Comme au guichet,
+     * une caisse ouverte et validée est requise : les paiements y seront rattachés.
      */
     #[Route('/import', name: 'import', methods: ['POST'])]
-    public function import(Request $request, SchoolContextService $contextService, PaymentImporter $importer): Response
+    public function import(Request $request, SchoolContextService $contextService, CashRegisterRepository $cashRegisterRepository, PaymentImporter $importer): Response
     {
         if (!$this->isCsrfTokenValid('import_payments', (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
             return $this->redirectToRoute('admin_payment_index');
         }
 
-        $school = $contextService->getCurrentSchool();
-        if (!$school) {
-            $this->addFlash('warning', 'Veuillez sélectionner un établissement avant d\'importer.');
-            return $this->redirectToRoute('admin_payment_index');
+        $cashRegister = $this->requireOpenCashRegister($contextService, $cashRegisterRepository);
+        if ($cashRegister instanceof Response) {
+            return $cashRegister;
         }
+        $school = $contextService->getCurrentSchool();
 
         $file = $request->files->get('file');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
@@ -360,10 +361,11 @@ class PaymentController extends AbstractController
     }
 
     /**
-     * Import de paiements, étape 2 : enregistrement des lignes valides (re-vérifiées).
+     * Import de paiements, étape 2 : enregistrement des lignes valides (re-vérifiées),
+     * rattachées à la caisse ouverte de l'utilisateur.
      */
     #[Route('/import/{token}/confirm', name: 'import_confirm', methods: ['POST'], requirements: ['token' => '[a-f0-9]{32}'])]
-    public function importConfirm(string $token, Request $request, SchoolContextService $contextService, PaymentImporter $importer): Response
+    public function importConfirm(string $token, Request $request, SchoolContextService $contextService, CashRegisterRepository $cashRegisterRepository, PaymentImporter $importer): Response
     {
         $session = $request->getSession();
         $imports = $session->get(self::IMPORT_SESSION_KEY, []);
@@ -382,10 +384,16 @@ class PaymentController extends AbstractController
             $this->addFlash('error', 'Import annulé : session expirée ou établissement modifié entre-temps.');
             return $this->redirectToRoute('admin_payment_index');
         }
+        // La caisse a pu être fermée depuis l'aperçu.
+        $cashRegister = $this->requireOpenCashRegister($contextService, $cashRegisterRepository);
+        if ($cashRegister instanceof Response) {
+            @unlink($pending['path']);
+            return $cashRegister;
+        }
 
         try {
             $user = $this->getUser();
-            $result = $importer->import($pending['path'], $school, $contextService->getCurrentSchoolYear()?->getId(), $user instanceof User ? $user : null, true);
+            $result = $importer->import($pending['path'], $school, $contextService->getCurrentSchoolYear()?->getId(), $user instanceof User ? $user : null, true, $cashRegister);
         } finally {
             @unlink($pending['path']);
         }

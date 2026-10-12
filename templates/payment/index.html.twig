@@ -15,7 +15,11 @@
         {% block actions %}
             {% if current_school %}
                 <a href="{{ path('admin_payment_export_pdf', app.request.query.all) }}" target="_blank" rel="noopener" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i> PDF</a>
-                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importPaymentsModal"><i class="fas fa-file-import me-1"></i> Importer</button>
+                {% if cash_register_open and cash_register_validated %}
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importPaymentsModal"><i class="fas fa-file-import me-1"></i> Importer</button>
+                {% else %}
+                    <button type="button" class="btn btn-outline-primary disabled" aria-disabled="true" title="Caisse non disponible"><i class="fas fa-file-import me-1"></i> Importer</button>
+                {% endif %}
                 {% if cash_register_open and cash_register_validated %}
                     <a href="{{ path('admin_payment_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau Paiement</a>
                 {% else %}
@@ -189,7 +193,7 @@
                         </p>
                         <p class="text-muted small">
                             <i class="fas fa-eye me-1"></i>Un <strong>aperçu</strong> s'affiche avant tout enregistrement.
-                            Les paiements importés ne sont rattachés à aucune caisse.
+                            Les paiements importés sont rattachés à votre caisse ouverte.
                         </p>
                         <div class="mb-3">
                             <a href="{{ path('admin_payment_import_template') }}" class="btn btn-outline-secondary btn-sm">

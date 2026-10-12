@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\CashRegister;
 use App\Entity\Payment;
 use App\Entity\School;
 use App\Entity\Student;
@@ -21,7 +22,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
  * Un montant supérieur au reste dû est refusé. Les doublons (même référence, ou même
  * élève + date + montant + méthode) sont ignorés : ré-importer un fichier est sans effet.
  *
- * Les paiements importés sont « payés », rattachés à aucune caisse (régularisation),
+ * Les paiements importés sont « payés », rattachés à la caisse ouverte de l'utilisateur,
  * avec une référence « IMP-… » si le fichier n'en fournit pas. L'écriture comptable
  * est créée automatiquement à l'enregistrement (AccountingSubscriber).
  */
@@ -118,7 +119,7 @@ class PaymentImporter
      *         ok: bool, message: string}>
      * }
      */
-    public function import(string $path, School $school, ?int $schoolYearId, ?User $recordedBy, bool $apply): array
+    public function import(string $path, School $school, ?int $schoolYearId, ?User $recordedBy, bool $apply, ?CashRegister $cashRegister = null): array
     {
         $result = ['error' => null, 'applied' => $apply, 'imported' => 0, 'skipped' => 0, 'total' => 0.0, 'rows' => []];
 
@@ -247,7 +248,7 @@ class PaymentImporter
 
         if ($apply && $toSave !== []) {
             foreach ($toSave as $p) {
-                $this->record($p, $recordedBy);
+                $this->record($p, $recordedBy, $cashRegister);
             }
             // Un seul flush : toutes les lignes valides sont enregistrées ensemble, ou aucune.
             $this->entityManager->flush();
@@ -260,7 +261,7 @@ class PaymentImporter
      * Crée les lignes Payment d'un versement (une par frais imputé), sous un même
      * numéro de reçu et une même référence — comme un encaissement au guichet.
      */
-    private function record(array $p, ?User $recordedBy): void
+    private function record(array $p, ?User $recordedBy, ?CashRegister $cashRegister): void
     {
         $receiptNumber = 'REC-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
         $reference = $p['reference'] ?? sprintf('IMP-%s-%04d', date('YmdHis'), random_int(1, 9999));
@@ -279,6 +280,7 @@ class PaymentImporter
                 ->setPaymentDate(\DateTime::createFromImmutable($p['date']))
                 ->setPaymentMethod($p['method'])
                 ->setStatus('payé')
+                ->setCashRegister($cashRegister)
                 ->setRecordedBy($recordedBy)
                 ->setNotes($p['notes']);
 
