@@ -15,6 +15,7 @@
         {% block actions %}
             {% if current_school %}
                 <a href="{{ path('admin_payment_export_pdf', app.request.query.all) }}" target="_blank" rel="noopener" class="btn btn-outline-danger"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importPaymentsModal"><i class="fas fa-file-import me-1"></i> Importer</button>
                 {% if cash_register_open and cash_register_validated %}
                     <a href="{{ path('admin_payment_new') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nouveau Paiement</a>
                 {% else %}
@@ -164,6 +165,49 @@
             <p>Veuillez sélectionner un établissement pour voir les paiements.</p>
             <a href="{{ path('admin_school_index') }}" class="btn btn-primary"><i class="fas fa-school me-1"></i> Gérer les Établissements</a>
         </div>
+    {% endif %}
+
+    {# ── Import de paiements ── #}
+    {% if current_school %}
+    <div class="modal fade" id="importPaymentsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{{ path('admin_payment_import') }}" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-file-import me-2 text-primary"></i>Importer des paiements</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-2">
+                            Fichier <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong> : une ligne par versement.
+                            Colonnes obligatoires : <strong>Matricule</strong> (interne ou national), <strong>Montant</strong> et
+                            <strong>Date de paiement</strong>. Facultatives : Méthode (Espèces par défaut), Référence, Frais, Notes.
+                        </p>
+                        <p class="text-muted small mb-2">
+                            Sans frais indiqué, le montant est réparti comme au guichet : arriérés d'abord, puis par échéance.
+                            Un montant supérieur au reste dû est refusé, et les paiements déjà enregistrés sont ignorés.
+                        </p>
+                        <p class="text-muted small">
+                            <i class="fas fa-eye me-1"></i>Un <strong>aperçu</strong> s'affiche avant tout enregistrement.
+                            Les paiements importés ne sont rattachés à aucune caisse.
+                        </p>
+                        <div class="mb-3">
+                            <a href="{{ path('admin_payment_import_template') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-download me-1"></i> Télécharger le modèle
+                            </a>
+                        </div>
+                        <label for="importPaymentsFile" class="form-label">Fichier à importer</label>
+                        <input type="file" class="form-control" id="importPaymentsFile" name="file" accept=".xlsx,.xls,.csv" required>
+                        <input type="hidden" name="_token" value="{{ csrf_token('import_payments') }}">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-eye me-1"></i> Analyser le fichier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>
 

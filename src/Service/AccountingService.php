@@ -141,11 +141,20 @@ class AccountingService
     public function getOrCreateAccount(School $school, string $code, string $name, string $type): AccountingAccount
     {
         $account = $this->accountRepository->findOneByCode($school, $code);
-        if ($account === null) {
-            $account = $this->createAccount($school, $code, $name, $type, true);
+        if ($account !== null) {
+            return $account;
         }
 
-        return $account;
+        // Compte déjà créé plus tôt dans ce même lot, pas encore enregistré en base
+        // (ex. plusieurs paiements d'un même frais importés ensemble) : on le réutilise
+        // au lieu d'en créer un second, ce qui violerait l'unicité (établissement, code).
+        foreach ($this->em->getUnitOfWork()->getScheduledEntityInsertions() as $pending) {
+            if ($pending instanceof AccountingAccount && $pending->getCode() === $code && $pending->getSchool() === $school) {
+                return $pending;
+            }
+        }
+
+        return $this->createAccount($school, $code, $name, $type, true);
     }
 
     /**

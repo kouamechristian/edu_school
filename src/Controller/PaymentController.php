@@ -14,6 +14,8 @@ use App\Repository\CashRegisterRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\StudentFeeRepository;
 use App\Repository\StudentRepository;
+use App\Service\OutstandingFees;
+use App\Service\PaymentImporter;
 use App\Service\SchoolContextService;
 use App\Service\FeeAssignmentService;
 use App\Service\PaymentReceiptService;
@@ -21,9 +23,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -36,6 +41,9 @@ class PaymentController extends AbstractController
 
     /** Saisies en cours (étape 1 validée, imputation pas encore enregistrée), par jeton. */
     private const DRAFT_SESSION_KEY = 'payment_drafts';
+
+    /** Imports de paiements en attente de confirmation, par jeton. */
+    private const IMPORT_SESSION_KEY = 'payment_imports';
 
     private function generatePaymentReference(string $method): string
     {
@@ -134,71 +142,12 @@ class PaymentController extends AbstractController
     }
 
     /**
-     * Frais restant dus par l'élève pour l'année courante, prêts pour l'imputation.
-     * Ordre : arriérés antérieurs d'abord (à solder en priorité), puis par prochaine
-     * échéance impayée — c'est aussi l'ordre de la répartition automatique.
-     *
-     * @return list<array{
-     *     student_fee: \App\Entity\StudentFee, id: int, name: string, amount: float, paid: float,
-     *     remaining: float, is_arriere: bool, annee_origine: ?string, next_due: string,
-     *     schedules: list<array{order: int, due: ?string, amount: float, remaining: float}>
-     * }>
+     * Frais restant dus par l'élève pour l'année courante, prêts pour l'imputation
+     * (arriérés d'abord, puis par prochaine échéance) — cf. {@see OutstandingFees}.
      */
     private function buildOutstandingFees(Student $student, ?int $schoolYearId): array
     {
-        $inscription = $student->getScolariteRegistration($schoolYearId);
-        $studentFees = $inscription ? $inscription->getStudentFees() : $student->getStudentFees();
-
-        $list = [];
-        foreach ($studentFees as $studentFee) {
-            $fee = $studentFee->getFee();
-            if (!$fee || !$fee->isActive() || $studentFee->getRemainingAmount() <= 0) {
-                continue;
-            }
-
-            // Échéances du frais avec le reste par échéance (imputation en cascade du
-            // déjà-payé, les plus anciennes d'abord).
-            $schedules = $fee->getSchedules()->toArray();
-            usort($schedules, static fn ($a, $b) => ($a->getOrderNumber() ?? 0) <=> ($b->getOrderNumber() ?? 0));
-            $paidLeft = (float) $studentFee->getPaidAmount();
-            $scheduleList = [];
-            // Un frais sans échéancier (ou une échéance sans date) est dû immédiatement.
-            $nextDue = null;
-            foreach ($schedules as $i => $schedule) {
-                $amt = (float) $schedule->getAmount();
-                $imp = min($paidLeft, $amt);
-                $paidLeft -= $imp;
-                $remaining = round($amt - $imp, 2);
-                if ($remaining > 0 && $nextDue === null) {
-                    $nextDue = $schedule->getDueDate()?->format('Y-m-d') ?? '0000-00-00';
-                }
-                $scheduleList[] = [
-                    'order' => $schedule->getOrderNumber() ?? ($i + 1),
-                    'due' => $schedule->getDueDate()?->format('d/m/Y'),
-                    'amount' => $amt,
-                    'remaining' => $remaining,
-                ];
-            }
-
-            $list[] = [
-                'student_fee' => $studentFee,
-                'id' => $studentFee->getId(),
-                'name' => (string) $fee->getName(),
-                'amount' => (float) $studentFee->getAmount(),
-                'paid' => (float) $studentFee->getPaidAmount(),
-                'remaining' => $studentFee->getRemainingAmount(),
-                'is_arriere' => $studentFee->isArriereAnterieur(),
-                'annee_origine' => $studentFee->getAnneeOrigine(),
-                'next_due' => $nextDue ?? '0000-00-00',
-                'schedules' => $scheduleList,
-            ];
-        }
-
-        usort($list, static fn (array $a, array $b): int => ($b['is_arriere'] <=> $a['is_arriere'])
-            ?: ($a['next_due'] <=> $b['next_due'])
-            ?: strcmp($a['name'], $b['name']));
-
-        return $list;
+        return (new OutstandingFees())->forStudent($student, $schoolYearId);
     }
 
     private function loadDraft(Request $request, string $token): ?array
@@ -329,6 +278,132 @@ class PaymentController extends AbstractController
             'search_term' => $search,
             'generated_at' => new \DateTime(),
         ], 'paiements_' . date('Ymd_His') . '.pdf', 'landscape');
+    }
+
+    /**
+     * Modèle Excel d'import des paiements.
+     */
+    #[Route('/import/template', name: 'import_template', methods: ['GET'])]
+    public function importTemplate(SchoolContextService $contextService, PaymentImporter $importer): Response
+    {
+        $school = $contextService->getCurrentSchool();
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        $response = new StreamedResponse(function () use ($importer, $school) {
+            (new Xlsx($importer->buildTemplate($school)))->save('php://output');
+        });
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="modele_import_paiements.xlsx"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
+    }
+
+    /**
+     * Import de paiements, étape 1 : analyse du fichier, sans rien enregistrer. Le
+     * fichier est conservé (var/imports) le temps de la confirmation.
+     */
+    #[Route('/import', name: 'import', methods: ['POST'])]
+    public function import(Request $request, SchoolContextService $contextService, PaymentImporter $importer): Response
+    {
+        if (!$this->isCsrfTokenValid('import_payments', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        $school = $contextService->getCurrentSchool();
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement avant d\'importer.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        $file = $request->files->get('file');
+        if (!$file instanceof UploadedFile || !$file->isValid()) {
+            $this->addFlash('error', 'Veuillez sélectionner un fichier à importer.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        if (!\in_array($extension, ['xlsx', 'xls', 'csv'], true)) {
+            $this->addFlash('error', 'Format non pris en charge : importez un fichier .xlsx, .xls ou .csv.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        $token = bin2hex(random_bytes(16));
+        $dir = $this->getParameter('kernel.project_dir') . '/var/imports/payments';
+        // Fichiers d'aperçus jamais confirmés : supprimés au bout de 24 h.
+        foreach (glob($dir . '/*') ?: [] as $old) {
+            if (is_file($old) && filemtime($old) < time() - 86400) {
+                @unlink($old);
+            }
+        }
+        $stored = $file->move($dir, $token . '.' . $extension)->getPathname();
+
+        $result = $importer->import($stored, $school, $contextService->getCurrentSchoolYear()?->getId(), null, false);
+        if ($result['error'] !== null) {
+            @unlink($stored);
+            $this->addFlash('error', $result['error']);
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        $imports = $request->getSession()->get(self::IMPORT_SESSION_KEY, []);
+        $imports[$token] = ['path' => $stored, 'name' => $file->getClientOriginalName(), 'school_id' => $school->getId()];
+        $request->getSession()->set(self::IMPORT_SESSION_KEY, $imports);
+
+        return $this->render('payment/import_preview.html.twig', [
+            'result' => $result,
+            'token' => $token,
+            'file_name' => $file->getClientOriginalName(),
+        ]);
+    }
+
+    /**
+     * Import de paiements, étape 2 : enregistrement des lignes valides (re-vérifiées).
+     */
+    #[Route('/import/{token}/confirm', name: 'import_confirm', methods: ['POST'], requirements: ['token' => '[a-f0-9]{32}'])]
+    public function importConfirm(string $token, Request $request, SchoolContextService $contextService, PaymentImporter $importer): Response
+    {
+        $session = $request->getSession();
+        $imports = $session->get(self::IMPORT_SESSION_KEY, []);
+        $pending = $imports[$token] ?? null;
+        unset($imports[$token]);
+        $session->set(self::IMPORT_SESSION_KEY, $imports);
+
+        $school = $contextService->getCurrentSchool();
+        if (!$pending || !is_file($pending['path'])) {
+            $this->addFlash('warning', 'Cet import a expiré ou a déjà été confirmé. Veuillez recommencer.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+        if (!$this->isCsrfTokenValid('import_payments_confirm_' . $token, (string) $request->request->get('_token'))
+            || !$school || $school->getId() !== $pending['school_id']) {
+            @unlink($pending['path']);
+            $this->addFlash('error', 'Import annulé : session expirée ou établissement modifié entre-temps.');
+            return $this->redirectToRoute('admin_payment_index');
+        }
+
+        try {
+            $user = $this->getUser();
+            $result = $importer->import($pending['path'], $school, $contextService->getCurrentSchoolYear()?->getId(), $user instanceof User ? $user : null, true);
+        } finally {
+            @unlink($pending['path']);
+        }
+
+        if ($result['error'] !== null) {
+            $this->addFlash('error', $result['error']);
+        } elseif ($result['imported'] > 0) {
+            $this->addFlash('success', sprintf(
+                '%d paiement(s) importé(s) pour un total de %s F CFA.%s',
+                $result['imported'],
+                number_format($result['total'], 0, ',', ' '),
+                $result['skipped'] > 0 ? sprintf(' %d ligne(s) ignorée(s).', $result['skipped']) : ''
+            ));
+        } else {
+            $this->addFlash('warning', 'Aucun paiement importé : aucune ligne valide.');
+        }
+
+        return $this->redirectToRoute('admin_payment_index');
     }
 
     /**
