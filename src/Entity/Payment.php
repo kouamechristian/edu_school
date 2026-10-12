@@ -67,7 +67,7 @@ class Payment implements SchoolOwnedInterface
     private ?\DateTimeInterface $paymentDate = null;
 
     #[ORM\Column(length: 20)]
-    #[Assert\Choice(choices: ['espèces', 'chèque', 'virement', 'carte', 'mobile_money'], message: 'Méthode de paiement invalide')]
+    #[Assert\Choice(choices: ['espèces', 'chèque', 'virement', 'carte', 'mobile_money', 'ecobank', 'bank'], message: 'Méthode de paiement invalide')]
     private ?string $paymentMethod = null;
 
     #[ORM\Column(length: 20)]
@@ -222,6 +222,8 @@ class Payment implements SchoolOwnedInterface
             'virement' => 'Virement',
             'carte' => 'Carte bancaire',
             'mobile_money' => 'Mobile Money',
+            'ecobank' => 'ECOBANK',
+            'bank' => 'BANK',
             default => $this->paymentMethod
         };
     }

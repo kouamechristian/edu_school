@@ -72,6 +72,8 @@ class PaymentType extends AbstractType
                     'Virement' => 'virement',
                     'Carte bancaire' => 'carte',
                     'Mobile Money' => 'mobile_money',
+                    'ECOBANK' => 'ecobank',
+                    'BANK' => 'bank',
                 ],
                 'attr' => [
                     'class' => 'form-select'

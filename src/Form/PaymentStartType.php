@@ -60,6 +60,8 @@ class PaymentStartType extends AbstractType
                     'Virement' => 'virement',
                     'Carte bancaire' => 'carte',
                     'Mobile Money' => 'mobile_money',
+                    'ECOBANK' => 'ecobank',
+                    'BANK' => 'bank',
                 ],
                 'constraints' => [new Assert\NotBlank(message: 'La méthode de paiement est obligatoire')],
                 'attr' => ['class' => 'form-select no-search'],

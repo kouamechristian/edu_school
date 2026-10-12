@@ -44,6 +44,8 @@ class PaymentController extends AbstractController
             'chèque' => 'CHQ',
             'virement' => 'VIR',
             'carte' => 'CB',
+            'ecobank' => 'ECO',
+            'bank' => 'BNK',
             default => 'ESP',
         };
 
