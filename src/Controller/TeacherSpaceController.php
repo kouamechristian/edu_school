@@ -6,11 +6,10 @@ use App\Controller\Concern\HandlesEntityDeletion;
 use App\Controller\Concern\HandlesFileUpload;
 use App\Entity\Classroom;
 use App\Entity\Homework;
-use App\Entity\Subject;
 use App\Entity\User;
 use App\Form\HomeworkType;
-use App\Repository\CourseRepository;
 use App\Repository\HomeworkRepository;
+use App\Service\TeacherScope;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -37,7 +36,7 @@ class TeacherSpaceController extends AbstractController
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly CourseRepository $courseRepository,
+        private readonly TeacherScope $scope,
         private readonly HomeworkRepository $homeworkRepository,
     ) {
     }
@@ -48,7 +47,7 @@ class TeacherSpaceController extends AbstractController
         $teacher = $this->getCurrentTeacher();
 
         return $this->render('enseignant/dashboard.html.twig', [
-            'classrooms' => $this->teacherClassrooms($teacher),
+            'classrooms' => $this->scope->classrooms($teacher),
             'homeworks' => \array_slice($this->homeworkRepository->findByTeacher($teacher->getId()), 0, 6),
         ]);
     }
@@ -67,7 +66,7 @@ class TeacherSpaceController extends AbstractController
     public function new(Request $request, SluggerInterface $slugger): Response
     {
         $teacher = $this->getCurrentTeacher();
-        $classrooms = $this->teacherClassrooms($teacher);
+        $classrooms = $this->scope->classrooms($teacher);
 
         if ($classrooms === []) {
             $this->addFlash('warning', "Vous n'êtes affecté à aucune classe : impossible de publier un exercice.");
@@ -86,7 +85,7 @@ class TeacherSpaceController extends AbstractController
         $teacher = $this->getCurrentTeacher();
         $this->assertAuthor($homework, $teacher);
 
-        return $this->handleForm($homework, $request, $slugger, $teacher, $this->teacherClassrooms($teacher));
+        return $this->handleForm($homework, $request, $slugger, $teacher, $this->scope->classrooms($teacher));
     }
 
     #[Route('/exercices/{id}', name: 'enseignant_homework_show', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -138,7 +137,7 @@ class TeacherSpaceController extends AbstractController
     {
         $form = $this->createForm(HomeworkType::class, $homework, [
             'classrooms' => $classrooms,
-            'subjects' => $this->teacherSubjects($teacher),
+            'subjects' => $this->scope->subjects($teacher),
         ]);
         $form->handleRequest($request);
 
@@ -172,42 +171,6 @@ class TeacherSpaceController extends AbstractController
             'form' => $form,
             'homework' => $homework,
         ]);
-    }
-
-    /**
-     * Classes distinctes enseignées par l'utilisateur (déduites de ses cours).
-     *
-     * @return Classroom[]
-     */
-    private function teacherClassrooms(User $teacher): array
-    {
-        $classrooms = [];
-        foreach ($this->courseRepository->findByTeacher($teacher->getId()) as $course) {
-            $classroom = $course->getClassroom();
-            if ($classroom && $classroom->getId() !== null) {
-                $classrooms[$classroom->getId()] = $classroom;
-            }
-        }
-
-        return array_values($classrooms);
-    }
-
-    /**
-     * Matières distinctes enseignées par l'utilisateur (déduites de ses cours).
-     *
-     * @return Subject[]
-     */
-    private function teacherSubjects(User $teacher): array
-    {
-        $subjects = [];
-        foreach ($this->courseRepository->findByTeacher($teacher->getId()) as $course) {
-            $subject = $course->getSubject();
-            if ($subject && $subject->getId() !== null) {
-                $subjects[$subject->getId()] = $subject;
-            }
-        }
-
-        return array_values($subjects);
     }
 
     /**

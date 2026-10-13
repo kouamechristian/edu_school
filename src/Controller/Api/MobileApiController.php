@@ -66,13 +66,7 @@ class MobileApiController extends AbstractController
             return $this->error('invalid_credentials', 'Identifiants invalides.', Response::HTTP_UNAUTHORIZED);
         }
 
-        // Tout le personnel peut utiliser l'application, SAUF les comptes purement
-        // parent et/ou élève (aucun rôle « métier » au-delà de parent/élève/user).
-        $staffRoles = array_diff(
-            $user->getRoles(),
-            ['ROLE_USER', 'ROLE_PARENT', 'ROLE_ELEVE']
-        );
-        if ($staffRoles === []) {
+        if (!$this->isStaff($user)) {
             return $this->error('forbidden', "Ce compte n'est pas autorisé à utiliser l'application.", Response::HTTP_FORBIDDEN);
         }
 
@@ -116,6 +110,9 @@ class MobileApiController extends AbstractController
 
         /** @var User $user */
         $user = $this->getUser();
+        if (!$this->isStaff($user)) {
+            return $this->error('forbidden', "Ce compte n'est pas autorisé à utiliser l'application.", Response::HTTP_FORBIDDEN);
+        }
         $allowed = $this->allowedSchoolIds($user);
         // [] = recherche sans filtre pour findOneByMatriculeInSchools : réservé au super-admin.
         $scope = $allowed ?? [];
@@ -151,6 +148,9 @@ class MobileApiController extends AbstractController
     {
         /** @var User $user */
         $user = $this->getUser();
+        if (!$this->isStaff($user)) {
+            return $this->error('forbidden', "Ce compte n'est pas autorisé à utiliser l'application.", Response::HTTP_FORBIDDEN);
+        }
         $allowed = $this->allowedSchoolIds($user);
 
         $student = $this->studentRepository->find($id);
@@ -191,6 +191,18 @@ class MobileApiController extends AbstractController
         }
 
         return new JsonResponse($this->studentPayload($student, $request));
+    }
+
+    /**
+     * Tout le personnel peut utiliser l'application, SAUF les comptes purement
+     * parent et/ou élève (aucun rôle « métier » au-delà de parent/élève/user).
+     *
+     * Vérifié au login ET sur chaque action : le jeton porteur est partagé avec
+     * l'application parent (/api/parent), qui en émet aux comptes parents.
+     */
+    private function isStaff(User $user): bool
+    {
+        return array_diff($user->getRoles(), ['ROLE_USER', 'ROLE_PARENT', 'ROLE_ELEVE']) !== [];
     }
 
     /**

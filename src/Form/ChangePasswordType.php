@@ -33,7 +33,7 @@ class ChangePasswordType extends AbstractType
             'constraints' => [
                 new Assert\NotBlank(message: 'Veuillez saisir un mot de passe.'),
                 new Assert\Length(
-                    min: 8,
+                    min: 6,
                     minMessage: 'Le mot de passe doit contenir au moins {{ limit }} caractères.',
                     max: 4096,
                 ),

@@ -152,7 +152,6 @@ class ParentPortalController extends AbstractController
         CourseRepository $courseRepository,
         TimeSlotRepository $timeSlotRepository,
         PreRegistrationRepository $preRegistrationRepository,
-        StudentFeeRepository $studentFeeRepository,
     ): Response {
         $this->denyAccessUnlessGranted(ChildVoter::VIEW, $child);
 
@@ -172,7 +171,7 @@ class ParentPortalController extends AbstractController
 
         // Détail des frais par échéancier : affiché à la validation (frais affectés).
         $feeDetail = ($preRegistration !== null && in_array($preRegistration->getStatus(), ['validated', 'enrolled'], true))
-            ? $this->buildFeeScheduleDetail($child, $studentFeeRepository)
+            ? $this->portal->getFeeScheduleDetail($child)
             : [];
 
         return $this->render('parent/child_show.html.twig', [
@@ -617,85 +616,6 @@ class ParentPortalController extends AbstractController
         }
 
         return $count;
-    }
-
-    /**
-     * Détail des frais de l'élève rangés par échéancier : pour chaque frais, ses
-     * échéances (ordre, date, montant) avec l'imputation des paiements en cascade
-     * (les plus anciennes d'abord) → déjà réglé / reste à payer par échéance.
-     *
-     * @return list<array{name: string, category: string, total: float, paid: float,
-     *     remaining: float, schedules: list<array{order: int, due: ?\DateTimeInterface,
-     *     amount: float, paid: float, remaining: float}>}>
-     */
-    private function buildFeeScheduleDetail(Student $child, StudentFeeRepository $studentFeeRepository): array
-    {
-        $detail = [];
-
-        foreach ($studentFeeRepository->findByStudent($child->getId()) as $studentFee) {
-            $fee = $studentFee->getFee();
-            if (!$fee) {
-                continue;
-            }
-
-            $schedules = $fee->getSchedules()->toArray();
-            usort($schedules, static fn ($a, $b) => ($a->getOrderNumber() ?? 0) <=> ($b->getOrderNumber() ?? 0));
-
-            // Imputation du montant payé sur les échéances, en cascade. Le bouton
-            // « Payer » n'est actif que sur la PREMIÈRE échéance non soldée (la prochaine
-            // due), car l'imputation d'un paiement se fait de la plus ancienne à la plus
-            // récente : on règle donc les échéances dans l'ordre.
-            $paidLeft = (float) $studentFee->getPaidAmount();
-            $payActive = $fee->isActive();
-            $nextPayableSet = false;
-            $rows = [];
-
-            if ($schedules !== []) {
-                foreach ($schedules as $i => $schedule) {
-                    $amount = (float) $schedule->getAmount();
-                    $imputed = min($paidLeft, $amount);
-                    $paidLeft -= $imputed;
-                    $remaining = round($amount - $imputed, 2);
-                    $payable = $payActive && !$nextPayableSet && $remaining > 0;
-                    if ($payable) {
-                        $nextPayableSet = true;
-                    }
-                    $rows[] = [
-                        'order' => $schedule->getOrderNumber() ?? ($i + 1),
-                        'due' => $schedule->getDueDate(),
-                        'amount' => $amount,
-                        'paid' => round($imputed, 2),
-                        'remaining' => $remaining,
-                        'payable' => $payable,
-                    ];
-                }
-            } else {
-                // Frais sans échéancier : une échéance unique.
-                $amount = (float) $studentFee->getAmount();
-                $imputed = min($paidLeft, $amount);
-                $remaining = round($amount - $imputed, 2);
-                $rows[] = [
-                    'order' => 1,
-                    'due' => null,
-                    'amount' => $amount,
-                    'paid' => round($imputed, 2),
-                    'remaining' => $remaining,
-                    'payable' => $payActive && $remaining > 0,
-                ];
-            }
-
-            $detail[] = [
-                'student_fee_id' => $studentFee->getId(),
-                'name' => (string) $fee->getName(),
-                'category' => $fee->getCategoryLabel(),
-                'total' => (float) $studentFee->getAmount(),
-                'paid' => (float) $studentFee->getPaidAmount(),
-                'remaining' => $studentFee->getRemainingAmount(),
-                'schedules' => $rows,
-            ];
-        }
-
-        return $detail;
     }
 
     private function getCurrentParent(): \App\Entity\User

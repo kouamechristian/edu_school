@@ -1,0 +1,38 @@
+framework:
+    rate_limiter:
+        # Connexion de l'application mobile parent (POST /api/parent/login) :
+        # le firewall « api » est sans état, il n'a donc pas le login_throttling
+        # du firewall « main ». Clé = IP + identifiant saisi.
+        parent_api_login:
+            policy: sliding_window
+            limit: 5
+            interval: '2 minutes'
+            # Pas de composant Lock installé : un léger dépassement en cas de
+            # requêtes strictement simultanées est acceptable ici.
+            lock_factory: null
+        # Connexion de l'application mobile enseignant (POST /api/enseignant/login).
+        teacher_api_login:
+            policy: sliding_window
+            limit: 5
+            interval: '2 minutes'
+            lock_factory: null
+        # Connexion de l'application mobile élève (matricule + date de naissance) :
+        # second facteur faible, d'où deux limites — par IP + matricule…
+        student_api_login:
+            policy: sliding_window
+            limit: 5
+            interval: '2 minutes'
+            lock_factory: null
+        # … et par matricule toutes IP confondues (essais distribués de dates de naissance).
+        student_api_matricule:
+            policy: sliding_window
+            limit: 10
+            interval: '1 hour'
+            lock_factory: null
+        # Auto-inscription depuis l'application (POST /api/parent/register) : par IP,
+        # contre la création de comptes en masse et l'énumération des matricules.
+        parent_api_register:
+            policy: sliding_window
+            limit: 10
+            interval: '1 hour'
+            lock_factory: null

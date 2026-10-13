@@ -118,6 +118,24 @@ security:
          # simplement un jeton valide : le tri des rôles (tout le personnel, mais PAS
          # ROLE_PARENT ni ROLE_ELEVE) est fait au login, qui n'émet un jeton qu'aux ayants droit.
          - { path: ^/api/mobile/login$, roles: PUBLIC_ACCESS }
+         # Application mobile parent : connexion et page de retour GeniusPay publiques,
+         # tout le reste réservé aux parents (le login n'émet un jeton qu'aux parents).
+         - { path: ^/api/parent/login$, roles: PUBLIC_ACCESS }
+         # Premier login avec mot de passe provisoire : authentifié par les identifiants du corps.
+         - { path: ^/api/parent/password/first-login$, roles: PUBLIC_ACCESS }
+         # Auto-inscription d'un parent depuis l'application (mêmes règles que /parent/inscription).
+         - { path: ^/api/parent/register$, roles: PUBLIC_ACCESS }
+         - { path: ^/api/parent/paiement/retour$, roles: PUBLIC_ACCESS }
+         - { path: ^/api/parent, roles: ROLE_PARENT }
+         # Application mobile enseignant : connexion et premier login publics, le reste
+         # réservé aux enseignants (le périmètre classes/évaluations est vérifié dans le contrôleur).
+         - { path: ^/api/enseignant/login$, roles: PUBLIC_ACCESS }
+         - { path: ^/api/enseignant/password/first-login$, roles: PUBLIC_ACCESS }
+         - { path: ^/api/enseignant, roles: ROLE_ENSEIGNANT }
+         # Application mobile élève : connexion (matricule + date de naissance) publique,
+         # le reste réservé aux élèves (l'élève est toujours celui du compte connecté).
+         - { path: ^/api/eleve/login$, roles: PUBLIC_ACCESS }
+         - { path: ^/api/eleve, roles: ROLE_ELEVE }
          - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
          # Espace parent — pages publiques : connexion dédiée et auto-inscription.
          - { path: ^/parent/connexion$, roles: PUBLIC_ACCESS }

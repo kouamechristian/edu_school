@@ -129,6 +129,29 @@ class AbsenceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Absences actives d'un ensemble d'élèves à une date donnée (appel d'une classe).
+     *
+     * @param int[] $studentIds
+     * @return Absence[]
+     */
+    public function findActiveByStudentsAndDate(array $studentIds, \DateTimeInterface $date): array
+    {
+        if ($studentIds === []) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.student IN (:students)')
+            ->andWhere('a.date = :date')
+            ->andWhere('a.isActive = :active')
+            ->setParameter('students', $studentIds)
+            ->setParameter('date', $date->format('Y-m-d'))
+            ->setParameter('active', true)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Trouve les absences par date
      */
     public function findByDate(\DateTimeInterface $date, int $schoolId): array

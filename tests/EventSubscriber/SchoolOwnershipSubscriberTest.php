@@ -107,6 +107,20 @@ class SchoolOwnershipSubscriberTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function testParentMobileApiIsSkipped(): void
+    {
+        $event = $this->makeEvent([$this->ownedEntity(new School())], '/api/parent/children/1');
+        $this->subscriber($this->staffUser(['ROLE_PARENT']), schoolAllowed: false)->onControllerArguments($event);
+        $this->addToAssertionCount(1);
+    }
+
+    public function testStaffMobileApiIsStillFiltered(): void
+    {
+        $event = $this->makeEvent([$this->ownedEntity(new School())], '/api/mobile/students/1/photo');
+        $this->expectException(NotFoundHttpException::class);
+        $this->subscriber($this->staffUser(['ROLE_ADMIN']), schoolAllowed: false)->onControllerArguments($event);
+    }
+
     public function testMultiSchoolForeignThrows404(): void
     {
         $this->expectException(NotFoundHttpException::class);

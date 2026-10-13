@@ -51,7 +51,8 @@ final class SchoolOwnershipSubscriber implements EventSubscriberInterface
         // (sa propre fiche / sa propre classe) et l'élève n'est pas rattaché à un
         // établissement au sens User::getSchools().
         $path = $event->getRequest()->getPathInfo();
-        if (str_starts_with($path, '/parent') || str_starts_with($path, '/eleve')) {
+        // L'API de l'application mobile parent (/api/parent) suit les mêmes règles que /parent.
+        if (str_starts_with($path, '/parent') || str_starts_with($path, '/eleve') || str_starts_with($path, '/api/parent/')) {
             return;
         }
 
