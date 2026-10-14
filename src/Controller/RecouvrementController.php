@@ -56,13 +56,18 @@ class RecouvrementController extends AbstractController
             $currentYear?->getId()
         );
 
+        // Recherche et statut appliqués à tous les élèves, avant la pagination.
+        $search = trim((string) $request->query->get('search', ''));
+        $status = $request->query->get('status');
+        $rows = $this->filterRows($data['rows'], $search, $status);
+
         return $this->render('recouvrement/index.html.twig', [
             'current_school' => $currentSchool,
             'current_school_year' => $currentYear,
-            'rows' => $paginator->paginate($data['rows'], $request->query->getInt('page', 1), 50),
+            'rows' => $paginator->paginate($rows, $request->query->getInt('page', 1), 50),
             'totals' => $data['totals'],
             'classrooms' => $classrooms,
-            'filters' => ['classroom' => $classroomId, 'category' => $category],
+            'filters' => ['classroom' => $classroomId, 'category' => $category, 'search' => $search, 'status' => $status],
         ]);
     }
 
@@ -258,12 +263,9 @@ class RecouvrementController extends AbstractController
             $currentYear?->getId()
         );
 
-        // Filtre de statut (à jour / en retard) appliqué au rendu PDF uniquement.
+        // Mêmes filtres de recherche et de statut que la liste.
         $statusFilter = $request->query->get('status');
-        $rows = $data['rows'];
-        if (in_array($statusFilter, ['a_jour', 'en_retard'], true)) {
-            $rows = array_values(array_filter($rows, fn (array $r) => $r['status'] === $statusFilter));
-        }
+        $rows = $this->filterRows($data['rows'], trim((string) $request->query->get('search', '')), $statusFilter);
 
         $logoData = null;
         if ($currentSchool->getLogo()) {
@@ -332,11 +334,16 @@ class RecouvrementController extends AbstractController
 
         [$rows, $totals] = $this->buildArrieres($studentFeeRepository, $currentSchool->getId());
 
+        // Recherche appliquée à tous les élèves concernés, avant la pagination.
+        $search = trim((string) $request->query->get('search', ''));
+        $rows = $this->filterRows($rows, $search, null);
+
         return $this->render('recouvrement/arrieres.html.twig', [
             'current_school' => $currentSchool,
             'current_school_year' => $contextService->getCurrentSchoolYear(),
             'rows' => $paginator->paginate($rows, $request->query->getInt('page', 1), 50),
             'totals' => $totals,
+            'search' => $search,
         ]);
     }
 
@@ -562,6 +569,37 @@ class RecouvrementController extends AbstractController
         $data = $recouvrementService->build($students, $category, $yearId);
 
         return [$category, $classroomId, $classrooms, $data];
+    }
+
+    /**
+     * Filtre les lignes (une par élève) sur la recherche — nom, matricules, classe —
+     * et, le cas échéant, sur le statut (à jour / en retard).
+     */
+    private function filterRows(array $rows, string $search, ?string $status): array
+    {
+        $status = in_array($status, ['a_jour', 'en_retard'], true) ? $status : null;
+        if ($search === '' && $status === null) {
+            return $rows;
+        }
+
+        return array_values(array_filter($rows, static function (array $row) use ($search, $status): bool {
+            if ($status !== null && ($row['status'] ?? null) !== $status) {
+                return false;
+            }
+            if ($search === '') {
+                return true;
+            }
+            $s = $row['student'];
+            $haystack = implode(' ', [
+                $s->getLastName() . ' ' . $s->getFirstName(),
+                $s->getFirstName() . ' ' . $s->getLastName(),
+                $s->getMatriculeInterne(),
+                $s->getMatriculeNational(),
+                $s->getClassroom()?->getName(),
+            ]);
+
+            return mb_stripos($haystack, $search) !== false;
+        }));
     }
 
     private function categoryLabel(?string $category): string

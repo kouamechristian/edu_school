@@ -553,6 +553,37 @@ class PaymentRepository extends ServiceEntityRepository
      *
      * @return Payment[]
      */
+    /**
+     * Liste des paiements d'un établissement avec filtres cumulables : recherche
+     * (n° de paiement / reçu, référence, nom ou matricule de l'élève), statut et méthode.
+     *
+     * @return Payment[]
+     */
+    public function searchForSchool(int $schoolId, ?string $search = null, ?string $status = null, ?string $method = null): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->orderBy('p.createdAt', 'DESC');
+        $this->restrictToSchool($qb, $schoolId);
+
+        $search = trim((string) $search);
+        if ($search !== '') {
+            $qb->andWhere('p.paymentNumber LIKE :search OR p.receiptNumber LIKE :search OR p.reference LIKE :search'
+                    . ' OR school_scope_student.lastName LIKE :search OR school_scope_student.firstName LIKE :search'
+                    . " OR CONCAT(school_scope_student.lastName, ' ', school_scope_student.firstName) LIKE :search"
+                    . " OR CONCAT(school_scope_student.firstName, ' ', school_scope_student.lastName) LIKE :search"
+                    . ' OR school_scope_student.matriculeInterne LIKE :search OR school_scope_student.matriculeNational LIKE :search')
+                ->setParameter('search', '%' . $search . '%');
+        }
+        if ($status) {
+            $qb->andWhere('p.status = :status')->setParameter('status', $status);
+        }
+        if ($method) {
+            $qb->andWhere('p.paymentMethod = :method')->setParameter('method', $method);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function findAllForSchool(?int $schoolId = null): array
     {
         $qb = $this->createQueryBuilder('p')

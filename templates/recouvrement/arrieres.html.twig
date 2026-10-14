@@ -105,18 +105,20 @@
         {# ── Recherche dynamique ── #}
         <div class="card filter-card mb-4">
             <div class="card-body">
-                <label class="form-label">Recherche dynamique</label>
+                <label class="form-label">Recherche</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
-                    <input type="text" id="liveSearch" class="form-control" placeholder="Nom, matricule, classe..." autocomplete="off">
+                    <input type="text" id="liveSearch" name="search" value="{{ search ?? '' }}" class="form-control" placeholder="Nom, matricule, classe..." autocomplete="off" data-live-search="#arrieresResults">
                 </div>
             </div>
         </div>
 
         {# ── Tableau ── #}
         <div class="card table-card">
-            <div class="card-body">
-                {% if rows is empty %}
+            <div class="card-body" id="arrieresResults">
+                {% if rows is empty and search ?? '' %}
+                    {{ empty_state('fa-clock-rotate-left', 'Aucun résultat', 'Aucun élève ne correspond à « ' ~ search ~ ' ».') }}
+                {% elseif rows is empty %}
                     {{ empty_state('fa-clock-rotate-left', 'Aucun arriéré', 'Aucun arriéré antérieur n\'a été enregistré pour cet établissement.') }}
                 {% else %}
                     <div class="table-responsive">
@@ -130,7 +132,7 @@
                             <tbody>
                                 {% for row in rows %}
                                     {% set s = row.student %}
-                                    <tr data-search="{{ (s.fullName ~ ' ' ~ (s.matriculeInterne ?: '') ~ ' ' ~ (s.classroom ? s.classroom.name : ''))|lower }}">
+                                    <tr>
                                         <td><small class="text-muted">{{ s.matriculeInterne ?: '—' }}</small></td>
                                         <td><strong>{{ s.fullName }}</strong></td>
                                         <td>{{ s.classroom ? s.classroom.name : '—' }}</td>
@@ -151,38 +153,10 @@
                             </tfoot>
                         </table>
                     </div>
-                    <div class="text-muted small mt-3" id="visibleCount"></div>
                     {% include '_pagination.html.twig' with { pagination: rows } %}
                 {% endif %}
             </div>
         </div>
     {% endif %}
 </div>
-{% endblock %}
-
-{% block javascripts %}
-{{ parent() }}
-<script>
-(function () {
-    const search = document.getElementById('liveSearch');
-    const table = document.getElementById('arrieresTable');
-    if (!table) return;
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
-    const counter = document.getElementById('visibleCount');
-
-    function apply() {
-        const q = (search.value || '').trim().toLowerCase();
-        let visible = 0;
-        rows.forEach(function (tr) {
-            const show = !q || tr.dataset.search.indexOf(q) !== -1;
-            tr.style.display = show ? '' : 'none';
-            if (show) visible++;
-        });
-        if (counter) counter.textContent = visible + ' élève(s) affiché(s)';
-    }
-
-    search.addEventListener('input', apply);
-    apply();
-})();
-</script>
 {% endblock %}

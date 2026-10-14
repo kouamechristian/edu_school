@@ -206,16 +206,8 @@ class PaymentController extends AbstractController
         // jamais les paiements d'un autre établissement, même en gérant plusieurs.
         $schoolId = $currentSchool->getId();
 
-        // Filtrer les paiements
-        if ($search) {
-            $payments = $paymentRepository->searchByNumberOrReference($search, $schoolId);
-        } elseif ($status) {
-            $payments = $paymentRepository->findByStatus($status, $schoolId);
-        } elseif ($method) {
-            $payments = $paymentRepository->findByPaymentMethod($method, $schoolId);
-        } else {
-            $payments = $paymentRepository->findAllForSchool($schoolId);
-        }
+        // Filtrer les paiements (recherche en base, filtres cumulables)
+        $payments = $paymentRepository->searchForSchool($schoolId, $search, $status, $method);
 
         // Un versement imputé sur plusieurs frais génère plusieurs lignes Payment
         // partageant le même numéro de reçu (cf. recordImputations) : on les réunit
@@ -254,15 +246,7 @@ class PaymentController extends AbstractController
         $search = $request->query->get('search');
         $schoolId = $currentSchool->getId();
 
-        if ($search) {
-            $payments = $paymentRepository->searchByNumberOrReference($search, $schoolId);
-        } elseif ($status) {
-            $payments = $paymentRepository->findByStatus($status, $schoolId);
-        } elseif ($method) {
-            $payments = $paymentRepository->findByPaymentMethod($method, $schoolId);
-        } else {
-            $payments = $paymentRepository->findAllForSchool($schoolId);
-        }
+        $payments = $paymentRepository->searchForSchool($schoolId, $search, $status, $method);
 
         // Même regroupement par reçu que la vue : un encaissement imputé sur
         // plusieurs frais ne doit apparaître qu'une seule fois dans l'export.

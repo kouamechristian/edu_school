@@ -63,15 +63,15 @@
             <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des inscrits{{ current_school_year ? ' — ' ~ current_school_year.name : '' }}</h6>
         </div>
         <div class="card-body">
-            {# Recherche instantanée dans le tableau affiché #}
+            {# Recherche en base sur tous les inscrits de l'année #}
             <div class="mb-3 no-print">
                 <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
-                    <input type="text" id="enrSearch" class="form-control" placeholder="Rechercher (nom, matricule, classe)…" autocomplete="off">
-                    <button type="button" class="btn btn-light" id="enrSearchClear" title="Effacer"><i class="fas fa-times"></i></button>
+                    <input type="text" id="enrSearch" name="search" value="{{ search }}" class="form-control" placeholder="Rechercher (nom, matricule, classe)…" autocomplete="off" data-live-search="#enrResults">
+                    <button type="button" class="btn btn-light" data-live-search-clear="#enrSearch" title="Effacer"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="small text-muted mt-1" id="enrSearchInfo" style="display:none;"></div>
             </div>
+            <div id="enrResults">
             <div class="table-responsive">
                 <table class="table table-hover align-middle" id="enrTable" width="100%" cellspacing="0">
                     <thead>
@@ -111,7 +111,7 @@
                         <tr>
                             <td colspan="9">
                                 {% from 'components/macros.html.twig' import empty_state %}
-                                {{ empty_state('fa-user-slash', 'Aucun inscrit', 'Aucun élève n\'est inscrit pour l\'année scolaire courante.') }}
+                                {{ search ? empty_state('fa-user-slash', 'Aucun résultat', 'Aucun inscrit ne correspond à « ' ~ search ~ ' ».') : empty_state('fa-user-slash', 'Aucun inscrit', 'Aucun élève n\'est inscrit pour l\'année scolaire courante.') }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -120,40 +120,8 @@
                 </table>
             </div>
             {% include '_pagination.html.twig' with { pagination: registrations } %}
+            </div>
         </div>
     </div>
 </div>
-
-<script>
-    (function () {
-        var input = document.getElementById('enrSearch');
-        var clearBtn = document.getElementById('enrSearchClear');
-        var info = document.getElementById('enrSearchInfo');
-        if (!input) return;
-
-        function normalize(s) {
-            return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-        }
-
-        function applyFilter() {
-            var q = normalize(input.value.trim());
-            var rows = document.querySelectorAll('#enrTable tbody tr.js-enrolled-row');
-            var shown = 0;
-            rows.forEach(function (tr) {
-                var match = q === '' || normalize(tr.textContent).indexOf(q) !== -1;
-                tr.style.display = match ? '' : 'none';
-                if (match) shown++;
-            });
-            if (q === '') {
-                info.style.display = 'none';
-            } else {
-                info.style.display = '';
-                info.textContent = shown + ' résultat(s) sur cette page.';
-            }
-        }
-
-        input.addEventListener('input', applyFilter);
-        if (clearBtn) clearBtn.addEventListener('click', function () { input.value = ''; applyFilter(); input.focus(); });
-    })();
-</script>
 {% endblock %}

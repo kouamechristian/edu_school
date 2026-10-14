@@ -158,6 +158,12 @@ class RegistrationController extends AbstractController
 
         $allRegistrations = $registrationRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
 
+        // Recherche en base sur tous les inscrits ; les statistiques restent globales.
+        $search = trim((string) $request->query->get('search', ''));
+        $listed = $search !== ''
+            ? $registrationRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId(), null, $search)
+            : $allRegistrations;
+
         // Totaux calculés sur l'ensemble des inscrits (pas seulement la page courante).
         $totals = ['tuition' => 0.0, 'paid' => 0.0, 'cancelled' => 0.0, 'remaining' => 0.0];
         foreach ($allRegistrations as $reg) {
@@ -167,12 +173,13 @@ class RegistrationController extends AbstractController
             $totals['remaining'] += $reg->getRemainingTuition();
         }
 
-        $registrations = $paginator->paginate($allRegistrations, $request->query->getInt('page', 1), 50);
+        $registrations = $paginator->paginate($listed, $request->query->getInt('page', 1), 50);
 
         return $this->render('registration/enrolled.html.twig', [
             'registrations' => $registrations,
             'total_count' => count($allRegistrations),
             'totals' => $totals,
+            'search' => $search,
             'current_school' => $school,
             'current_school_year' => $schoolYear,
         ]);

@@ -47,7 +47,7 @@ class RegistrationRepository extends ServiceEntityRepository
      *
      * @return Registration[]
      */
-    public function findBySchoolAndYear(?int $schoolId, ?int $yearId, ?int $classroomId = null): array
+    public function findBySchoolAndYear(?int $schoolId, ?int $yearId, ?int $classroomId = null, ?string $search = null): array
     {
         if (!$schoolId || !$yearId) {
             return [];
@@ -66,6 +66,22 @@ class RegistrationRepository extends ServiceEntityRepository
 
         if ($classroomId) {
             $qb->andWhere('i.classroom = :classroom')->setParameter('classroom', $classroomId);
+        }
+
+        // Recherche : nom / matricules (préinscription ou fiche élève) et classe.
+        $search = trim((string) $search);
+        if ($search !== '') {
+            $qb->leftJoin('pr.student', 'search_st')
+                ->leftJoin('pr.existingStudent', 'search_ex')
+                ->leftJoin('i.classroom', 'search_c')
+                ->andWhere('pr.lastName LIKE :search OR pr.firstName LIKE :search'
+                    . " OR CONCAT(pr.lastName, ' ', pr.firstName) LIKE :search OR CONCAT(pr.firstName, ' ', pr.lastName) LIKE :search"
+                    . ' OR pr.matriculeInterne LIKE :search OR pr.matriculeNational LIKE :search'
+                    . ' OR search_st.matriculeInterne LIKE :search OR search_st.matriculeNational LIKE :search'
+                    . ' OR search_ex.matriculeInterne LIKE :search OR search_ex.matriculeNational LIKE :search'
+                    . ' OR search_ex.lastName LIKE :search OR search_ex.firstName LIKE :search'
+                    . ' OR search_c.name LIKE :search')
+                ->setParameter('search', '%' . $search . '%');
         }
 
         return $qb->getQuery()->getResult();

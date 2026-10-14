@@ -220,8 +220,11 @@ class StudentController extends AbstractController
         }
 
         if ($search) {
-            $queryBuilder->andWhere('s.firstName LIKE :search OR s.lastName LIKE :search OR s.matriculeInterne LIKE :search OR s.matriculeNational LIKE :search')
-                ->setParameter('search', '%' . $search . '%');
+            // Recherche sur toute la base (nom, prénom, nom complet dans les deux sens, matricules).
+            $queryBuilder->andWhere('s.firstName LIKE :search OR s.lastName LIKE :search'
+                    . " OR CONCAT(s.lastName, ' ', s.firstName) LIKE :search OR CONCAT(s.firstName, ' ', s.lastName) LIKE :search"
+                    . ' OR s.matriculeInterne LIKE :search OR s.matriculeNational LIKE :search')
+                ->setParameter('search', '%' . trim($search) . '%');
         }
 
         if ($gender) {
@@ -529,8 +532,11 @@ class StudentController extends AbstractController
         }
 
         if ($search) {
-            $qb->andWhere('s.firstName LIKE :search OR s.lastName LIKE :search OR s.matriculeInterne LIKE :search OR s.matriculeNational LIKE :search')
-                ->setParameter('search', '%' . $search . '%');
+            // Mêmes critères que la liste (index).
+            $qb->andWhere('s.firstName LIKE :search OR s.lastName LIKE :search'
+                    . " OR CONCAT(s.lastName, ' ', s.firstName) LIKE :search OR CONCAT(s.firstName, ' ', s.lastName) LIKE :search"
+                    . ' OR s.matriculeInterne LIKE :search OR s.matriculeNational LIKE :search')
+                ->setParameter('search', '%' . trim($search) . '%');
         }
 
         $students = $qb->getQuery()->getResult();

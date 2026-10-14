@@ -1730,6 +1730,97 @@
         })();
     </script>
 
+    <script>
+        /**
+         * Recherche serveur en direct sur les listes paginées.
+         * Usage : <input data-live-search="#resultats" name="search">
+         *  - à chaque frappe (avec un délai), la page est rechargée en arrière-plan avec
+         *    le paramètre de recherche (et les autres champs du formulaire parent) ;
+         *  - la recherche porte donc sur toute la base, pas seulement la page affichée ;
+         *  - seul le conteneur ciblé est remplacé (le champ garde le focus) ;
+         *  - on revient toujours à la page 1 et l'URL est mise à jour (lien partageable).
+         * Un événement `live-search:updated` est émis sur le document après chaque mise à jour,
+         * et les liens `<a data-live-search-sync>` (export, PDF…) reprennent les filtres courants.
+         */
+        (function () {
+            var timers = new WeakMap();
+            var controllers = new WeakMap();
+
+            function buildUrl(input) {
+                var url = new URL(window.location.href);
+                if (input.form) {
+                    new FormData(input.form).forEach(function (value, key) {
+                        if (value === '') url.searchParams.delete(key); else url.searchParams.set(key, value);
+                    });
+                }
+                var value = input.value.trim();
+                if (value === '') url.searchParams.delete(input.name); else url.searchParams.set(input.name, value);
+                url.searchParams.delete('page');
+                return url;
+            }
+
+            function run(input) {
+                var selector = input.dataset.liveSearch;
+                var target = document.querySelector(selector);
+                if (!target) return;
+                var url = buildUrl(input);
+
+                if (controllers.get(input)) controllers.get(input).abort();
+                var controller = new AbortController();
+                controllers.set(input, controller);
+                target.style.opacity = '0.5';
+
+                fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controller.signal })
+                    .then(function (r) { return r.text(); })
+                    .then(function (html) {
+                        var doc = new DOMParser().parseFromString(html, 'text/html');
+                        var fresh = doc.querySelector(selector);
+                        if (fresh) target.innerHTML = fresh.innerHTML;
+                        target.style.opacity = '';
+                        window.history.replaceState(null, '', url.toString());
+                        if (window.enhanceSelects) window.enhanceSelects(target);
+                        // Liens d'export/PDF marqués `data-live-search-sync` : mêmes filtres que la liste.
+                        document.querySelectorAll('a[data-live-search-sync]').forEach(function (a) {
+                            var link = new URL(a.href, window.location.origin);
+                            link.search = '';
+                            url.searchParams.forEach(function (v, k) { if (k !== 'page') link.searchParams.set(k, v); });
+                            a.href = link.toString();
+                        });
+                        document.dispatchEvent(new CustomEvent('live-search:updated', { detail: { target: target, input: input } }));
+                    })
+                    .catch(function (e) {
+                        if (e.name !== 'AbortError') target.style.opacity = '';
+                    });
+            }
+
+            document.addEventListener('input', function (e) {
+                var input = e.target;
+                if (!input.matches || !input.matches('input[data-live-search]')) return;
+                clearTimeout(timers.get(input));
+                timers.set(input, setTimeout(function () { run(input); }, 350));
+            });
+            // Entrée : recherche immédiate, sans soumettre le formulaire.
+            document.addEventListener('keydown', function (e) {
+                var input = e.target;
+                if (e.key !== 'Enter' || !input.matches || !input.matches('input[data-live-search]')) return;
+                e.preventDefault();
+                clearTimeout(timers.get(input));
+                run(input);
+            });
+            // Bouton d'effacement : <button data-live-search-clear="#idDuChamp">
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest && e.target.closest('[data-live-search-clear]');
+                if (!btn) return;
+                var input = document.querySelector(btn.dataset.liveSearchClear);
+                if (!input) return;
+                input.value = '';
+                run(input);
+                input.focus();
+            });
+            window.liveSearchRun = run;
+        })();
+    </script>
+
     {% block javascripts %}{% endblock %}
 
 </body>
