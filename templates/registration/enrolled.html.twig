@@ -61,6 +61,14 @@
     <div class="card table-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des inscrits{{ current_school_year ? ' — ' ~ current_school_year.name : '' }}</h6>
+            {% if is_granted('ROLE_SUPER_ADMIN') %}
+            <form method="post" action="{{ path('admin_registration_bulk_delete') }}" id="bulkDeleteRegistrations" class="d-none no-print"
+                  data-bulk-delete data-bulk-label="inscription(s)"
+                  data-bulk-warning="Leurs frais de l'année et les paiements associés (avec les écritures comptables) seront supprimés. Les élèves et leurs préinscriptions sont conservés.">
+                <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_registrations') }}">
+                <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Supprimer la sélection (<span data-bulk-count>0</span>)</button>
+            </form>
+            {% endif %}
         </div>
         <div class="card-body">
             {# Recherche en base sur tous les inscrits de l'année #}
@@ -76,6 +84,9 @@
                 <table class="table table-hover align-middle" id="enrTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
+                            {% if is_granted('ROLE_SUPER_ADMIN') %}
+                            <th class="no-print" style="width:1%"><input type="checkbox" class="form-check-input" data-bulk-check-all="bulkDeleteRegistrations" title="Tout sélectionner"></th>
+                            {% endif %}
                             <th>Mle interne</th>
                             <th>Mle national</th>
                             <th>Élève</th>
@@ -91,6 +102,9 @@
                     <tbody>
                         {% for r in registrations %}
                         <tr class="js-enrolled-row">
+                            {% if is_granted('ROLE_SUPER_ADMIN') %}
+                            <td class="no-print"><input type="checkbox" class="form-check-input js-bulk-check" name="ids[]" value="{{ r.id }}" form="bulkDeleteRegistrations"></td>
+                            {% endif %}
                             <td><span class="fw-semibold text-primary">{{ r.student.matriculeInterne ?: '—' }}</span></td>
                              <td><span class="fw-semibold text-primary">{{ r.student.matriculeNational ?: '—' }}</span></td>
                             <td class="fw-semibold">{{ r.student.lastName }} {{ r.student.firstName }}</td>
@@ -104,6 +118,14 @@
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ path('admin_student_show', {'id': r.student.id}) }}" class="btn btn-outline-info" title="Voir l'élève"><i class="fas fa-eye"></i></a>
                                     <a href="{{ path('admin_registration_edit', {'id': r.id}) }}" class="btn btn-outline-primary" title="Modifier l'inscription"><i class="fas fa-edit"></i></a>
+                                    {% if is_granted('ROLE_SUPER_ADMIN') %}
+                                    <form method="post" action="{{ path('admin_registration_bulk_delete') }}" class="d-inline"
+                                          onsubmit="return confirm('Supprimer définitivement l\'inscription de {{ (r.student.lastName ~ ' ' ~ r.student.firstName)|e('js') }} ?\n\nSes frais de l\'année et les paiements associés seront supprimés. Cette action est irréversible.')">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_registrations') }}">
+                                        <input type="hidden" name="ids[]" value="{{ r.id }}">
+                                        <button type="submit" class="btn btn-danger" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

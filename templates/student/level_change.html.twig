@@ -1,0 +1,221 @@
+{% extends 'base.html.twig' %}
+{% from 'components/macros.html.twig' import empty_state %}
+
+{% block title %}Changement de niveau{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Changement de niveau',
+        subtitle: 'Faire passer un élève inscrit dans un autre niveau' ~ (current_school_year ? ' — ' ~ current_school_year.name : ''),
+        icon: 'fa-arrow-up-wide-short',
+        color: 'primary',
+        breadcrumb: [ { label: 'Élèves', path: path('admin_student_index') }, { label: 'Changement de niveau' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_student_transfer') }}" class="btn btn-outline-primary"><i class="fas fa-exchange-alt me-1"></i> Transfert de classe</a>
+        {% endblock %}
+    {% endembed %}
+
+    {% include '_flash.html.twig' %}
+
+    {% if registrations is empty %}
+        {{ empty_state('fa-user-graduate', 'Aucun élève inscrit', 'Seuls les élèves inscrits pour l\'année scolaire courante peuvent changer de niveau.') }}
+    {% else %}
+        <form method="POST" id="levelChangeForm" enctype="multipart/form-data">
+            <input type="hidden" name="_token" value="{{ csrf_token('level_change') }}">
+
+            {# ── Étape 1 : élève ── #}
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-user me-2"></i>Étape 1 — Élève</h6></div>
+                <div class="card-body">
+                    <label for="registration_id" class="form-label fw-bold">Sélectionner l'élève</label>
+                    <select class="form-select" id="registration_id" name="registration_id" required>
+                        <option value="">— Choisir un élève —</option>
+                        {% for r in registrations %}
+                            {% set s = r.student %}
+                            {% set lvl = r.level ?: (r.preRegistration ? r.preRegistration.requestedLevel : null) %}
+                            {% if s %}
+                                <option value="{{ r.id }}"
+                                        data-name="{{ s.lastName }} {{ s.firstName }}"
+                                        data-mi="{{ s.matriculeInterne ?: '—' }}"
+                                        data-class="{{ r.classroom ? r.classroom.name : 'Sans classe' }}"
+                                        data-classid="{{ r.classroom ? r.classroom.id : '' }}"
+                                        data-level="{{ lvl ? lvl.name : '—' }}"
+                                        data-levelid="{{ lvl ? lvl.id : '' }}"
+                                        data-tuition="{{ r.totalTuition|number_format(0, ',', ' ') }}"
+                                        data-paid="{{ r.totalPaid|number_format(0, ',', ' ') }}">
+                                    {{ s.lastName }} {{ s.firstName }}{% if s.matriculeInterne %} ({{ s.matriculeInterne }}){% endif %} — {{ lvl ? lvl.name : 'sans niveau' }}{% if r.classroom %} / {{ r.classroom.name }}{% endif %}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+
+                    <div class="row g-3 mt-2 d-none" id="studentInfo">
+                        <div class="col-md-3 col-6"><div class="text-muted small">Matricule</div><div class="fw-bold" id="info-mi">—</div></div>
+                        <div class="col-md-3 col-6"><div class="text-muted small">Niveau actuel</div><div class="fw-bold" id="info-level">—</div></div>
+                        <div class="col-md-3 col-6"><div class="text-muted small">Classe actuelle</div><div class="fw-bold" id="info-class">—</div></div>
+                        <div class="col-md-3 col-6"><div class="text-muted small">Scolarité (payé / total)</div><div class="fw-bold" id="info-fees">—</div></div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Étape 2 : nouveau niveau ── #}
+            <div class="card mb-4 d-none" id="detailsCard">
+                <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-layer-group me-2"></i>Étape 2 — Nouveau niveau et classe</h6></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="to_level_id" class="form-label fw-bold">Nouveau niveau</label>
+                            <select class="form-select" id="to_level_id" data-no-search required>
+                                <option value="">— Choisir un niveau —</option>
+                                {% for level in levels %}
+                                    <option value="{{ level.id }}">{{ level.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="to_class_id" class="form-label fw-bold">Classe de destination</label>
+                            <select class="form-select" id="to_class_id" name="to_class_id" data-no-search required>
+                                <option value="">— Choisir une classe —</option>
+                                {% for c in classrooms %}
+                                    {% set count = occupancy[c.id] ?? 0 %}
+                                    {% set full = c.capacity is not null and count >= c.capacity %}
+                                    <option value="{{ c.id }}" data-levelid="{{ c.level ? c.level.id : '' }}" {{ full ? 'data-full=1' }}>
+                                        {{ c.name }} — {{ count }}{{ c.capacity is not null ? '/' ~ c.capacity : '' }}{{ full ? ' (complète)' : '' }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="document" class="form-label fw-bold">Justificatif <span class="text-muted fw-normal">(optionnel)</span></label>
+                            <input type="file" class="form-control" id="document" name="document" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                        </div>
+                        <div class="col-12">
+                            <label for="motif" class="form-label fw-bold">Motif</label>
+                            <textarea class="form-control" id="motif" name="motif" rows="2" required placeholder="Ex. : décision du conseil de classe, erreur d'orientation…"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small mt-3 mb-0">
+                        <i class="fas fa-circle-info me-1"></i>
+                        Les frais de scolarité de l'ancien niveau sont remplacés par ceux du nouveau niveau.
+                        Les paiements déjà effectués sont <strong>reportés</strong> sur les nouveaux frais : l'élève ne paie que la différence.
+                        Les arriérés et les autres frais (articles…) ne changent pas.
+                    </div>
+
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                            <i class="fas fa-arrow-up-wide-short me-1"></i> Changer de niveau
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    {% endif %}
+
+    {# ── Historique ── #}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-history me-2"></i>Historique des changements de niveau</h6>
+            <span class="badge bg-primary">{{ history|length }}</span>
+        </div>
+        <div class="card-body">
+            {% if history is empty %}
+                <p class="text-muted text-center mb-0 py-2">Aucun changement de niveau enregistré.</p>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead><tr><th>Date</th><th>Élève</th><th>Ancien niveau / classe</th><th>Nouveau niveau / classe</th><th>Motif</th><th>Document</th></tr></thead>
+                        <tbody>
+                            {% for t in history %}
+                                <tr>
+                                    <td>{{ t.createdAt ? t.createdAt|date('d/m/Y H:i') : '—' }}</td>
+                                    <td class="fw-semibold">{{ t.student ? t.student.lastName ~ ' ' ~ t.student.firstName : '—' }}</td>
+                                    <td>{{ t.fromClassroom ? (t.fromClassroom.level ? t.fromClassroom.level.name ~ ' / ' : '') ~ t.fromClassroom.name : '—' }}</td>
+                                    <td>{{ t.toClassroom ? (t.toClassroom.level ? t.toClassroom.level.name ~ ' / ' : '') ~ t.toClassroom.name : '—' }}</td>
+                                    <td title="{{ t.motif }}">{{ t.motif|length > 70 ? t.motif|slice(0, 70) ~ '…' : t.motif }}</td>
+                                    <td>
+                                        {% if t.documentPath %}
+                                            <a href="{{ asset(t.documentPath) }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file"></i></a>
+                                        {% else %}<span class="text-muted">—</span>{% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('levelChangeForm');
+    if (!form) return;
+    const studentSel = document.getElementById('registration_id');
+    const levelSel = document.getElementById('to_level_id');
+    const classSel = document.getElementById('to_class_id');
+    const motif = document.getElementById('motif');
+    const btn = document.getElementById('submitBtn');
+    const info = document.getElementById('studentInfo');
+    const details = document.getElementById('detailsCard');
+
+    function selected() { return studentSel.options[studentSel.selectedIndex]; }
+
+    function onStudent() {
+        const opt = selected();
+        const has = !!studentSel.value;
+        info.classList.toggle('d-none', !has);
+        details.classList.toggle('d-none', !has);
+        if (!has) return;
+        document.getElementById('info-mi').textContent = opt.dataset.mi;
+        document.getElementById('info-level').textContent = opt.dataset.level;
+        document.getElementById('info-class').textContent = opt.dataset.class;
+        document.getElementById('info-fees').textContent = opt.dataset.paid + ' / ' + opt.dataset.tuition;
+
+        // Nouveau niveau : tous sauf le niveau actuel.
+        Array.from(levelSel.options).forEach(function (o) {
+            if (!o.value) return;
+            const same = o.value === opt.dataset.levelid;
+            o.disabled = same; o.hidden = same;
+        });
+        if (levelSel.value === opt.dataset.levelid) levelSel.value = '';
+        onLevel();
+    }
+
+    function onLevel() {
+        // Classes du niveau choisi, non complètes.
+        Array.from(classSel.options).forEach(function (o) {
+            if (!o.value) return;
+            const ok = levelSel.value !== '' && o.dataset.levelid === levelSel.value && !o.dataset.full;
+            o.disabled = !ok; o.hidden = !ok;
+        });
+        if (classSel.value && classSel.options[classSel.selectedIndex].disabled) classSel.value = '';
+        update();
+    }
+
+    function update() {
+        btn.disabled = !studentSel.value || !classSel.value || motif.value.trim() === '';
+    }
+
+    studentSel.addEventListener('change', onStudent);
+    levelSel.addEventListener('change', onLevel);
+    classSel.addEventListener('change', update);
+    motif.addEventListener('input', update);
+
+    form.addEventListener('submit', function (e) {
+        if (btn.disabled) { e.preventDefault(); return; }
+        const opt = selected();
+        const level = levelSel.options[levelSel.selectedIndex].text.trim();
+        const cls = classSel.options[classSel.selectedIndex].text.split(' — ')[0].trim();
+        if (!confirm('Faire passer ' + opt.dataset.name + ' de ' + opt.dataset.level + ' à ' + level + ' (classe ' + cls + ') ?\nLes frais de scolarité seront recalculés.')) {
+            e.preventDefault();
+        }
+    });
+
+    onStudent();
+});
+</script>
+{% endblock %}

@@ -834,7 +834,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ path('admin_student_index') }}" class="nav-link {{ current_route starts with 'admin_student' and current_route not in ['admin_student_transfer', 'admin_student_archive', 'admin_student_dashboard', 'admin_student_classroom_students'] ? 'active' : '' }}">
+                        <a href="{{ path('admin_student_index') }}" class="nav-link {{ current_route starts with 'admin_student' and current_route not in ['admin_student_transfer', 'admin_student_level_change', 'admin_student_archive', 'admin_student_dashboard', 'admin_student_classroom_students'] ? 'active' : '' }}">
                             <i class="fas fa-list"></i><span>Base de données</span>
                         </a>
                     </li>
@@ -856,6 +856,11 @@
                     <li class="nav-item">
                         <a href="{{ path('admin_student_transfer') }}" class="nav-link {{ current_route == 'admin_student_transfer' ? 'active' : '' }}">
                             <i class="fas fa-exchange-alt"></i><span>Transferts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ path('admin_student_level_change') }}" class="nav-link {{ current_route == 'admin_student_level_change' ? 'active' : '' }}">
+                            <i class="fas fa-arrow-up-wide-short"></i><span>Changement de niveau</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -1818,6 +1823,58 @@
                 input.focus();
             });
             window.liveSearchRun = run;
+        })();
+    </script>
+
+    <script>
+        /**
+         * Sélection multiple pour la suppression (super-administrateur).
+         *  <form id="bulkX" data-bulk-delete data-bulk-label="paiement(s)" data-bulk-warning="…" class="d-none">
+         *      … <span data-bulk-count>0</span> …
+         *  </form>
+         *  <input type="checkbox" data-bulk-check-all="bulkX">                 (en-tête du tableau)
+         *  <input type="checkbox" class="js-bulk-check" name="ids[]" value="…" form="bulkX">  (chaque ligne)
+         * Le formulaire n'apparaît qu'avec au moins une ligne cochée. Délégation
+         * d'événements : fonctionne aussi après une recherche en direct.
+         */
+        (function () {
+            function checks(form) {
+                return Array.prototype.slice.call(document.querySelectorAll('input.js-bulk-check[form="' + form.id + '"]'));
+            }
+            function refresh(form) {
+                if (!form) return;
+                var all = checks(form);
+                var n = all.filter(function (c) { return c.checked; }).length;
+                form.querySelectorAll('[data-bulk-count]').forEach(function (el) { el.textContent = n; });
+                form.classList.toggle('d-none', n === 0);
+                var master = document.querySelector('[data-bulk-check-all="' + form.id + '"]');
+                if (master) {
+                    master.checked = all.length > 0 && n === all.length;
+                    master.indeterminate = n > 0 && n < all.length;
+                }
+            }
+            function refreshAll() { document.querySelectorAll('form[data-bulk-delete]').forEach(refresh); }
+
+            document.addEventListener('change', function (e) {
+                var t = e.target;
+                if (t.dataset && t.dataset.bulkCheckAll) {
+                    var form = document.getElementById(t.dataset.bulkCheckAll);
+                    if (form) { checks(form).forEach(function (c) { c.checked = t.checked; }); refresh(form); }
+                } else if (t.classList && t.classList.contains('js-bulk-check')) {
+                    refresh(document.getElementById(t.getAttribute('form')));
+                }
+            });
+            document.addEventListener('submit', function (e) {
+                var form = e.target;
+                if (!form.matches || !form.matches('form[data-bulk-delete]')) return;
+                var n = checks(form).filter(function (c) { return c.checked; }).length;
+                var msg = 'Supprimer définitivement ' + n + ' ' + (form.dataset.bulkLabel || 'élément(s)') + ' ?\n\n'
+                    + (form.dataset.bulkWarning ? form.dataset.bulkWarning + '\n\n' : '')
+                    + 'Cette action est irréversible.';
+                if (n === 0 || !confirm(msg)) e.preventDefault();
+            });
+            document.addEventListener('live-search:updated', refreshAll);
+            if (document.readyState !== 'loading') refreshAll(); else document.addEventListener('DOMContentLoaded', refreshAll);
         })();
     </script>
 

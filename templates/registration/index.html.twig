@@ -99,12 +99,12 @@
                                         <div class="btn-group btn-group-sm">
                                             <a href="{{ path('admin_student_show', {'id': r.student.id}) }}" class="btn btn-outline-info" title="Voir l'élève"><i class="fas fa-eye"></i></a>
                                             <a href="{{ path('admin_registration_edit', {'id': r.id}) }}" class="btn btn-outline-primary" title="Modifier"><i class="fas fa-edit"></i></a>
-                                            {% if is_granted('ROLE_ADMIN') %}
-                                            <form method="post" action="{{ path('admin_registration_delete', {'id': r.id}) }}" onsubmit="return confirm('Supprimer définitivement cette inscription ?');" class="d-inline">
-                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ r.id) }}">
-                                                {#
-                                                 <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
-                                                #}
+                                            {% if is_granted('ROLE_SUPER_ADMIN') %}
+                                            <form method="post" action="{{ path('admin_registration_bulk_delete') }}" class="d-inline"
+                                                  onsubmit="return confirm('Supprimer définitivement l\'inscription de {{ (r.student.lastName ~ ' ' ~ r.student.firstName)|e('js') }} ?\n\nSes frais de l\'année et les paiements associés seront supprimés. Cette action est irréversible.')">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_registrations') }}">
+                                                <input type="hidden" name="ids[]" value="{{ r.id }}">
+                                                <button type="submit" class="btn btn-danger" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>
                                             </form>
                                             {% endif %}
                                         </div>

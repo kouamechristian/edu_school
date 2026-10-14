@@ -157,6 +157,122 @@ class StudentController extends AbstractController
         ]);
     }
 
+    /**
+     * Changement de niveau d'un élève inscrit pour l'année courante : l'inscription
+     * est déplacée dans une classe d'un autre niveau, les frais de scolarité sont
+     * remplacés par ceux du nouveau niveau et les paiements déjà faits y sont reportés.
+     * L'opération est historisée comme un transfert (classe d'origine → destination).
+     */
+    #[Route('/level-change', name: 'level_change', methods: ['GET', 'POST'])]
+    public function levelChange(
+        Request $request,
+        ClassroomRepository $classroomRepository,
+        LevelRepository $levelRepository,
+        \App\Repository\RegistrationRepository $registrationRepository,
+        StudentTransferRepository $transferRepository,
+        SluggerInterface $slugger
+    ): Response {
+        $school = $this->schoolContextService->getCurrentSchool();
+        $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
+
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour changer le niveau d\'un élève.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $classrooms = $classroomRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
+        $registrations = $registrationRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
+
+        if ($request->isMethod('POST')) {
+            $registration = $registrationRepository->find((int) $request->request->get('registration_id'));
+            $toClassroom = $classroomRepository->find((int) $request->request->get('to_class_id'));
+            $motif = trim((string) $request->request->get('motif'));
+            /** @var UploadedFile|null $documentFile */
+            $documentFile = $request->files->get('document');
+
+            $student = $registration?->getStudent();
+            $currentLevel = $registration?->getLevel() ?? $registration?->getPreRegistration()?->getRequestedLevel();
+            $occupied = $toClassroom ? ($registrationRepository->countActiveByClassroom($school->getId(), $schoolYear?->getId())[$toClassroom->getId()] ?? 0) : 0;
+
+            if (!$this->isCsrfTokenValid('level_change', $request->request->get('_token'))) {
+                $this->addFlash('error', 'Jeton de sécurité invalide.');
+            } elseif (!$registration || !$student || !in_array($registration, $registrations, true)) {
+                $this->addFlash('error', 'Veuillez sélectionner un élève inscrit pour l\'année courante.');
+            } elseif (!$toClassroom || !in_array($toClassroom, $classrooms, true) || !$toClassroom->getLevel()) {
+                $this->addFlash('error', 'Veuillez sélectionner une classe de destination valide.');
+            } elseif ($currentLevel && $toClassroom->getLevel()->getId() === $currentLevel->getId()) {
+                $this->addFlash('error', 'La classe de destination est du même niveau : utilisez plutôt le transfert de classe.');
+            } elseif ($toClassroom->getCapacity() !== null && $occupied >= $toClassroom->getCapacity()) {
+                $this->addFlash('error', sprintf('La classe « %s » est complète (%d/%d).', $toClassroom->getName(), $occupied, $toClassroom->getCapacity()));
+            } elseif ($motif === '') {
+                $this->addFlash('error', 'Le motif du changement de niveau est obligatoire.');
+            } else {
+                $transfer = (new StudentTransfer())
+                    ->setStudent($student)
+                    ->setFromClassroom($registration->getClassroom())
+                    ->setToClassroom($toClassroom)
+                    ->setSchoolYear($schoolYear)
+                    ->setMotif('[Changement de niveau ' . ($currentLevel?->getName() ?? '—') . ' → ' . $toClassroom->getLevel()->getName() . '] ' . $motif)
+                    ->setRecordedBy($this->getUser());
+                if ($documentFile instanceof UploadedFile) {
+                    $transfer->setDocumentPath($this->uploadFile($documentFile, 'transfers', $slugger));
+                }
+                $this->entityManager->persist($transfer);
+
+                // Nouvelle classe (donc nouveau niveau) + niveau demandé de la préinscription.
+                $registration->setClassroom($toClassroom);
+                $registration->getPreRegistration()?->setRequestedLevel($toClassroom->getLevel());
+
+                $result = $this->feeAssignmentService->syncScolariteFeesForRegistration($registration);
+                $this->entityManager->flush();
+
+                $details = [];
+                if ($result['added'] > 0) {
+                    $details[] = sprintf('%d frais du nouveau niveau ajouté(s)', $result['added']);
+                }
+                if ($result['removed'] > 0) {
+                    $details[] = sprintf('%d frais de l\'ancien niveau retiré(s)', $result['removed']);
+                }
+                if ($result['moved_amount'] > 0) {
+                    $details[] = sprintf('%s FCFA déjà payés reportés', number_format($result['moved_amount'], 0, ',', ' '));
+                }
+                $this->addFlash('success', sprintf(
+                    '%s passe en %s (classe « %s »).%s',
+                    $student->getFullName(),
+                    $toClassroom->getLevel()->getName(),
+                    $toClassroom->getName(),
+                    $details !== [] ? ' ' . ucfirst(implode(', ', $details)) . '.' : ''
+                ));
+                if ($result['kept_paid'] > 0) {
+                    $this->addFlash('warning', 'Le nouveau niveau n\'a aucun frais de scolarité : les frais déjà payés de l\'ancien niveau ont été conservés.');
+                }
+                if ($result['overpaid'] > 0) {
+                    $this->addFlash('warning', sprintf(
+                        'Les montants déjà payés dépassent les frais du nouveau niveau de %s FCFA (trop-perçu à régulariser).',
+                        number_format($result['overpaid'], 0, ',', ' ')
+                    ));
+                }
+
+                return $this->redirectToRoute('admin_student_level_change');
+            }
+        }
+
+        // Historique : uniquement les transferts entre deux niveaux différents.
+        $history = array_values(array_filter(
+            $transferRepository->findBySchool($school->getId(), 200),
+            static fn (StudentTransfer $t) => $t->getFromClassroom()?->getLevel()?->getId() !== $t->getToClassroom()?->getLevel()?->getId()
+        ));
+
+        return $this->render('student/level_change.html.twig', [
+            'registrations' => $registrations,
+            'classrooms' => $classrooms,
+            'levels' => $levelRepository->findBySchool($school->getId()),
+            'occupancy' => $registrationRepository->countActiveByClassroom($school->getId(), $schoolYear?->getId()),
+            'history' => $history,
+            'current_school_year' => $schoolYear,
+        ]);
+    }
+
     #[Route('/archive', name: 'archive', methods: ['GET'])]
     public function archive(StudentRepository $studentRepository): Response
     {
@@ -892,13 +1008,14 @@ class StudentController extends AbstractController
     }
 
     /**
-     * Suppression multiple d'élèves cochés dans la liste (super-administrateur uniquement).
-     * Chaque élève est supprimé indépendamment : ceux encore liés à des données
-     * (paiements, inscriptions, notes...) sont ignorés et signalés.
+     * Suppression (une ou plusieurs lignes cochées) d'élèves — super-administrateur
+     * uniquement. Suppression EN CASCADE : préinscriptions, inscriptions, frais,
+     * paiements (+ écritures comptables), notes, absences, bulletins, transferts…
+     * Chaque élève est traité dans sa propre transaction.
      */
     #[Route('/bulk-delete', name: 'bulk_delete', methods: ['POST'])]
     #[IsGranted('ROLE_SUPER_ADMIN')]
-    public function bulkDelete(Request $request, StudentRepository $studentRepository, \Doctrine\Persistence\ManagerRegistry $registry): Response
+    public function bulkDelete(Request $request, StudentRepository $studentRepository, \Doctrine\Persistence\ManagerRegistry $registry, \App\Service\CascadeDeletionService $cascadeDeletion): Response
     {
         if (!$this->isCsrfTokenValid('bulk_delete_students', (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
@@ -924,10 +1041,9 @@ class StudentController extends AbstractController
             $label = trim($student->getLastName() . ' ' . $student->getFirstName());
 
             try {
-                $this->entityManager->remove($student);
-                $this->entityManager->flush();
+                $cascadeDeletion->deleteStudent($student);
                 $deleted++;
-            } catch (\Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException) {
+            } catch (\Throwable $e) {
                 // L'EntityManager est fermé après l'échec : on le réinitialise pour continuer.
                 $registry->resetManager();
                 $failed[] = $label;
@@ -935,17 +1051,14 @@ class StudentController extends AbstractController
         }
 
         if ($deleted > 0) {
-            $this->addFlash('success', sprintf('%d élève(s) supprimé(s) avec succès.', $deleted));
+            $this->addFlash('success', sprintf('%d élève(s) supprimé(s) avec toutes leurs données.', $deleted));
         }
         if ($failed) {
-            $this->addFlash('error', sprintf(
-                'Suppression impossible pour %d élève(s) encore lié(s) à des données (paiements, inscriptions, notes...) : %s.',
-                count($failed),
-                implode(', ', $failed)
-            ));
+            $this->addFlash('error', sprintf('Suppression impossible pour %d élève(s) : %s.', count($failed), implode(', ', $failed)));
         }
 
-        return $this->redirectToRoute('admin_student_index');
+        $referer = $request->headers->get('referer');
+        return $referer ? $this->redirect($referer) : $this->redirectToRoute('admin_student_index');
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
@@ -1175,7 +1288,8 @@ class StudentController extends AbstractController
 
         $student->setStatus($status);
 
-        // Réadapte les frais de l'inscription de l'année selon le nouveau statut.
+        // Réadapte les frais de l'inscription de l'année selon le nouveau statut : les
+        // anciens frais sont supprimés et ce qui a déjà été payé est reporté sur les nouveaux.
         $result = $this->feeAssignmentService->syncScolariteFeesForRegistration($registration);
         $this->entityManager->flush();
 
@@ -1187,13 +1301,22 @@ class StudentController extends AbstractController
         if ($result['removed'] > 0) {
             $details[] = sprintf('%d frais retiré(s)', $result['removed']);
         }
-        if ($result['kept_paid'] > 0) {
-            $details[] = sprintf('%d frais déjà payé(s) conservé(s)', $result['kept_paid']);
+        if ($result['moved_amount'] > 0) {
+            $details[] = sprintf('%s FCFA déjà payés reportés sur les nouveaux frais', number_format($result['moved_amount'], 0, ',', ' '));
         }
         if ($details !== []) {
             $message .= ' (' . implode(', ', $details) . ')';
         }
         $this->addFlash('success', $message);
+        if ($result['kept_paid'] > 0) {
+            $this->addFlash('warning', 'Aucun frais de scolarité ne correspond au nouveau statut : les frais déjà payés ont été conservés.');
+        }
+        if ($result['overpaid'] > 0) {
+            $this->addFlash('warning', sprintf(
+                'Les montants déjà payés dépassent les nouveaux frais de %s FCFA (trop-perçu à régulariser).',
+                number_format($result['overpaid'], 0, ',', ' ')
+            ));
+        }
 
         $referer = $request->headers->get('referer');
         return $referer ? $this->redirect($referer) : $this->redirectToRoute('admin_student_index');

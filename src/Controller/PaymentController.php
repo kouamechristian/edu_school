@@ -906,6 +906,63 @@ class PaymentController extends AbstractController
         return $this->redirectToRoute('admin_payment_index', [], Response::HTTP_SEE_OTHER);
     }
 
+    /**
+     * Suppression définitive de paiements (super-administrateur) : une case cochée =
+     * un reçu, soit toutes ses lignes (ids séparés par des virgules). Le montant payé
+     * des frais est recalculé et les écritures comptables sont retirées.
+     */
+    #[Route('/bulk-delete', name: 'bulk_delete', methods: ['POST'], priority: 10)]
+    #[IsGranted('ROLE_SUPER_ADMIN')]
+    public function bulkDelete(
+        Request $request,
+        PaymentRepository $paymentRepository,
+        SchoolContextService $contextService,
+        \App\Service\CascadeDeletionService $cascadeDeletion,
+        \Doctrine\Persistence\ManagerRegistry $registry
+    ): Response {
+        $back = $request->headers->get('referer') ?: $this->generateUrl('admin_payment_index');
+        if (!$this->isCsrfTokenValid('bulk_delete_payments', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $this->redirect($back);
+        }
+
+        $school = $contextService->getCurrentSchool();
+        $deleted = 0;
+        $failed = [];
+
+        foreach ($request->request->all('ids') as $group) {
+            $lines = [];
+            foreach (array_filter(array_map('intval', explode(',', (string) $group))) as $id) {
+                $payment = $paymentRepository->find($id);
+                // Uniquement les paiements de l'établissement courant.
+                if ($payment && (!$school || $payment->getStudent()?->getSchool()?->getId() === $school->getId())) {
+                    $lines[] = $payment;
+                }
+            }
+            if ($lines === []) {
+                continue;
+            }
+            $label = $lines[0]->getReceiptNumber() ?? $lines[0]->getPaymentNumber();
+
+            try {
+                $cascadeDeletion->deletePayments($lines);
+                $deleted++;
+            } catch (\Throwable) {
+                $registry->resetManager();
+                $failed[] = $label;
+            }
+        }
+
+        if ($deleted > 0) {
+            $this->addFlash('success', sprintf('%d paiement(s) supprimé(s) définitivement.', $deleted));
+        }
+        if ($failed) {
+            $this->addFlash('error', sprintf('Suppression impossible pour : %s.', implode(', ', $failed)));
+        }
+
+        return $this->redirect($back);
+    }
+
     #[Route('/{id}/confirm', name: 'confirm', methods: ['POST'])]
     public function confirm(
         Request $request,

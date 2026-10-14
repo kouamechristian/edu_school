@@ -82,9 +82,10 @@
             <div class="d-flex gap-2">
                 {% if is_granted('ROLE_SUPER_ADMIN') %}
                 <form method="post" action="{{ path('admin_student_bulk_delete') }}" id="bulkDeleteForm" class="d-none"
-                      onsubmit="return confirm('Supprimer définitivement les ' + document.querySelectorAll('.js-student-check:checked').length + ' élève(s) sélectionné(s) ? Cette action est irréversible.')">
+                      data-bulk-delete data-bulk-label="élève(s)"
+                      data-bulk-warning="Toutes leurs données seront supprimées : préinscriptions, inscriptions, frais, paiements, notes, absences, bulletins, transferts.">
                     <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_students') }}">
-                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Supprimer la sélection (<span id="bulkDeleteCount">0</span>)</button>
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Supprimer la sélection (<span data-bulk-count>0</span>)</button>
                 </form>
                 {% endif %}
                 <a href="{{ path('admin_student_export', {'search': search, 'status': status, 'level': level}) }}" data-live-search-sync class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel me-1"></i> Exporter Excel</a>
@@ -99,7 +100,7 @@
                     <thead>
                         <tr>
                             {% if is_granted('ROLE_SUPER_ADMIN') %}
-                            <th style="width:1%"><input type="checkbox" class="form-check-input" id="checkAllStudents" title="Tout sélectionner"></th>
+                            <th style="width:1%"><input type="checkbox" class="form-check-input" data-bulk-check-all="bulkDeleteForm" title="Tout sélectionner"></th>
                             {% endif %}
                             <th>Mle interne</th>
                             <th>Mle national</th>
@@ -115,7 +116,7 @@
                         {% for student in students %}
                         <tr class="js-student-row">
                             {% if is_granted('ROLE_SUPER_ADMIN') %}
-                            <td><input type="checkbox" class="form-check-input js-student-check" name="ids[]" value="{{ student.id }}" form="bulkDeleteForm"></td>
+                            <td><input type="checkbox" class="form-check-input js-bulk-check" name="ids[]" value="{{ student.id }}" form="bulkDeleteForm"></td>
                             {% endif %}
                             <td><span class="fw-semibold text-primary">{{ student.matriculeInterne ?: '—' }}</span></td>
                             <td><span class="text-muted">{{ student.matriculeNational ?: '—' }}</span></td>
@@ -137,7 +138,7 @@
                                     {% set next_status = student.getStatus() == 'affecte' ? 'non_affecte' : 'affecte' %}
                                     {% set next_label = next_status == 'affecte' ? 'Affecté' : 'Non affecté' %}
                                     <form method="post" action="{{ path('admin_student_set_status', {'id': student.id}) }}"
-                                          onsubmit="return confirm('Passer {{ student.lastName }} {{ student.firstName }} en « {{ next_label }} » ? Les frais de scolarité seront adaptés en conséquence.')" class="d-inline">
+                                          onsubmit="return confirm('Passer {{ student.lastName }} {{ student.firstName }} en « {{ next_label }} » ? Les frais de scolarité seront adaptés en conséquence et les montants déjà payés reportés sur les nouveaux frais.')" class="d-inline">
                                         <input type="hidden" name="_token" value="{{ csrf_token('set_status' ~ student.id) }}">
                                         <input type="hidden" name="status" value="{{ next_status }}">
                                         <button class="btn btn-outline-warning" title="Changer le statut (→ {{ next_label }})"><i class="fas fa-right-left"></i></button>
@@ -148,6 +149,14 @@
                                         <input type="hidden" name="_token" value="{{ csrf_token('archive' ~ student.id) }}">
                                         <button class="btn btn-outline-danger" title="Archiver"><i class="fas fa-box-archive"></i></button>
                                     </form>
+                                    {% if is_granted('ROLE_SUPER_ADMIN') %}
+                                    <form method="post" action="{{ path('admin_student_bulk_delete') }}" class="d-inline"
+                                          onsubmit="return confirm('Supprimer définitivement {{ (student.lastName ~ ' ' ~ student.firstName)|e('js') }} et TOUTES ses données (préinscriptions, inscriptions, frais, paiements, notes, absences…) ?\n\nCette action est irréversible.')">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_students') }}">
+                                        <input type="hidden" name="ids[]" value="{{ student.id }}">
+                                        <button class="btn btn-danger" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -207,38 +216,4 @@
     </div>
 </div>
 
-<script>
-    // Suppression multiple (super-administrateur) : le bouton n'apparaît qu'avec au moins un élève coché.
-    // Délégation d'événements : le tableau est remplacé à chaque recherche en direct.
-    (function () {
-        var form = document.getElementById('bulkDeleteForm');
-        if (!form) return;
-        var countEl = document.getElementById('bulkDeleteCount');
-
-        function checks() { return Array.prototype.slice.call(document.querySelectorAll('.js-student-check')); }
-
-        function refresh() {
-            var checkAll = document.getElementById('checkAllStudents');
-            var all = checks();
-            var n = all.filter(function (c) { return c.checked; }).length;
-            countEl.textContent = n;
-            form.classList.toggle('d-none', n === 0);
-            if (checkAll) {
-                checkAll.checked = all.length > 0 && n === all.length;
-                checkAll.indeterminate = n > 0 && n < all.length;
-            }
-        }
-
-        document.addEventListener('change', function (e) {
-            if (e.target.id === 'checkAllStudents') {
-                checks().forEach(function (c) { c.checked = e.target.checked; });
-                refresh();
-            } else if (e.target.classList && e.target.classList.contains('js-student-check')) {
-                refresh();
-            }
-        });
-        document.addEventListener('live-search:updated', refresh);
-        refresh();
-    })();
-</script>
 {% endblock %}

@@ -644,6 +644,55 @@ class RegistrationController extends AbstractController
         return $this->redirectToRoute('admin_registration_index', [], Response::HTTP_SEE_OTHER);
     }
 
+    /**
+     * Suppression définitive d'inscriptions (super-administrateur) : chaque inscription
+     * est supprimée avec ses frais de l'année et leurs paiements (+ écritures
+     * comptables). L'élève et sa préinscription sont conservés.
+     */
+    #[Route('/bulk-delete', name: 'bulk_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_SUPER_ADMIN')]
+    public function bulkDelete(
+        Request $request,
+        RegistrationRepository $registrationRepository,
+        \App\Service\CascadeDeletionService $cascadeDeletion,
+        \Doctrine\Persistence\ManagerRegistry $registry
+    ): Response {
+        $back = $request->headers->get('referer') ?: $this->generateUrl('admin_registration_enrolled');
+        if (!$this->isCsrfTokenValid('bulk_delete_registrations', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $this->redirect($back);
+        }
+
+        $school = $this->schoolContextService->getCurrentSchool();
+        $deleted = 0;
+        $failed = [];
+
+        foreach (array_unique(array_filter(array_map('intval', $request->request->all('ids')))) as $id) {
+            $registration = $registrationRepository->find($id);
+            if (!$registration || ($school && $registration->getSchool()?->getId() !== $school->getId())) {
+                continue;
+            }
+            $label = $registration->getStudent()?->getFullName() ?? ('#' . $id);
+
+            try {
+                $cascadeDeletion->deleteRegistration($registration);
+                $deleted++;
+            } catch (\Throwable) {
+                $registry->resetManager();
+                $failed[] = $label;
+            }
+        }
+
+        if ($deleted > 0) {
+            $this->addFlash('success', sprintf('%d inscription(s) supprimée(s) avec leurs frais et paiements.', $deleted));
+        }
+        if ($failed) {
+            $this->addFlash('error', sprintf('Suppression impossible pour : %s.', implode(', ', $failed)));
+        }
+
+        return $this->redirect($back);
+    }
+
     #[Route('/{id}/toggle', name: 'toggle', methods: ['POST'])]
     public function toggle(Request $request, Registration $registration): Response
     {

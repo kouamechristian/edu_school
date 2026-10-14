@@ -89,17 +89,31 @@
 
         {# ── Tableau ── #}
         <div class="card table-card">
-            <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des paiements</h6></div>
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des paiements</h6>
+                {% if is_granted('ROLE_SUPER_ADMIN') %}
+                <form method="post" action="{{ path('admin_payment_bulk_delete') }}" id="bulkDeletePayments" class="d-none"
+                      data-bulk-delete data-bulk-label="paiement(s)"
+                      data-bulk-warning="Les montants seront retirés des frais des élèves et les écritures comptables supprimées.">
+                    <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_payments') }}">
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Supprimer la sélection (<span data-bulk-count>0</span>)</button>
+                </form>
+                {% endif %}
+            </div>
             <div class="card-body" id="payResults">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0" id="paymentsTable">
                         <thead>
-                            <tr><th>N° Paiement</th><th>Élève</th><th class="text-end">Montant</th><th>Date</th><th>Méthode</th><th>Statut</th><th class="text-end">Actions</th></tr>
+                            <tr>{% if is_granted('ROLE_SUPER_ADMIN') %}<th style="width:1%"><input type="checkbox" class="form-check-input" data-bulk-check-all="bulkDeletePayments" title="Tout sélectionner"></th>{% endif %}<th>N° Paiement</th><th>Élève</th><th class="text-end">Montant</th><th>Date</th><th>Méthode</th><th>Statut</th><th class="text-end">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for receipt in payments %}
                                 {% set first_id = receipt.lines[0].id %}
+                                {% set line_ids = receipt.lines|map(l => l.id)|join(',') %}
                                 <tr class="js-payment-row {{ receipt.status == 'annulé' ? 'table-danger' : '' }}">
+                                    {% if is_granted('ROLE_SUPER_ADMIN') %}
+                                    <td><input type="checkbox" class="form-check-input js-bulk-check" name="ids[]" value="{{ line_ids }}" form="bulkDeletePayments"></td>
+                                    {% endif %}
                                     <td>
                                         <span class="badge badge-soft secondary">{{ receipt.receipt_number }}</span>
                                         {% if receipt.lines|length > 1 %}<br><small class="text-muted">{{ receipt.lines|length }} frais imputés : {{ receipt.fee_names|join(', ') }}</small>{% endif %}
@@ -141,11 +155,19 @@
                                                 <button type="submit" class="btn btn-outline-danger" title="Annuler le paiement"><i class="fas fa-ban"></i></button>
                                             </form>
                                             {% endif %}
+                                            {% if is_granted('ROLE_SUPER_ADMIN') %}
+                                            <form method="post" action="{{ path('admin_payment_bulk_delete') }}" class="d-inline"
+                                                  onsubmit="return confirm('Supprimer définitivement le paiement {{ receipt.receipt_number|e('js') }} ({{ receipt.amount|number_format(0, ',', ' ') }} FCFA) ?\n\nLe montant sera retiré des frais de l\'élève et l\'écriture comptable supprimée. Cette action est irréversible.')">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_payments') }}">
+                                                <input type="hidden" name="ids[]" value="{{ line_ids }}">
+                                                <button type="submit" class="btn btn-danger" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
                             {% else %}
-                                <tr><td colspan="7">{{ empty_state('fa-credit-card', 'Aucun paiement', 'Aucun paiement ne correspond à vos critères.') }}</td></tr>
+                                <tr><td colspan="8">{{ empty_state('fa-credit-card', 'Aucun paiement', 'Aucun paiement ne correspond à vos critères.') }}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

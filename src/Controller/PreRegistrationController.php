@@ -617,6 +617,56 @@ class PreRegistrationController extends AbstractController
         return $this->redirectToRoute('admin_pre_registration_show', ['id' => $preRegistration->getId()]);
     }
 
+    /**
+     * Suppression définitive de préinscriptions (super-administrateur) : documents,
+     * inscription éventuelle avec ses frais et paiements. L'élève créé depuis la
+     * préinscription est conservé.
+     */
+    #[Route('/bulk-delete', name: 'bulk_delete', methods: ['POST'], priority: 10)]
+    #[IsGranted('ROLE_SUPER_ADMIN')]
+    public function bulkDelete(
+        Request $request,
+        PreRegistrationRepository $preRegistrationRepository,
+        SchoolContextService $contextService,
+        \App\Service\CascadeDeletionService $cascadeDeletion,
+        \Doctrine\Persistence\ManagerRegistry $registry
+    ): Response {
+        $back = $request->headers->get('referer') ?: $this->generateUrl('admin_pre_registration_index');
+        if (!$this->isCsrfTokenValid('bulk_delete_pre_registrations', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $this->redirect($back);
+        }
+
+        $school = $contextService->getCurrentSchool();
+        $deleted = 0;
+        $failed = [];
+
+        foreach (array_unique(array_filter(array_map('intval', $request->request->all('ids')))) as $id) {
+            $preRegistration = $preRegistrationRepository->find($id);
+            if (!$preRegistration || ($school && $preRegistration->getSchool()?->getId() !== $school->getId())) {
+                continue;
+            }
+            $label = $preRegistration->getFullName();
+
+            try {
+                $cascadeDeletion->deletePreRegistration($preRegistration);
+                $deleted++;
+            } catch (\Throwable) {
+                $registry->resetManager();
+                $failed[] = $label;
+            }
+        }
+
+        if ($deleted > 0) {
+            $this->addFlash('success', sprintf('%d préinscription(s) supprimée(s) définitivement.', $deleted));
+        }
+        if ($failed) {
+            $this->addFlash('error', sprintf('Suppression impossible pour : %s.', implode(', ', $failed)));
+        }
+
+        return $this->redirect($back);
+    }
+
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
     public function delete(

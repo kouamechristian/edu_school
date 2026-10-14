@@ -95,66 +95,175 @@ class FeeAssignmentService
     }
 
     /**
-     * Réadapte les frais de scolarité d'une inscription en fonction de son statut
-     * (affecté / non affecté) : ajoute les frais désormais applicables et retire ceux
-     * qui ne le sont plus — uniquement s'ils ne sont pas (partiellement) payés.
+     * Réadapte les frais de scolarité d'une inscription à sa situation actuelle —
+     * après un changement de STATUT (affecté / non affecté) ou de NIVEAU (la classe
+     * doit déjà pointer sur le nouveau niveau) :
+     *  - les frais désormais applicables sont ajoutés ;
+     *  - ceux qui ne le sont plus sont SUPPRIMÉS, même s'ils ont déjà été payés ;
+     *  - les paiements déjà faits sur ces anciens frais sont REPORTÉS sur les nouveaux
+     *    (l'élève ne paie que la différence) : chaque paiement va au premier nouveau
+     *    frais ayant un reste à payer, et est découpé s'il en couvre plusieurs.
+     * S'il n'y a aucun nouveau frais sur lequel reporter, les anciens frais déjà
+     * (partiellement) payés sont conservés tels quels.
+     * Les arriérés antérieurs ne sont jamais touchés. Ne flush pas.
      *
-     * @return array{added: int, removed: int, kept_paid: int}
+     * @return array{added: int, removed: int, moved_payments: int, moved_amount: float, kept_paid: int, overpaid: float}
      */
     public function syncScolariteFeesForRegistration(Registration $registration): array
     {
+        $result = ['added' => 0, 'removed' => 0, 'moved_payments' => 0, 'moved_amount' => 0.0, 'kept_paid' => 0, 'overpaid' => 0.0];
         $student = $registration->getStudent();
         if (!$student) {
-            return ['added' => 0, 'removed' => 0, 'kept_paid' => 0];
+            return $result;
         }
 
-        $applicable = $this->applicableScolariteFees($registration);
         $applicableIds = [];
+        $applicable = $this->applicableScolariteFees($registration);
         foreach ($applicable as $fee) {
-            $applicableIds[$fee->getId()] = $fee;
+            $applicableIds[$fee->getId()] = true;
         }
 
-        $added = 0;
-        $removed = 0;
-        $keptPaid = 0;
-
-        // Retrait des frais de scolarité non applicables et non payés.
+        // Frais de scolarité de l'ancien niveau (plus applicables).
+        $obsolete = [];
         foreach ($registration->getStudentFees() as $studentFee) {
             $fee = $studentFee->getFee();
-            if (!$fee || $fee->getCategory() !== 'scolarite') {
+            if (!$fee || $fee->getCategory() !== 'scolarite' || $studentFee->isArriereAnterieur()) {
                 continue;
             }
-            if (isset($applicableIds[$fee->getId()])) {
-                continue; // toujours applicable → on garde
+            if (!isset($applicableIds[$fee->getId()])) {
+                $obsolete[] = $studentFee;
             }
-
-            if ((float) $studentFee->getPaidAmount() > 0) {
-                $keptPaid++; // déjà (partiellement) payé → on ne retire pas
-                continue;
-            }
-
-            $registration->removeStudentFee($studentFee);
-            $student->removeStudentFee($studentFee);
-            $this->entityManager->remove($studentFee);
-            $removed++;
         }
 
-        // Ajout des frais applicables manquants.
+        // Frais du nouveau niveau.
+        $targets = [];
         foreach ($applicable as $fee) {
-            if ($this->assignFeeToStudent($fee, $student, $registration)) {
-                $added++;
+            if ($studentFee = $this->assignFeeToStudent($fee, $student, $registration)) {
+                $targets[] = $studentFee;
+                $result['added']++;
+            }
+        }
+        // Puis les frais de scolarité toujours applicables (ex. « pour tous ») : un
+        // excédent y est reporté plutôt que de rester en trop-perçu.
+        foreach ($registration->getStudentFees() as $studentFee) {
+            $fee = $studentFee->getFee();
+            if ($fee && isset($applicableIds[$fee->getId()]) && !$studentFee->isArriereAnterieur() && !in_array($studentFee, $targets, true)) {
+                $targets[] = $studentFee;
             }
         }
 
-        $this->logger->info('Frais scolarité réadaptés (changement de statut)', [
+        foreach ($obsolete as $old) {
+            $payments = $old->getPayments()->toArray();
+
+            if ($payments !== [] && $targets === []) {
+                $result['kept_paid']++; // rien sur quoi reporter : on conserve
+                continue;
+            }
+
+            usort($payments, static fn ($a, $b) => ($a->getPaymentDate() <=> $b->getPaymentDate()) ?: ($a->getId() <=> $b->getId()));
+            foreach ($payments as $payment) {
+                $old->removePayment($payment);
+                $result['moved_payments']++;
+
+                // Paiement non encaissé (annulé, en attente) : simple rattachement, sans impact sur le payé.
+                if ($payment->getStatus() !== 'payé') {
+                    $this->attachPayment($payment, $this->firstOpenTarget($targets));
+                    continue;
+                }
+
+                // Paiement encaissé : réparti sur les nouveaux frais selon leur reste à payer.
+                // S'il couvre plusieurs frais, il est découpé en lignes partageant le même
+                // numéro de reçu (même modèle que l'imputation multiple au guichet).
+                $remaining = (float) $payment->getAmount();
+                $line = $payment;
+                while (true) {
+                    $target = $this->firstOpenTarget($targets);
+                    $open = $target->getRemainingAmount();
+                    $part = ($open > 0 && $open < $remaining) ? $open : $remaining;
+
+                    $line->setAmount(number_format($part, 2, '.', ''));
+                    $this->attachPayment($line, $target);
+                    $target->setPaidAmount(number_format((float) $target->getPaidAmount() + $part, 2, '.', ''));
+                    $result['moved_amount'] += $part;
+
+                    $remaining = round($remaining - $part, 2);
+                    if ($remaining <= 0) {
+                        break;
+                    }
+                    $line = $this->splitPayment($payment);
+                }
+            }
+
+            $registration->removeStudentFee($old);
+            $student->removeStudentFee($old);
+            $this->entityManager->remove($old);
+            $result['removed']++;
+        }
+
+        foreach ($targets as $target) {
+            $result['overpaid'] += max(0.0, (float) $target->getPaidAmount() - (float) $target->getAmount());
+        }
+
+        $this->logger->info('Frais scolarité réadaptés (changement de statut / niveau)', [
             'student' => $student->getFullName(),
             'status' => $student->getStatus(),
-            'added' => $added,
-            'removed' => $removed,
-            'kept_paid' => $keptPaid,
-        ]);
+            'level' => $registration->getLevel()?->getName(),
+        ] + $result);
 
-        return ['added' => $added, 'removed' => $removed, 'kept_paid' => $keptPaid];
+        return $result;
+    }
+
+    /**
+     * Premier frais ayant encore un reste à payer, à défaut le dernier (trop-perçu).
+     *
+     * @param StudentFee[] $targets
+     */
+    private function firstOpenTarget(array $targets): StudentFee
+    {
+        foreach ($targets as $target) {
+            if ($target->getRemainingAmount() > 0) {
+                return $target;
+            }
+        }
+
+        return $targets[array_key_last($targets)];
+    }
+
+    private function attachPayment(\App\Entity\Payment $payment, StudentFee $target): void
+    {
+        $target->addPayment($payment);
+        $payment->setFee($target->getFee());
+    }
+
+    /**
+     * Nouvelle ligne d'un encaissement découpé : mêmes informations que l'original,
+     * même numéro de reçu (le reçu imprimé reste unique), nouveau numéro de paiement.
+     */
+    private function splitPayment(\App\Entity\Payment $original): \App\Entity\Payment
+    {
+        if ($original->getReceiptNumber() === null) {
+            // Ancien paiement sans reçu partagé : son numéro devient celui du reçu.
+            $original->setReceiptNumber($original->getPaymentNumber());
+        }
+        if ($original->getReceiptAmount() === null) {
+            $original->setReceiptAmount($original->getAmount());
+        }
+
+        $line = (new \App\Entity\Payment())
+            ->setPaymentNumber('PAY-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3))))
+            ->setReceiptNumber($original->getReceiptNumber())
+            ->setReceiptAmount($original->getReceiptAmount())
+            ->setReference($original->getReference())
+            ->setStudent($original->getStudent())
+            ->setPaymentDate($original->getPaymentDate())
+            ->setPaymentMethod($original->getPaymentMethod())
+            ->setStatus($original->getStatus())
+            ->setCashRegister($original->getCashRegister())
+            ->setRecordedBy($original->getRecordedBy())
+            ->setNotes($original->getNotes());
+        $this->entityManager->persist($line);
+
+        return $line;
     }
 
     /**

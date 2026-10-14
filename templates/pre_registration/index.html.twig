@@ -80,13 +80,26 @@
 
     {# ── Liste ── #}
     <div class="card table-card">
-        <div class="card-header"><h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des préinscriptions</h6></div>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Liste des préinscriptions</h6>
+            {% if is_granted('ROLE_SUPER_ADMIN') %}
+            <form method="post" action="{{ path('admin_pre_registration_bulk_delete') }}" id="bulkDeletePreRegistrations" class="d-none"
+                  data-bulk-delete data-bulk-label="préinscription(s)"
+                  data-bulk-warning="Leurs documents et, le cas échéant, leur inscription avec ses frais et paiements seront supprimés. Les fiches élèves sont conservées.">
+                <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_pre_registrations') }}">
+                <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Supprimer la sélection (<span data-bulk-count>0</span>)</button>
+            </form>
+            {% endif %}
+        </div>
         <div class="card-body">
             {% if pre_registrations|length > 0 %}
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
+                                {% if is_granted('ROLE_SUPER_ADMIN') %}
+                                <th style="width:1%"><input type="checkbox" class="form-check-input" data-bulk-check-all="bulkDeletePreRegistrations" title="Tout sélectionner"></th>
+                                {% endif %}
                                 <th>Nom</th>
                                 <th>Date de naissance</th>
                                 <th>Niveau demandé</th>
@@ -98,6 +111,9 @@
                         <tbody>
                             {% for pre_registration in pre_registrations %}
                                 <tr>
+                                    {% if is_granted('ROLE_SUPER_ADMIN') %}
+                                    <td><input type="checkbox" class="form-check-input js-bulk-check" name="ids[]" value="{{ pre_registration.id }}" form="bulkDeletePreRegistrations"></td>
+                                    {% endif %}
                                     <td>
                                         <strong>{{ pre_registration.fullName }}</strong>
                                         {% if pre_registration.parentName %}<br><small class="text-muted">Parent : {{ pre_registration.parentName }}</small>{% endif %}
@@ -125,7 +141,14 @@
                                                     <button type="submit" class="btn btn-outline-success" title="Valider"><i class="fas fa-check"></i></button>
                                                 </form>
                                             {% endif %}
-                                            {% if is_granted('ROLE_ADMIN') and not pre_registration.isEnrolled() %}
+                                            {% if is_granted('ROLE_SUPER_ADMIN') %}
+                                                <form method="post" action="{{ path('admin_pre_registration_bulk_delete') }}" class="d-inline"
+                                                      onsubmit="return confirm('Supprimer définitivement la préinscription de {{ pre_registration.fullName|e('js') }} ?\n\nSes documents et, le cas échéant, son inscription avec ses frais et paiements seront supprimés. Cette action est irréversible.')">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('bulk_delete_pre_registrations') }}">
+                                                    <input type="hidden" name="ids[]" value="{{ pre_registration.id }}">
+                                                    <button type="submit" class="btn btn-danger" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>
+                                                </form>
+                                            {% elseif is_granted('ROLE_ADMIN') and not pre_registration.isEnrolled() %}
                                                 <form method="post" action="{{ path('admin_pre_registration_delete', {'id': pre_registration.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer cette préinscription ?')">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ pre_registration.id) }}">
                                                     <button type="submit" class="btn btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
