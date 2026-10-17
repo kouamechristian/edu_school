@@ -22,13 +22,12 @@ use App\Service\EnrollmentService;
 use App\Service\FeeAssignmentService;
 use App\Service\RegistrationManager;
 use App\Service\SchoolContextService;
+use App\Service\StudentImporter;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -724,163 +723,114 @@ class StudentController extends AbstractController
         return $this->streamSpreadsheet($spreadsheet, 'modele_import_eleves.xlsx');
     }
 
-    #[Route('/import', name: 'import', methods: ['POST'])]
-    public function import(Request $request, StudentRepository $studentRepository): Response
-    {
-        $school = $this->schoolContextService->getCurrentSchool();
+    /** Imports d'élèves en attente de confirmation, par jeton. */
+    private const IMPORT_SESSION_KEY = 'student_imports';
 
+    /**
+     * Import d'élèves, étape 1 : analyse du fichier, sans rien enregistrer.
+     * Chaque ligne est rapprochée d'un élève par son matricule interne : les élèves
+     * connus sont mis à jour (champs modifiés uniquement), les autres sont créés.
+     * Le fichier est conservé (var/imports/students) le temps de la confirmation.
+     */
+    #[Route('/import', name: 'import', methods: ['POST'])]
+    public function import(Request $request, StudentImporter $importer): Response
+    {
+        if (!$this->isCsrfTokenValid('import_students', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $school = $this->schoolContextService->getCurrentSchool();
         if (!$school) {
             $this->addFlash('warning', 'Veuillez sélectionner un établissement pour importer des élèves.');
             return $this->redirectToRoute('admin_student_index');
         }
 
         $file = $request->files->get('file');
-        if (!$file instanceof UploadedFile) {
+        if (!$file instanceof UploadedFile || !$file->isValid()) {
             $this->addFlash('error', 'Veuillez sélectionner un fichier à importer.');
             return $this->redirectToRoute('admin_student_index');
         }
-
-        if (!in_array(strtolower($file->getClientOriginalExtension()), ['xlsx', 'xls', 'csv'], true)) {
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        if (!\in_array($extension, ['xlsx', 'xls', 'csv'], true)) {
             $this->addFlash('error', 'Format de fichier invalide. Formats acceptés : XLSX, XLS, CSV.');
             return $this->redirectToRoute('admin_student_index');
         }
 
+        $token = bin2hex(random_bytes(16));
+        $dir = $this->getParameter('kernel.project_dir') . '/var/imports/students';
+        // Fichiers d'aperçus jamais confirmés : supprimés au bout de 24 h.
+        foreach (glob($dir . '/*') ?: [] as $old) {
+            if (is_file($old) && filemtime($old) < time() - 86400) {
+                @unlink($old);
+            }
+        }
+        $stored = $file->move($dir, $token . '.' . $extension)->getPathname();
+
+        $result = $importer->import($stored, $school, false);
+        if ($result['error'] !== null) {
+            @unlink($stored);
+            $this->addFlash('error', $result['error']);
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $imports = $request->getSession()->get(self::IMPORT_SESSION_KEY, []);
+        $imports[$token] = ['path' => $stored, 'name' => $file->getClientOriginalName(), 'school_id' => $school->getId()];
+        $request->getSession()->set(self::IMPORT_SESSION_KEY, $imports);
+
+        return $this->render('student/import_preview.html.twig', [
+            'result' => $result,
+            'token' => $token,
+            'file_name' => $file->getClientOriginalName(),
+        ]);
+    }
+
+    /**
+     * Import d'élèves, étape 2 : enregistrement des lignes valides (re-vérifiées)
+     * dans une transaction unique.
+     */
+    #[Route('/import/{token}/confirm', name: 'import_confirm', methods: ['POST'], requirements: ['token' => '[a-f0-9]{32}'])]
+    public function importConfirm(string $token, Request $request, StudentImporter $importer): Response
+    {
+        $session = $request->getSession();
+        $imports = $session->get(self::IMPORT_SESSION_KEY, []);
+        $pending = $imports[$token] ?? null;
+        unset($imports[$token]);
+        $session->set(self::IMPORT_SESSION_KEY, $imports);
+
+        $school = $this->schoolContextService->getCurrentSchool();
+        if (!$pending || !is_file($pending['path'])) {
+            $this->addFlash('warning', 'Cet import a expiré ou a déjà été confirmé. Veuillez recommencer.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+        if (!$this->isCsrfTokenValid('import_students_confirm_' . $token, (string) $request->request->get('_token'))
+            || !$school || $school->getId() !== $pending['school_id']) {
+            @unlink($pending['path']);
+            $this->addFlash('error', 'Import annulé : session expirée ou établissement modifié entre-temps.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
         try {
-            $spreadsheet = IOFactory::load($file->getPathname());
-        } catch (\Throwable $e) {
-            $this->addFlash('error', 'Impossible de lire le fichier : ' . $e->getMessage());
-            return $this->redirectToRoute('admin_student_index');
+            $result = $importer->import($pending['path'], $school, true);
+        } finally {
+            @unlink($pending['path']);
         }
 
-        $rows = $spreadsheet->getActiveSheet()->toArray(null, true, false, false);
-
-        if (count($rows) < 2) {
-            $this->addFlash('warning', 'Le fichier ne contient aucune donnée à importer.');
-            return $this->redirectToRoute('admin_student_index');
-        }
-
-        // Mapping des colonnes par EN-TÊTE (et non par position) : l'import reste
-        // correct même si l'ordre des colonnes change ou si des colonnes sont ajoutées.
-        $colIndex = $this->mapImportColumns($rows[0]);
-
-        if (!isset($colIndex['lastName'], $colIndex['firstName'])) {
-            $this->addFlash('error', 'En-têtes non reconnus : la première ligne doit contenir au moins les colonnes « Nom » et « Prénom ». Téléchargez le modèle pour le bon format.');
-            return $this->redirectToRoute('admin_student_index');
-        }
-
-        // Lecture d'une cellule de la ligne par nom de champ (via le mapping d'en-têtes).
-        $cell = static function (array $row, ?int $idx): ?string {
-            if ($idx === null || !array_key_exists($idx, $row)) {
-                return null;
-            }
-            $v = trim((string) ($row[$idx] ?? ''));
-            return $v === '' ? null : $v;
-        };
-
-        // L'import alimente uniquement le référentiel élève (Student). L'affectation
-        // à une classe (inscription) se fait ensuite via le module d'inscription.
-        $created = 0;
-        $skipped = 0;
-        $duplicates = [];
-        $seenNationals = [];
-
-        foreach ($rows as $i => $row) {
-            if ($i === 0) {
-                continue; // Ligne d'en-tête
-            }
-
-            $lastName = (string) ($cell($row, $colIndex['lastName'] ?? null) ?? '');
-            $firstName = (string) ($cell($row, $colIndex['firstName'] ?? null) ?? '');
-            $matricule = (string) ($cell($row, $colIndex['matriculeInterne'] ?? null) ?? '');
-
-            // Ligne entièrement vide : on ignore silencieusement.
-            if ($lastName === '' && $firstName === '' && $matricule === '') {
-                continue;
-            }
-
-            // Nom et prénom obligatoires.
-            if ($lastName === '' || $firstName === '') {
-                $skipped++;
-                continue;
-            }
-
-            // Matricule national unique : on écarte les élèves déjà enregistrés
-            // (tous établissements) ou présents plusieurs fois dans le fichier.
-            $national = $cell($row, $colIndex['matriculeNational'] ?? null);
-            if ($national !== null) {
-                $key = mb_strtolower($national);
-                if (isset($seenNationals[$key]) || $studentRepository->nationalMatriculeExists($national)) {
-                    $duplicates[] = $national;
-                    continue;
-                }
-                $seenNationals[$key] = true;
-            }
-
-            $student = new Student();
-            $student->setLastName($lastName);
-            $student->setFirstName($firstName);
-
-            if ($matricule === '') {
-                $matricule = $this->matriculeGenerator->generate($this->entityManager, Student::class);
-            }
-            $student->setMatriculeInterne($matricule);
-            $student->setMatriculeNational($national);
-
-            $gender = strtoupper((string) ($cell($row, $colIndex['gender'] ?? null) ?? ''));
-            if (in_array($gender, ['M', 'F'], true)) {
-                $student->setGender($gender);
-            }
-
-            $dobIdx = $colIndex['dateOfBirth'] ?? null;
-            if ($dobIdx !== null && ($dob = $this->parseImportDate($row[$dobIdx] ?? null))) {
-                $student->setDateOfBirth($dob);
-            }
-
-            $student->setPlaceOfBirth($cell($row, $colIndex['placeOfBirth'] ?? null));
-            $student->setNationality($cell($row, $colIndex['nationality'] ?? null));
-            $student->setBirthCertificateNumber($cell($row, $colIndex['birthCertificateNumber'] ?? null));
-            $student->setCmuNumber($cell($row, $colIndex['cmuNumber'] ?? null));
-            $student->setPhone($cell($row, $colIndex['phone'] ?? null));
-            $student->setEmail($cell($row, $colIndex['email'] ?? null));
-            $student->setAddress($cell($row, $colIndex['address'] ?? null));
-            $student->setLastSchoolAttended($cell($row, $colIndex['lastSchoolAttended'] ?? null));
-
-            // Statut administratif : « Affecté » sinon « Non affecté » par défaut.
-            $statusCell = mb_strtolower((string) ($cell($row, $colIndex['status'] ?? null) ?? ''));
-            $student->setStatus(in_array($statusCell, ['affecte', 'affecté', 'affectee', 'affectée'], true) ? 'affecte' : 'non_affecte');
-
-            $student->setParentName($cell($row, $colIndex['parentName'] ?? null));
-            $student->setParentPhone($cell($row, $colIndex['parentPhone'] ?? null));
-            $student->setParentEmail($cell($row, $colIndex['parentEmail'] ?? null));
-            $student->setParentFunction($cell($row, $colIndex['parentFunction'] ?? null));
-            $student->setParentAddress($cell($row, $colIndex['parentAddress'] ?? null));
-
-            $student->setSchool($school);
-
-            $this->entityManager->persist($student);
-            $created++;
-        }
-
-        if ($created > 0) {
-            $this->entityManager->flush();
-        }
-
-        if ($created > 0) {
-            $message = "{$created} élève(s) importé(s) dans le référentiel. Inscrivez-les dans une classe via le module d'inscription.";
-            if ($skipped > 0) {
-                $message .= " {$skipped} ligne(s) ignorée(s) (nom ou prénom manquant).";
-            }
-            $this->addFlash('success', $message);
-        } else {
-            $this->addFlash('warning', 'Aucun élève importé.' . ($skipped > 0 ? " {$skipped} ligne(s) ignorée(s)." : ''));
-        }
-
-        if ($duplicates) {
-            $this->addFlash('warning', sprintf(
-                '%d ligne(s) ignorée(s) : matricule national déjà existant ou en double dans le fichier (%s).',
-                count($duplicates),
-                implode(', ', array_slice($duplicates, 0, 20)) . (count($duplicates) > 20 ? '…' : '')
+        if ($result['error'] !== null) {
+            $this->addFlash('error', $result['error']);
+        } elseif ($result['created'] + $result['updated'] > 0) {
+            $this->addFlash('success', sprintf(
+                'Import terminé : %d élève(s) créé(s), %d mis à jour, %d inchangé(s).%s',
+                $result['created'],
+                $result['updated'],
+                $result['unchanged'],
+                $result['skipped'] > 0 ? sprintf(' %d ligne(s) ignorée(s).', $result['skipped']) : ''
             ));
+            if ($result['created'] > 0) {
+                $this->addFlash('info', 'Inscrivez les nouveaux élèves dans une classe via le module d\'inscription.');
+            }
+        } else {
+            $this->addFlash('warning', 'Aucune modification : aucune ligne valide à créer ou mettre à jour.');
         }
 
         return $this->redirectToRoute('admin_student_index');
@@ -905,106 +855,11 @@ class StudentController extends AbstractController
         return $value === '' ? null : $value;
     }
 
-    /**
-     * Associe chaque colonne du fichier importé à un champ élève, à partir de la
-     * ligne d'en-têtes (correspondance insensible à la casse et aux accents).
-     * Rend l'import robuste à un changement d'ordre ou à des colonnes en plus.
-     *
-     * @param array<int, mixed> $headerRow
-     * @return array<string, int> champ => index de colonne
-     */
-    private function mapImportColumns(array $headerRow): array
-    {
-        // Normalisation : minuscule, sans accents, espaces réduits.
-        $normalize = static function (mixed $value): string {
-            $s = mb_strtolower(trim((string) ($value ?? '')));
-            $s = strtr($s, [
-                'à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a',
-                'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
-                'î' => 'i', 'ï' => 'i', ' í' => 'i',
-                'ô' => 'o', 'ö' => 'o', 'ó' => 'o',
-                'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ú' => 'u',
-                'ç' => 'c',
-            ]);
-            return preg_replace('/\s+/', ' ', $s);
-        };
-
-        // Alias acceptés par champ (forme normalisée). La correspondance est EXACTE
-        // pour éviter les collisions (« nom » vs « nom parent »).
-        $aliases = [
-            'matriculeInterne' => ['matricule interne', 'matricule'],
-            'matriculeNational' => ['matricule national'],
-            'lastName' => ['nom'],
-            'firstName' => ['prenom'],
-            'gender' => ['genre (m/f)', 'genre', 'sexe'],
-            'dateOfBirth' => ['date de naissance (jj/mm/aaaa)', 'date de naissance', 'date naissance'],
-            'placeOfBirth' => ['lieu de naissance', 'lieu naissance'],
-            'nationality' => ['nationalite'],
-            'birthCertificateNumber' => ['numero extrait de naissance', 'extrait de naissance', 'numero extrait'],
-            'cmuNumber' => ['numero cmu', 'cmu'],
-            'phone' => ['telephone', 'tel', 'telephone eleve'],
-            'email' => ['email', 'e-mail', 'mail'],
-            'address' => ['adresse'],
-            'lastSchoolAttended' => ['derniere ecole frequentee', 'derniere ecole'],
-            'status' => ['statut (affecte/non affecte)', 'statut', 'affectation'],
-            'parentName' => ['nom parent', 'nom du parent', 'nom du parent/tuteur'],
-            'parentPhone' => ['telephone parent', 'tel parent', 'telephone du parent'],
-            'parentEmail' => ['email parent', 'email du parent', 'mail parent'],
-            'parentFunction' => ['fonction parent', 'fonction du parent'],
-            'parentAddress' => ['domicile parent', 'adresse parent', 'domicile du parent'],
-            'photo' => ['photo'],
-        ];
-
-        // Index inverse : libellé normalisé => champ.
-        $labelToField = [];
-        foreach ($aliases as $field => $labels) {
-            foreach ($labels as $label) {
-                $labelToField[$label] = $field;
-            }
-        }
-
-        $map = [];
-        foreach ($headerRow as $idx => $header) {
-            $label = $normalize($header);
-            if ($label !== '' && isset($labelToField[$label]) && !isset($map[$labelToField[$label]])) {
-                $map[$labelToField[$label]] = (int) $idx;
-            }
-        }
-
-        return $map;
-    }
-
     private function parseBoolean(mixed $value): bool
     {
         $value = mb_strtolower(trim((string) ($value ?? '')));
 
         return in_array($value, ['oui', 'yes', '1', 'true', 'vrai', 'x'], true);
-    }
-
-    private function parseImportDate(mixed $value): ?\DateTimeInterface
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        // Valeur numérique : date sérielle Excel.
-        if (is_numeric($value)) {
-            try {
-                return ExcelDate::excelToDateTimeObject((float) $value);
-            } catch (\Throwable) {
-                return null;
-            }
-        }
-
-        $value = trim((string) $value);
-        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd/m/y'] as $format) {
-            $date = \DateTime::createFromFormat($format, $value);
-            if ($date instanceof \DateTime) {
-                return $date;
-            }
-        }
-
-        return null;
     }
 
     /**

@@ -1,0 +1,132 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import d'élèves{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    {% embed 'components/page_header.html.twig' with {
+        title: 'Import d\'élèves — aperçu',
+        subtitle: file_name,
+        icon: 'fa-file-import',
+        color: 'primary',
+        breadcrumb: [ { label: 'Élèves', path: path('admin_student_index') }, { label: 'Import' } ]
+    } %}
+        {% block actions %}
+            <a href="{{ path('admin_student_index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Annuler</a>
+        {% endblock %}
+    {% endembed %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card success h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">À créer</div><div class="stat-value">{{ result.created }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-user-plus"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card primary h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">À mettre à jour</div><div class="stat-value">{{ result.updated }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-pen"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card info h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Inchangés</div><div class="stat-value">{{ result.unchanged }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-equals"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card warning h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div><div class="stat-label mb-1">Lignes ignorées</div><div class="stat-value">{{ result.skipped }}</div></div>
+                    <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info d-flex align-items-start">
+        <i class="fas fa-circle-info me-2 mt-1"></i>
+        <div>
+            Rien n'est encore enregistré. Les élèves sont reconnus par leur <strong>matricule interne</strong> :
+            seuls les champs qui changent sont mis à jour, et une cellule vide ne modifie pas la valeur actuelle.
+            Les lignes ignorées restent à corriger dans le fichier.
+        </div>
+    </div>
+
+    {% set visible = result.rows|filter(r => r.action != 'unchanged') %}
+    <div class="card table-card mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Ligne</th>
+                            <th>Action</th>
+                            <th>Matricule</th>
+                            <th>Élève</th>
+                            <th>Champ</th>
+                            <th>Avant</th>
+                            <th>Après</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in visible %}
+                            {% set n = max(row.changes|length, 1) %}
+                            {% set rowClass = row.action == 'error' ? 'table-warning' : '' %}
+                            {% for i in 0..(n - 1) %}
+                                {% set c = row.changes[i] ?? null %}
+                                <tr class="{{ rowClass }}">
+                                    {% if i == 0 %}
+                                        <td rowspan="{{ n }}" class="text-muted">{{ row.line }}</td>
+                                        <td rowspan="{{ n }}">
+                                            {% if row.action == 'create' %}
+                                                <span class="badge bg-success">Création</span>
+                                            {% elseif row.action == 'update' %}
+                                                <span class="badge bg-primary">Mise à jour</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">Ignorée</span>
+                                            {% endif %}
+                                        </td>
+                                        <td rowspan="{{ n }}">{{ row.matricule ?: (row.action == 'create' ? 'auto' : '—') }}</td>
+                                        <td rowspan="{{ n }}" class="fw-semibold">{{ row.student ?: '—' }}</td>
+                                    {% endif %}
+                                    {% if row.action == 'error' %}
+                                        <td colspan="3" class="small text-danger"><i class="fas fa-xmark me-1"></i>{{ row.message }}</td>
+                                    {% elseif c %}
+                                        <td class="small">{{ c.label }}</td>
+                                        <td class="small text-muted">{% if c.old %}<del>{{ c.old }}</del>{% else %}—{% endif %}</td>
+                                        <td class="small fw-semibold text-success">{{ c.new }}</td>
+                                    {% else %}
+                                        <td colspan="3"></td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="7" class="text-center text-muted py-4">Aucun changement : tous les élèves du fichier sont déjà à jour.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mb-4">
+        <a href="{{ path('admin_student_index') }}" class="btn btn-light">Annuler</a>
+        {% set total = result.created + result.updated %}
+        {% if total > 0 %}
+            <form method="post" action="{{ path('admin_student_import_confirm', {token: token}) }}"
+                  onsubmit="return confirm('Créer {{ result.created }} élève(s) et mettre à jour {{ result.updated }} élève(s) ?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('import_students_confirm_' ~ token) }}">
+                <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Confirmer l'import ({{ total }})</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

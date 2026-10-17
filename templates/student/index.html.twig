@@ -185,16 +185,21 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                     </div>
                     <div class="modal-body">
+                        <input type="hidden" name="_token" value="{{ csrf_token('import_students') }}">
+                        <p class="text-muted small mb-2">
+                            Importez un fichier <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong>
+                            (même format que le modèle ou que l'export Excel). Les élèves sont reconnus par leur
+                            <strong>matricule interne</strong> :
+                        </p>
+                        <ul class="text-muted small mb-2">
+                            <li><strong>Matricule interne connu</strong> : l'élève est mis à jour, seuls les champs qui changent sont modifiés.</li>
+                            <li><strong>Matricule interne vide</strong> : un nouvel élève est créé (Nom et Prénom obligatoires, matricule généré).</li>
+                            <li><strong>Cellule vide</strong> : la valeur actuelle est conservée.</li>
+                        </ul>
                         <p class="text-muted small">
-                            Importez un fichier <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong>.
-                            L'import alimente le <strong>référentiel élève</strong> (l'affectation à une classe se fait ensuite via le module d'inscription).
-                            Respectez l'ordre des colonnes du modèle : Matricule interne, Matricule national, Nom, Prénom,
-                            Genre (M/F), Date de naissance, Lieu de naissance, Nationalité, N° extrait de naissance, N° CMU,
-                            Téléphone, Email, Adresse, Dernière école fréquentée, Statut (Affecté/Non affecté),
-                            Nom parent, Téléphone parent, Email parent, Fonction parent, Domicile parent, Photo.
-                            Le <strong>Nom</strong> et le <strong>Prénom</strong> sont obligatoires ; le matricule interne est
-                            généré automatiquement s'il est vide. Les élèves sont rattachés à l'établissement courant.
-                            (La colonne Photo n'est pas importée — téléversez la photo depuis la fiche de l'élève.)
+                            Un aperçu des changements s'affiche avant tout enregistrement. Les élèves sont rattachés à
+                            l'établissement courant ; l'affectation à une classe se fait via le module d'inscription.
+                            (La colonne Photo n'est pas importée.)
                         </p>
                         <div class="mb-3">
                             <a href="{{ path('admin_student_import_template') }}" class="btn btn-outline-secondary btn-sm">
@@ -208,7 +213,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-1"></i> Importer</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-magnifying-glass me-1"></i> Analyser le fichier</button>
                     </div>
                 </form>
             </div>
