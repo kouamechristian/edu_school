@@ -46,7 +46,18 @@
                                     {% for course in schedule[day] %}
                                         {% if course.timeSlot.id == timeSlot.id %}
                                             {% set found = true %}
-                                            <div class="course-slot" style="background-color: {{ course.subject.color ?? '#6c757d' }}15; border-left: 4px solid {{ course.subject.color ?? '#6c757d' }};">
+                                            <div class="course-slot js-slot-edit" role="button" title="Modifier ce cours"
+                                                 style="background-color: {{ course.subject.color ?? '#6c757d' }}15; border-left: 4px solid {{ course.subject.color ?? '#6c757d' }};"
+                                                 data-course="{{ course.id }}"
+                                                 data-day="{{ day }}"
+                                                 data-time-slot="{{ timeSlot.id }}"
+                                                 data-slot-label="{{ day|capitalize }} · {{ timeSlot.startTime|date('H:i') }} - {{ timeSlot.endTime|date('H:i') }}"
+                                                 data-subject="{{ course.subject.id }}"
+                                                 data-teacher="{{ course.teacher ? course.teacher.id : '' }}"
+                                                 data-teacher-label="{{ course.teacher ? course.teacher.fullName : '' }}"
+                                                 data-room="{{ course.room ? course.room.id : '' }}"
+                                                 data-delete-url="{{ path('admin_course_schedule_slot_delete', {id: classroom.id, course: course.id}) }}"
+                                                 data-delete-token="{{ csrf_token('delete' ~ course.id) }}">
                                                 <strong>{{ course.subject.name }}</strong><br>
                                                 <small>
                                                     <i class="fas fa-user me-1"></i>{{ course.teacher ? course.teacher.fullName : 'Non assigné' }}<br>
@@ -55,7 +66,14 @@
                                             </div>
                                         {% endif %}
                                     {% endfor %}
-                                    {% if not found %}<span class="text-muted">—</span>{% endif %}
+                                    {% if not found %}
+                                        <button type="button" class="btn btn-sm btn-outline-primary slot-add js-slot-add" title="Ajouter un cours"
+                                                data-day="{{ day }}"
+                                                data-time-slot="{{ timeSlot.id }}"
+                                                data-slot-label="{{ day|capitalize }} · {{ timeSlot.startTime|date('H:i') }} - {{ timeSlot.endTime|date('H:i') }}">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    {% endif %}
                                 </td>
                                 {% endfor %}
                             {% else %}
@@ -88,11 +106,180 @@
     </div>
 </div>
 
+{# Modale d'ajout / modification d'un cours depuis la grille #}
+<div class="modal fade" id="slotModal" tabindex="-1" aria-labelledby="slotModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{{ path('admin_course_schedule_slot', {id: classroom.id}) }}">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="slotModalTitle">Ajouter un cours</h5>
+                        <small class="text-muted" id="slotModalLabel"></small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="_token" value="{{ csrf_token('schedule_slot' ~ classroom.id) }}">
+                    <input type="hidden" name="course" id="slotCourse">
+                    <input type="hidden" name="day" id="slotDay">
+                    <input type="hidden" name="time_slot" id="slotTimeSlot">
+
+                    <div class="mb-3">
+                        <label for="slotSubject" class="form-label">Matière <span class="text-danger">*</span></label>
+                        <select name="subject" id="slotSubject" class="form-select" required>
+                            <option value="">Sélectionnez une matière</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if subjects is empty %}
+                            <div class="form-text text-warning">Aucune matière n'est rattachée au niveau de cette classe.</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="slotTeacher" class="form-label">Enseignant</label>
+                        <select name="teacher" id="slotTeacher" class="form-select">
+                            <option value="">Sélectionnez un enseignant</option>
+                        </select>
+                        <div class="form-text">Enseignants de la matière choisie.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="slotRoom" class="form-label">Salle</label>
+                        <select name="room" id="slotRoom" class="form-select">
+                            <option value="">Sélectionnez une salle</option>
+                            {% for room in rooms %}
+                                <option value="{{ room.id }}">{{ room.fullName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <div>
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <button type="button" class="btn btn-outline-danger d-none" id="slotDelete"><i class="fas fa-trash me-1"></i> Retirer</button>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Enregistrer</button>
+                    </div>
+                </div>
+            </form>
+            <form method="post" id="slotDeleteForm" class="d-none">
+                <input type="hidden" name="_token" id="slotDeleteToken">
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('slotModal');
+    if (!modalEl || typeof bootstrap === 'undefined') {
+        return;
+    }
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    const subjectSelect = document.getElementById('slotSubject');
+    const teacherSelect = document.getElementById('slotTeacher');
+    const roomSelect = document.getElementById('slotRoom');
+    const deleteBtn = document.getElementById('slotDelete');
+    const deleteForm = document.getElementById('slotDeleteForm');
+    const base = '{{ path('admin_course_index') }}'; // .../admin/courses/
+
+    // Sélectionne une valeur (compatible TomSelect ou select natif).
+    function setValue(select, value) {
+        if (select.tomselect) {
+            select.tomselect.setValue(value ? String(value) : '', true);
+        } else {
+            select.value = value ? String(value) : '';
+        }
+    }
+
+    // Remplace les options du champ enseignant.
+    function setTeachers(list, selectedId, selectedLabel) {
+        const options = list.map(function (t) { return { value: String(t.id), text: t.name }; });
+        // Conserver l'enseignant enregistré même s'il n'enseigne plus la matière.
+        if (selectedId && !options.some(function (o) { return o.value === String(selectedId); })) {
+            options.push({ value: String(selectedId), text: (selectedLabel || 'Enseignant actuel') + ' (hors matière)' });
+        }
+
+        const ts = teacherSelect.tomselect;
+        if (ts) {
+            ts.clear(true);
+            ts.clearOptions();
+            options.forEach(function (o) { ts.addOption(o); });
+            ts.refreshOptions(false);
+        } else {
+            teacherSelect.innerHTML = '<option value="">Sélectionnez un enseignant</option>';
+            options.forEach(function (o) {
+                const opt = document.createElement('option');
+                opt.value = o.value;
+                opt.textContent = o.text;
+                teacherSelect.appendChild(opt);
+            });
+        }
+        setValue(teacherSelect, selectedId);
+    }
+
+    function loadTeachers(subjectId, selectedId, selectedLabel) {
+        if (!subjectId) {
+            setTeachers([], null, null);
+            return;
+        }
+        fetch(base + 'teachers-by-subject/' + encodeURIComponent(subjectId), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (list) { setTeachers(list, selectedId, selectedLabel); })
+            .catch(function () { setTeachers([], selectedId, selectedLabel); });
+    }
+
+    function open(data) {
+        document.getElementById('slotCourse').value = data.course || '';
+        document.getElementById('slotDay').value = data.day;
+        document.getElementById('slotTimeSlot').value = data.timeSlot;
+        document.getElementById('slotModalTitle').textContent = data.course ? 'Modifier le cours' : 'Ajouter un cours';
+        document.getElementById('slotModalLabel').textContent = data.slotLabel || '';
+
+        setValue(subjectSelect, data.subject);
+        setValue(roomSelect, data.room);
+        loadTeachers(data.subject, data.teacher, data.teacherLabel);
+
+        if (deleteBtn) {
+            deleteBtn.classList.toggle('d-none', !data.course);
+            deleteForm.action = data.deleteUrl || '';
+            document.getElementById('slotDeleteToken').value = data.deleteToken || '';
+        }
+        modal.show();
+    }
+
+    document.querySelectorAll('.js-slot-add, .js-slot-edit').forEach(function (el) {
+        el.addEventListener('click', function () { open(el.dataset); });
+    });
+
+    subjectSelect.addEventListener('change', function () {
+        loadTeachers(subjectSelect.value, null, null);
+    });
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function () {
+            if (confirm('Retirer ce cours de l\'emploi du temps ?')) {
+                deleteForm.submit();
+            }
+        });
+    }
+});
+</script>
+
 {# Styles spécifiques à la grille d'emploi du temps #}
 <style>
 .schedule-table { font-size: 0.85rem; }
 .schedule-table thead th { background-color: var(--es-muted-bg); }
-.schedule-cell { height: 84px; vertical-align: middle; padding: 8px; }
-.course-slot { padding: 8px; border-radius: var(--es-radius-sm); margin: 2px 0; }
+.schedule-cell { height: 84px; vertical-align: middle; padding: 8px; text-align: center; }
+.course-slot { padding: 8px; border-radius: var(--es-radius-sm); margin: 2px 0; text-align: left; cursor: pointer; transition: box-shadow .15s; }
+.course-slot:hover { box-shadow: 0 0 0 2px var(--bs-primary); }
+.slot-add { opacity: 0; transition: opacity .15s; border-style: dashed; }
+.schedule-cell:hover .slot-add, .slot-add:focus { opacity: 1; }
+@media (hover: none) { .slot-add { opacity: .6; } }
 </style>
 {% endblock %}

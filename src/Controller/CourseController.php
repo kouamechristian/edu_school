@@ -250,18 +250,124 @@ class CourseController extends AbstractController
     }
 
     #[Route('/schedule/{id}', name: 'schedule', methods: ['GET'])]
-    public function schedule(Classroom $classroom, CourseRepository $courseRepository, \App\Repository\TimeSlotRepository $timeSlotRepository): Response
-    {
+    public function schedule(
+        Classroom $classroom,
+        CourseRepository $courseRepository,
+        \App\Repository\TimeSlotRepository $timeSlotRepository,
+        \App\Repository\SubjectRepository $subjectRepository,
+        \App\Repository\RoomRepository $roomRepository
+    ): Response {
         $schedule = $courseRepository->findScheduleByClassroom($classroom->getId());
-        
+        $schoolId = $classroom->getSchool()->getId();
+
         // Récupérer les plages horaires de l'établissement
-        $timeSlots = $timeSlotRepository->findBySchool($classroom->getSchool()->getId());
+        $timeSlots = $timeSlotRepository->findBySchool($schoolId);
+
+        // Listes de la modale d'édition directe (matières du niveau de la classe, salles)
+        $levelId = $classroom->getLevel()?->getId();
 
         return $this->render('course/schedule.html.twig', [
             'classroom' => $classroom,
             'schedule' => $schedule,
             'time_slots' => $timeSlots,
+            'subjects' => $levelId ? $subjectRepository->findBySchoolAndLevel($schoolId, $levelId) : [],
+            'rooms' => $roomRepository->findBySchool($schoolId),
         ]);
+    }
+
+    /**
+     * Ajout / modification d'un cours directement depuis la grille d'emploi du
+     * temps : la classe, le jour et la plage horaire sont imposés par la case.
+     */
+    #[Route('/schedule/{id}/slot', name: 'schedule_slot', methods: ['POST'])]
+    public function scheduleSlot(
+        Request $request,
+        Classroom $classroom,
+        EntityManagerInterface $entityManager,
+        \Symfony\Component\Validator\Validator\ValidatorInterface $validator
+    ): Response {
+        $redirect = $this->redirectToRoute('admin_course_schedule', ['id' => $classroom->getId()], Response::HTTP_SEE_OTHER);
+
+        if (!$this->isCsrfTokenValid('schedule_slot'.$classroom->getId(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton de sécurité invalide, veuillez réessayer.');
+            return $redirect;
+        }
+
+        $courseId = $request->request->getInt('course');
+        if ($courseId) {
+            $course = $entityManager->getRepository(Course::class)->find($courseId);
+            if (!$course || $course->getClassroom()?->getId() !== $classroom->getId()) {
+                throw $this->createNotFoundException('Cours introuvable pour cette classe.');
+            }
+        } else {
+            $course = (new Course())->setClassroom($classroom);
+        }
+
+        $day = (string) $request->request->get('day');
+        $timeSlot = $entityManager->getRepository(\App\Entity\TimeSlot::class)->find($request->request->getInt('time_slot'));
+        $subject = $entityManager->getRepository(\App\Entity\Subject::class)->find($request->request->getInt('subject'));
+        $teacherId = $request->request->getInt('teacher');
+        $roomId = $request->request->getInt('room');
+        $teacher = $teacherId ? $entityManager->getRepository(\App\Entity\User::class)->find($teacherId) : null;
+        $room = $roomId ? $entityManager->getRepository(\App\Entity\Room::class)->find($roomId) : null;
+
+        // Les références doivent appartenir à l'établissement de la classe.
+        $schoolId = $classroom->getSchool()->getId();
+        if (($timeSlot && $timeSlot->getSchool()?->getId() !== $schoolId)
+            || ($subject && $subject->getSchool()?->getId() !== $schoolId)
+            || ($room && $room->getSchool()?->getId() !== $schoolId)
+            || ($teacher && $teacher->getUserType() !== 'enseignant')) {
+            $this->addFlash('danger', 'Données invalides pour cet établissement.');
+            return $redirect;
+        }
+
+        $course->setDayOfWeek($day)
+            ->setTimeSlot($timeSlot)
+            ->setSubject($subject)
+            ->setTeacher($teacher)
+            ->setRoom($room);
+
+        $errors = $validator->validate($course);
+        if (count($errors) > 0) {
+            foreach ($errors as $error) {
+                $this->addFlash('danger', $error->getMessage());
+            }
+            // Pas de flush : les modifications en mémoire sont abandonnées.
+            return $redirect;
+        }
+
+        if (!$courseId) {
+            $entityManager->persist($course);
+        }
+        $entityManager->flush();
+
+        $this->addFlash('success', $courseId ? 'Le cours a été modifié avec succès.' : 'Le cours a été ajouté à l\'emploi du temps.');
+
+        return $redirect;
+    }
+
+    /**
+     * Retrait d'un cours depuis la grille d'emploi du temps.
+     */
+    #[Route('/schedule/{id}/slot/{course}/delete', name: 'schedule_slot_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function scheduleSlotDelete(
+        Request $request,
+        Classroom $classroom,
+        #[\Symfony\Bridge\Doctrine\Attribute\MapEntity(id: 'course')] Course $course,
+        EntityManagerInterface $entityManager
+    ): Response {
+        if ($course->getClassroom()?->getId() === $classroom->getId()
+            && $this->isCsrfTokenValid('delete'.$course->getId(), $request->request->get('_token'))) {
+            $this->deleteEntity(
+                $entityManager,
+                $course,
+                'Le cours a été retiré de l\'emploi du temps.',
+                'Suppression impossible : ce cours est encore lié à des évaluations, absences ou emplois du temps.'
+            );
+        }
+
+        return $this->redirectToRoute('admin_course_schedule', ['id' => $classroom->getId()], Response::HTTP_SEE_OTHER);
     }
 
     /**
