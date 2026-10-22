@@ -985,6 +985,20 @@ class Student implements SchoolOwnedInterface
     }
 
     /**
+     * Total des remises accordées (toutes années), sur les mêmes lignes que getTotalTuition().
+     */
+    public function getTotalDiscount(): float
+    {
+        $total = 0;
+        foreach ($this->studentFees as $sf) {
+            if ($sf->getFee()?->isActive() && !$sf->isArriereAnterieur()) {
+                $total += (float) $sf->getDiscountAmount();
+            }
+        }
+        return $total;
+    }
+
+    /**
      * Vrai si cette ligne d'arriéré est EXCLUE du total toutes années de l'élève (report
      * d'une année gérée, déjà comptée via ses frais réels) — par opposition à un arriéré
      * importé d'une année non gérée, qui est bien compté. Utilisé par la fiche élève pour

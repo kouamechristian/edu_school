@@ -51,6 +51,14 @@ class StudentFee implements SchoolOwnedInterface
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $paidAmount = '0.00';
 
+    /**
+     * Part de la remise de l'inscription imputée sur cette ligne. `amount` est le
+     * montant NET dû (déjà diminué de la remise) : le montant brut vaut
+     * amount + discountAmount. Géré exclusivement par RegistrationDiscountService.
+     */
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, options: ['default' => '0.00'])]
+    private string $discountAmount = '0.00';
+
     #[ORM\Column(length: 20)]
     #[Assert\Choice(choices: ['non_paye', 'partiellement_paye', 'paye'])]
     private ?string $status = 'non_paye';
@@ -144,6 +152,35 @@ class StudentFee implements SchoolOwnedInterface
     public function setAmount(string $amount): static
     {
         $this->amount = $amount;
+        return $this;
+    }
+
+    public function getDiscountAmount(): string
+    {
+        return $this->discountAmount;
+    }
+
+    /**
+     * Montant avant remise.
+     */
+    public function getGrossAmount(): float
+    {
+        return (float) $this->amount + (float) $this->discountAmount;
+    }
+
+    /**
+     * Applique une remise sur le montant brut de la ligne : le net dû devient
+     * brut − remise, et le statut de paiement est recalculé en conséquence.
+     */
+    public function applyDiscount(float $discount): static
+    {
+        $gross = $this->getGrossAmount();
+        $discount = max(0.0, min($discount, $gross));
+
+        $this->discountAmount = number_format($discount, 2, '.', '');
+        $this->amount = number_format($gross - $discount, 2, '.', '');
+        $this->updateStatus();
+
         return $this;
     }
 

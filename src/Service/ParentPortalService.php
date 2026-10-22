@@ -248,6 +248,8 @@ class ParentPortalService
      *
      * @return array{
      *     total_tuition: float,
+     *     total_discount: float,
+     *     discount_label: string,
      *     total_paid: float,
      *     remaining: float
      * }
@@ -260,6 +262,9 @@ class ParentPortalService
 
         return [
             'total_tuition' => $inscription ? $inscription->getTotalTuition() : $child->getTotalTuition(),
+            // total_tuition est déjà net de remise ; la remise est indiquée à titre informatif.
+            'total_discount' => $inscription ? $inscription->getTotalDiscount() : $child->getTotalDiscount(),
+            'discount_label' => $inscription ? $inscription->getDiscountLabel() : '',
             'total_paid' => $inscription ? $inscription->getTotalPaid() : $child->getTotalPaid(),
             'remaining' => $inscription ? $inscription->getRemainingTuition() : $child->getRemainingTuition(),
         ];

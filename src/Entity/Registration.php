@@ -25,6 +25,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 class Registration implements SchoolOwnedInterface
 {
+    public const DISCOUNT_PERCENT = 'percent';
+    public const DISCOUNT_AMOUNT = 'amount';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -62,6 +65,29 @@ class Registration implements SchoolOwnedInterface
      */
     #[ORM\Column]
     private bool $boursier = false;
+
+    /**
+     * Remise accordée sur le montant total des frais de l'année : en pourcentage
+     * (DISCOUNT_PERCENT) ou en montant fixe (DISCOUNT_AMOUNT), null = aucune remise.
+     * La remise est répartie sur les lignes de frais par RegistrationDiscountService
+     * (StudentFee::discountAmount) : c'est ici qu'elle est DÉFINIE, là qu'elle est APPLIQUÉE.
+     */
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Choice(choices: [self::DISCOUNT_PERCENT, self::DISCOUNT_AMOUNT])]
+    private ?string $discountType = null;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    private ?string $discountValue = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $discountReason = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $discountGrantedBy = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $discountGrantedAt = null;
 
     #[ORM\Column]
     private bool $isActive = true;
@@ -186,6 +212,67 @@ class Registration implements SchoolOwnedInterface
         return $this;
     }
 
+    public function hasDiscount(): bool
+    {
+        return $this->discountType !== null && (float) $this->discountValue > 0;
+    }
+
+    public function getDiscountType(): ?string
+    {
+        return $this->discountType;
+    }
+
+    public function getDiscountValue(): ?string
+    {
+        return $this->discountValue;
+    }
+
+    public function getDiscountReason(): ?string
+    {
+        return $this->discountReason;
+    }
+
+    public function getDiscountGrantedBy(): ?User
+    {
+        return $this->discountGrantedBy;
+    }
+
+    public function getDiscountGrantedAt(): ?\DateTimeInterface
+    {
+        return $this->discountGrantedAt;
+    }
+
+    /**
+     * Définit (ou efface, avec $type = null) la remise de l'inscription.
+     * N'applique rien aux frais : voir RegistrationDiscountService.
+     */
+    public function setDiscount(?string $type, ?float $value, ?string $reason, ?User $grantedBy): static
+    {
+        $this->discountType = $type;
+        $this->discountValue = $type !== null ? number_format((float) $value, 2, '.', '') : null;
+        $this->discountReason = $type !== null ? $reason : null;
+        $this->discountGrantedBy = $type !== null ? $grantedBy : null;
+        $this->discountGrantedAt = $type !== null ? new \DateTime() : null;
+
+        return $this;
+    }
+
+    /**
+     * Libellé court de la remise : « 10 % » ou « 25 000 F ».
+     */
+    public function getDiscountLabel(): string
+    {
+        if (!$this->hasDiscount()) {
+            return '';
+        }
+
+        $value = (float) $this->discountValue;
+
+        return $this->discountType === self::DISCOUNT_PERCENT
+            ? rtrim(rtrim(number_format($value, 2, ',', ' '), '0'), ',') . ' %'
+            : number_format($value, 0, ',', ' ') . ' F';
+    }
+
     public function isActive(): bool
     {
         return $this->isActive;
@@ -262,6 +349,22 @@ class Registration implements SchoolOwnedInterface
         foreach ($this->studentFees as $sf) {
             if ($sf->getFee()?->isActive()) {
                 $total += (float) $sf->getAmount();
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Total des remises appliquées sur les frais (actifs) de l'année d'inscription.
+     * Le montant brut (avant remise) vaut getTotalTuition() + getTotalDiscount().
+     */
+    public function getTotalDiscount(): float
+    {
+        $total = 0.0;
+        foreach ($this->studentFees as $sf) {
+            if ($sf->getFee()?->isActive()) {
+                $total += (float) $sf->getDiscountAmount();
             }
         }
 

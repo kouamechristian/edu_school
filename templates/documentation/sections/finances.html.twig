@@ -12,10 +12,42 @@
     échéance, caractère obligatoire ou non.
 </p>
 <p>
-    À la validation d'une inscription, les frais du niveau sont automatiquement rattachés à l'élève. Vous pouvez
-    ensuite les ajuster individuellement : remise, exonération, ou statut <strong>boursier</strong> qui applique
-    une réduction sur les frais concernés.
+    À la validation d'une inscription, les frais du niveau sont automatiquement rattachés à l'élève. Depuis sa
+    fiche, vous pouvez ensuite ajouter ou retirer des frais, et accorder une remise. Le statut
+    <strong>boursier</strong> est une simple information : il ne réduit pas les frais de lui-même ; utilisez une
+    remise pour cela.
 </p>
+
+<h3 id="remise">Remise sur le montant total</h3>
+<p>
+    Fiche élève → carte <em>Scolarité</em> → <em>Accorder une remise</em> (rôles administrateur, fondateur et
+    super-administrateur). La remise porte sur le <strong>montant total des frais d'une année</strong> de l'élève :
+</p>
+<ul>
+    <li><strong>en pourcentage</strong> (ex. 10 %, ou 100 % pour une exonération totale) ou <strong>en montant fixe</strong>
+        (ex. 25 000 F) ;</li>
+    <li>avec un <strong>motif obligatoire</strong> (fratrie, enfant du personnel…), l'auteur et la date étant conservés ;</li>
+    <li>tous les frais actifs de l'année sont concernés, <strong>sauf les arriérés</strong> des années antérieures.</li>
+</ul>
+<p>
+    La remise est répartie sur les frais au prorata de leur montant. Chaque frais affiche son montant initial barré,
+    sa part de remise et son nouveau montant. Tout le reste de l'application (encaissement, imputation, recouvrement,
+    espace parent, paiement en ligne, reçu) utilise directement le montant après remise. Le reçu indique la
+    « Remise accordée ». La liste des inscrits (<em>Élèves → Inscrits</em>) et son export Excel ont une colonne
+    <strong>Remise</strong> (montant, taux et motif).
+</p>
+<ul>
+    <li>Une remise accordée après des paiements ne fait jamais descendre un frais sous ce qui a déjà été payé dessus :
+        la part correspondante est reportée sur les autres frais. Elle est refusée si elle dépasse le reste à payer.</li>
+    <li>Ajouter ou retirer un frais, ou changer l'élève de niveau, répartit à nouveau la remise : un pourcentage est
+        recalculé sur le nouveau total, un montant fixe est conservé.</li>
+    <li><em>Modifier la remise</em> remplace la précédente ; <em>Supprimer la remise</em> rend aux frais leur montant initial.</li>
+    <li>Chaque remise accordée, modifiée ou supprimée est tracée dans le Mouchard.</li>
+</ul>
+<div class="doc-note">
+    La remise n'est pas une recette : elle diminue ce que l'élève doit, sans écriture comptable. Les recettes restent
+    celles des paiements réellement encaissés.
+</div>
 
 <h2 id="caisse">Ma caisse</h2>
 <p>

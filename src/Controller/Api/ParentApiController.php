@@ -562,6 +562,7 @@ class ParentApiController extends AbstractController
     {
         return [
             'totalTuition' => (float) $finance['total_tuition'],
+            'totalDiscount' => (float) $finance['total_discount'],
             'totalPaid' => (float) $finance['total_paid'],
             'remaining' => (float) $finance['remaining'],
         ];

@@ -132,6 +132,9 @@
                 <tr>
                     <td class="totals">
                         <table>
+                            {% if student and student.totalDiscount > 0 %}
+                                <tr><td>Remise accordée : {{ student.totalDiscount|number_format(0, ',', ' ') }} F CFA</td></tr>
+                            {% endif %}
                             <tr><td>Montant Total : {{ total_due|number_format(0, ',', ' ') }} F CFA</td></tr>
                             <tr><td>Montant Total payé : {{ total_paid|number_format(0, ',', ' ') }} F CFA</td></tr>
                             <tr><td>Reste à payer : {{ total_balance|number_format(0, ',', ' ') }} F CFA</td></tr>

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Controller\Concern\HandlesEntityDeletion;
 use App\Controller\Concern\HandlesFileUpload;
+use App\Entity\ActivityLog;
 use App\Entity\Classroom;
 use App\Entity\Registration;
 use App\Entity\Student;
@@ -18,8 +19,10 @@ use App\Repository\PaymentRepository;
 use App\Repository\PreRegistrationRepository;
 use App\Repository\ClassroomRepository;
 use App\Repository\LevelRepository;
+use App\Service\ActivityLogger;
 use App\Service\EnrollmentService;
 use App\Service\FeeAssignmentService;
+use App\Service\RegistrationDiscountService;
 use App\Service\RegistrationManager;
 use App\Service\SchoolContextService;
 use App\Service\StudentImporter;
@@ -30,6 +33,7 @@ use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
@@ -947,8 +951,11 @@ class StudentController extends AbstractController
                 $feesByYear[$key] = [
                     'year_name' => $year?->getName() ?? 'Frais non rattachés à une année',
                     'start' => $year?->getStartDate(),
+                    // Inscription de l'année : porte la remise sur le montant total.
+                    'registration' => $sf->getRegistration(),
                     'fees' => [],
                     'total' => 0.0,
+                    'discount' => 0.0,
                     'paid' => 0.0,
                     'remaining' => 0.0,
                 ];
@@ -956,6 +963,7 @@ class StudentController extends AbstractController
             $feesByYear[$key]['fees'][] = $sf;
             if ($sf->getFee()?->isActive()) {
                 $feesByYear[$key]['total'] += (float) $sf->getAmount();
+                $feesByYear[$key]['discount'] += (float) $sf->getDiscountAmount();
                 $feesByYear[$key]['paid'] += (float) $sf->getPaidAmount();
             }
         }
@@ -1035,6 +1043,95 @@ class StudentController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_student_show', ['id' => $student->getId()]);
+    }
+
+    /**
+     * Remise sur le montant total des frais d'une année (inscription) de l'élève :
+     * en pourcentage ou en montant fixe, avec un motif obligatoire.
+     */
+    #[Route('/{id}/discount/{registration}', name: 'discount', methods: ['POST'], requirements: ['id' => '\d+', 'registration' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function grantDiscount(
+        Request $request,
+        Student $student,
+        #[MapEntity(id: 'registration')] Registration $registration,
+        RegistrationDiscountService $discountService,
+        ActivityLogger $activityLogger
+    ): Response {
+        $redirect = $this->redirectToRoute('admin_student_show', ['id' => $student->getId()], Response::HTTP_SEE_OTHER);
+
+        if ($registration->getStudent() !== $student) {
+            throw $this->createNotFoundException();
+        }
+        if (!$this->isCsrfTokenValid('discount' . $registration->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+            return $redirect;
+        }
+
+        $type = (string) $request->request->get('discount_type');
+        $value = (float) str_replace([' ', ','], ['', '.'], (string) $request->request->get('discount_value'));
+        $reason = (string) $request->request->get('discount_reason');
+        $hadDiscount = $registration->hasDiscount();
+
+        try {
+            $amount = $discountService->grant($registration, $type, $value, $reason, $this->getUser());
+        } catch (\DomainException $e) {
+            // grant() valide tout avant de modifier quoi que ce soit : rien à annuler.
+            $this->addFlash('error', $e->getMessage());
+            return $redirect;
+        }
+
+        $this->entityManager->flush();
+
+        $label = $registration->getDiscountLabel();
+        $activityLogger->log(ActivityLog::ACTION_UPDATE, sprintf(
+            'Remise %s de %s (%s F) sur %s — %s : %s',
+            $hadDiscount ? 'modifiée' : 'accordée',
+            $label,
+            number_format($amount, 0, ',', ' '),
+            $student->getFullName(),
+            $registration->getSchoolYear()?->getName(),
+            $registration->getDiscountReason()
+        ));
+
+        $this->addFlash('success', sprintf(
+            'Remise de %s appliquée : %s F déduits du montant total. Nouveau total : %s F.',
+            $label,
+            number_format($amount, 0, ',', ' '),
+            number_format($registration->getTotalTuition(), 0, ',', ' ')
+        ));
+
+        return $redirect;
+    }
+
+    #[Route('/{id}/discount/{registration}/remove', name: 'discount_remove', methods: ['POST'], requirements: ['id' => '\d+', 'registration' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function revokeDiscount(
+        Request $request,
+        Student $student,
+        #[MapEntity(id: 'registration')] Registration $registration,
+        RegistrationDiscountService $discountService,
+        ActivityLogger $activityLogger
+    ): Response {
+        if ($registration->getStudent() !== $student) {
+            throw $this->createNotFoundException();
+        }
+
+        if ($registration->hasDiscount() && $this->isCsrfTokenValid('discount_remove' . $registration->getId(), $request->request->get('_token'))) {
+            $label = $registration->getDiscountLabel();
+            $discountService->revoke($registration);
+            $this->entityManager->flush();
+
+            $activityLogger->log(ActivityLog::ACTION_UPDATE, sprintf(
+                'Remise de %s supprimée sur %s — %s',
+                $label,
+                $student->getFullName(),
+                $registration->getSchoolYear()?->getName()
+            ));
+            $this->addFlash('success', 'La remise a été supprimée : les frais retrouvent leur montant initial.');
+        }
+
+        return $this->redirectToRoute('admin_student_show', ['id' => $student->getId()], Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]

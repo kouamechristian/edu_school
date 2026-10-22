@@ -165,9 +165,10 @@ class RegistrationController extends AbstractController
             : $allRegistrations;
 
         // Totaux calculés sur l'ensemble des inscrits (pas seulement la page courante).
-        $totals = ['tuition' => 0.0, 'paid' => 0.0, 'cancelled' => 0.0, 'remaining' => 0.0];
+        $totals = ['tuition' => 0.0, 'discount' => 0.0, 'paid' => 0.0, 'cancelled' => 0.0, 'remaining' => 0.0];
         foreach ($allRegistrations as $reg) {
             $totals['tuition'] += $reg->getTotalTuition();
+            $totals['discount'] += $reg->getTotalDiscount();
             $totals['paid'] += $reg->getTotalPaid();
             $totals['cancelled'] += $reg->getTotalCancelled();
             $totals['remaining'] += $reg->getRemainingTuition();
@@ -206,9 +207,9 @@ class RegistrationController extends AbstractController
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Inscrits');
 
-        $headers = ['Mle interne', 'Nom', 'Prénom', 'Classe', 'Montant total', 'Payé', 'Annulé', 'Restant', 'Statut'];
+        $headers = ['Mle interne', 'Nom', 'Prénom', 'Classe', 'Remise', 'Taux / motif remise', 'Montant total', 'Payé', 'Annulé', 'Restant', 'Statut'];
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:K1')->getFont()->setBold(true);
 
         $rowNum = 2;
         foreach ($registrations as $reg) {
@@ -218,6 +219,8 @@ class RegistrationController extends AbstractController
                 $student?->getLastName(),
                 $student?->getFirstName(),
                 $reg->getClassroom()?->getName(),
+                $reg->getTotalDiscount(),
+                $reg->hasDiscount() ? trim($reg->getDiscountLabel() . ' — ' . $reg->getDiscountReason(), ' —') : '',
                 $reg->getTotalTuition(),
                 $reg->getTotalPaid(),
                 $reg->getTotalCancelled(),
@@ -227,7 +230,7 @@ class RegistrationController extends AbstractController
             $rowNum++;
         }
 
-        foreach (range('A', 'I') as $col) {
+        foreach (range('A', 'K') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

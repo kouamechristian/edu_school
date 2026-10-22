@@ -19,7 +19,8 @@ class FeeAssignmentService
         private StudentFeeRepository $studentFeeRepository,
         private StudentRepository $studentRepository,
         private FeeRepository $feeRepository,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private RegistrationDiscountService $discountService,
     ) {
     }
 
@@ -64,6 +65,11 @@ class FeeAssignmentService
         $fee->addStudentFee($studentFee);
 
         $this->entityManager->persist($studentFee);
+
+        // Une remise en pourcentage s'étend au nouveau frais ; un montant fixe est réparti à nouveau.
+        if ($registration?->hasDiscount()) {
+            $this->discountService->reapply($registration);
+        }
 
         return $studentFee;
     }
@@ -199,6 +205,9 @@ class FeeAssignmentService
             $this->entityManager->remove($old);
             $result['removed']++;
         }
+
+        // Remise de l'inscription : répartie à nouveau sur les frais du nouveau niveau.
+        $this->discountService->reapply($registration);
 
         foreach ($targets as $target) {
             $result['overpaid'] += max(0.0, (float) $target->getPaidAmount() - (float) $target->getAmount());
@@ -405,11 +414,21 @@ class FeeAssignmentService
 
     public function unassignFeeFromStudent(StudentFee $studentFee): void
     {
-        if ($studentFee->getStatus() !== 'non_paye') {
+        // Sur le montant réellement payé, pas sur le statut : un frais entièrement
+        // couvert par une remise est « payé » sans avoir reçu de paiement.
+        if ((float) $studentFee->getPaidAmount() > 0) {
             throw new \LogicException('Impossible de retirer un frais déjà payé ou partiellement payé.');
         }
 
+        $registration = $studentFee->getRegistration();
+        $registration?->removeStudentFee($studentFee);
+        $studentFee->getStudent()?->removeStudentFee($studentFee);
         $this->entityManager->remove($studentFee);
+
+        // La part de remise portée par ce frais est reportée sur les frais restants.
+        if ($registration?->hasDiscount()) {
+            $this->discountService->reapply($registration);
+        }
     }
 
     public function getStudentTuitionSummary(Student $student): array

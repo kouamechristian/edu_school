@@ -27,6 +27,12 @@
         <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,#10b981,#059669);border-radius:999px;transition:width .6s ease;"></div>
     </div>
     <div class="pp-child-sub" style="margin-top:.5rem;">{{ pct }}% de la scolarité réglée</div>
+    {% if finance.total_discount > 0 %}
+        <div class="pp-child-sub" style="margin-top:.35rem;color:#059669;">
+            <i class="fas fa-tag"></i> Remise accordée{% if finance.discount_label %} ({{ finance.discount_label }}){% endif %} :
+            {{ finance.total_discount|number_format(0, ',', ' ') }} F, déjà déduite du frais total.
+        </div>
+    {% endif %}
 </section>
 
 {# ── Paiements en ligne encore en cours de validation ───────── #}
