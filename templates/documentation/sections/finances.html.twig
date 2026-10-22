@@ -22,7 +22,8 @@
     Chaque encaisseur travaille sur <strong>sa</strong> caisse. Le cycle quotidien est le suivant :
 </p>
 <ol class="doc-steps">
-    <li><strong>Ouverture</strong> — <em>Finances → Ma caisse</em>. Saisissez le fonds de caisse initial.</li>
+    <li><strong>Ouverture</strong> — <em>Finances → Ma caisse</em>. Saisissez le fonds de caisse initial.
+        {% include 'documentation/_figure.html.twig' with {src: 'finances-ouverture-caisse', caption: 'Ouverture de la caisse : saisie du solde d\'ouverture.'} %}</li>
     <li><strong>Encaissements</strong> — les paiements de la journée s'y rattachent automatiquement.</li>
     <li><strong>Clôture</strong> — en fin de journée, saisissez le montant physiquement compté. L'application affiche l'écart éventuel avec le théorique.</li>
     <li><strong>Validation</strong> — le fondateur contrôle et valide la caisse clôturée (<em>Espace Fondateur → Valider les caisses</em>).</li>
@@ -32,30 +33,90 @@
     Aucun paiement ne peut être enregistré sans caisse ouverte. Si le bouton d'encaissement est indisponible,
     c'est presque toujours la cause.
 </div>
+<p>
+    Les statistiques de la caisse affichent le <strong>montant encaissé ce jour</strong> ainsi que le détail
+    <strong>jour par jour</strong> (nombre de paiements et montant), utile quand une caisse reste ouverte plusieurs
+    jours avant d'être versée ou clôturée.
+</p>
+<p>
+    Les paiements en ligne des parents sont rattachés à une caisse « en ligne » distincte : voir
+    <a href="{{ path('app_documentation_section', {slug: 'paiement-en-ligne'}) }}">Paiement en ligne</a>.
+</p>
 
 <h2 id="paiements">Paiements</h2>
-<p><em>Finances → Paiements</em>. Pour encaisser :</p>
+<p><em>Finances → Paiements → Nouveau</em>. L'encaissement se fait en <strong>deux étapes</strong> :</p>
 <ol class="doc-steps">
-    <li>Recherchez l'élève par nom ou matricule.</li>
-    <li>Sa situation s'affiche : frais dus, déjà réglés, solde restant.</li>
-    <li>Choisissez le frais à régler, le montant et le mode de paiement (espèces, Mobile Money, chèque, virement).</li>
-    <li>Validez : le reçu numéroté est généré en PDF, imprimable ou envoyable au parent.</li>
+    <li><strong>Montant versé</strong> — recherchez l'élève par nom ou matricule, puis saisissez le montant remis par le
+        parent, le mode de paiement et, si besoin, une <strong>référence</strong> (n° de transaction, de chèque, de bordereau…).</li>
+    <li><strong>Imputation</strong> — répartissez ce montant sur un ou plusieurs frais. Une répartition automatique est
+        proposée : arriérés des années antérieures d'abord, puis les échéances les plus anciennes. Vous pouvez la modifier.</li>
+    <li><strong>Reçu</strong> — la validation n'est possible que si la somme des imputations égale le montant versé.
+        Le reçu s'affiche alors directement dans la page (PDF intégré), prêt à imprimer.</li>
 </ol>
+<p>
+    Un encaissement réparti sur plusieurs frais produit une ligne de paiement par frais, toutes regroupées sous un
+    <strong>même numéro de reçu</strong>. Le reçu indique le montant versé, le détail par frais et le
+    <strong>reste à payer</strong>.
+</p>
+<div class="doc-note">
+    <div class="doc-note__title"><i class="fas fa-shield-halved me-1"></i> Garde-fous</div>
+    Le montant versé ne peut pas dépasser le reste dû de l'élève, ni l'imputation le reste dû du frais. Une saisie
+    validée ne peut pas être rejouée (double clic, retour arrière du navigateur).
+</div>
+<p>Modes de paiement disponibles : espèces, chèque, virement, carte, Mobile Money, <strong>ECOBANK</strong> et <strong>Banque</strong>.</p>
 <p>
     Les paiements partiels sont acceptés : le solde reste dû et apparaît dans le module Recouvrement.
 </p>
 
+<h3 id="liste-paiements">Liste des paiements</h3>
+{% include 'documentation/_figure.html.twig' with {src: 'finances-paiements', caption: 'Finances → Paiements : recherche, filtres statut et méthode, export PDF, import, nouveau paiement.'} %}
+<ul>
+    <li>Une ligne par reçu (élève, montant total versé, date, méthode, statut) ; le détail des frais figure sur le reçu.</li>
+    <li>Recherche en direct sur toute la base : n° de paiement ou de reçu, référence, nom ou matricule de l'élève,
+        cumulable avec les filtres statut et méthode.</li>
+    <li>Pagination de 25 lignes, et <strong>export PDF</strong> reprenant les filtres en cours.</li>
+    <li>Seuls les paiements des élèves de l'établissement sélectionné sont affichés.</li>
+</ul>
+
+<h3 id="import-paiements">Import de paiements</h3>
+<p>
+    Depuis la page Paiements (rôle Caisse et au-dessus), bouton <em>Importer</em>. Utile pour reprendre des
+    encaissements faits hors de l'application (relevés bancaires, Mobile Money…).
+</p>
+<ol class="doc-steps">
+    <li>Ouvrez votre caisse : les paiements importés y sont rattachés.</li>
+    <li>Téléchargez le modèle Excel. Colonnes : <em>Matricule, Montant, Date de paiement, Méthode de paiement,
+        Référence, Frais (facultatif), Notes</em>. Les en-têtes sont reconnus quel que soit leur ordre.</li>
+    <li>Déposez le fichier (XLSX, XLS ou CSV) : un <strong>aperçu</strong> ligne par ligne s'affiche, sans rien enregistrer.</li>
+    <li>Confirmez : seules les lignes valides sont enregistrées.</li>
+</ol>
+<ul>
+    <li>Sans colonne <em>Frais</em>, le montant est réparti comme au guichet (arriérés, puis échéances).</li>
+    <li>Un montant supérieur au reste dû est refusé.</li>
+    <li>Les doublons (même référence, ou même élève + date + montant + méthode) sont ignorés : réimporter un
+        fichier est sans effet.</li>
+    <li>Sans référence fournie, une référence <code>IMP-…</code> est générée. L'écriture comptable suit automatiquement.</li>
+</ul>
+
 <h3 id="annulation">Annulation</h3>
 <p>
     Un paiement erroné ne se supprime pas : il s'annule. Le paiement bascule dans <em>Paiements annulés</em>
-    avec son motif, l'écriture comptable est contre-passée, et la trace reste consultable. Cette opération est
-    réservée aux rôles administrateur.
+    avec son motif, l'écriture comptable est contre-passée, et la trace reste consultable. Annuler un reçu annule
+    toutes ses imputations. Cette opération est réservée aux rôles administrateur.
 </p>
+<div class="doc-note danger">
+    <div class="doc-note__title"><i class="fas fa-trash-can me-1"></i> Suppression définitive</div>
+    Le super-administrateur dispose en plus d'une suppression définitive (sélection multiple) : les lignes du reçu
+    et leur écriture comptable sont effacées, et le montant payé de chaque frais est recalculé. À réserver aux
+    erreurs de saisie ou aux données de test.
+</div>
 
 <h3 id="mobile-money">Mobile Money</h3>
 <p>
     Les paiements par Mobile Money sont journalisés séparément (<em>Administration → Logs Mobile Money</em>) :
-    référence de la transaction, opérateur, statut. Utile pour rapprocher les encaissements en cas de litige.
+    opérateur, téléphone réel du payeur, référence de la transaction, statut, avec un badge distinguant les
+    transactions de test (sandbox). Les paiements saisis au guichet affichent « Caisse ». Utile pour rapprocher
+    les encaissements en cas de litige.
 </p>
 
 <h2 id="depenses">Dépenses</h2>

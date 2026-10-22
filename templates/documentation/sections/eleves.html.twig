@@ -38,18 +38,21 @@
         <strong>Suivi</strong> — la fiche élève regroupe ensuite scolarité, notes, absences et situation financière.
     </li>
 </ol>
+{% include 'documentation/_figure.html.twig' with {src: 'eleves-preinscriptions', caption: 'Élèves → Préinscriptions : suivi des demandes par statut, import et export Excel.'} %}
 
 <h2 id="ecrans">Les écrans du module</h2>
+{% include 'documentation/_figure.html.twig' with {src: 'eleves-base', caption: 'Élèves → Base de données : compteurs, filtres, recherche, import/export Excel.'} %}
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead><tr><th>Écran</th><th>Usage</th></tr></thead>
         <tbody>
-            <tr><td><strong>Tableau de bord</strong></td><td>Effectifs par niveau et par classe, répartition par sexe et par statut.</td></tr>
+            <tr><td><strong>Tableau de bord</strong></td><td>Effectifs par classe et capacité, élèves sans extrait de naissance ; liste et PDF des élèves de chaque classe.</td></tr>
             <tr><td><strong>Base de données</strong></td><td>Référentiel de tous les élèves, toutes années. Recherche, import/export Excel, fiche détaillée.</td></tr>
             <tr><td><strong>Préinscriptions</strong></td><td>Demandes en attente, validées ou rejetées, avec leurs pièces jointes.</td></tr>
-            <tr><td><strong>Inscrits</strong></td><td>Liste des élèves inscrits pour l'année en cours.</td></tr>
+            <tr><td><strong>Inscrits</strong></td><td>Liste des élèves inscrits pour l'année en cours, exportable en Excel. Les statistiques en tête de liste sont réservées au fondateur.</td></tr>
             <tr><td><strong>Affectation dans une classe</strong></td><td>Répartition des inscrits dans les classes.</td></tr>
             <tr><td><strong>Transferts</strong></td><td>Changement de classe en cours d'année, ou départ vers un autre établissement.</td></tr>
+            <tr><td><strong>Changement de niveau</strong></td><td>Passage d'un élève inscrit dans une classe d'un autre niveau, avec bascule des frais.</td></tr>
             <tr><td><strong>Exclusion</strong></td><td>Enregistrement d'un abandon ou d'une exclusion, avec motif et date.</td></tr>
             <tr><td><strong>Archives</strong></td><td>Élèves des années antérieures, consultables sans encombrer les listes courantes.</td></tr>
             <tr><td><strong>Rapports</strong></td><td>États d'effectifs, listes de classe, exports pour les autorités de tutelle.</td></tr>
@@ -60,22 +63,109 @@
 <h2 id="matricule">Matricules</h2>
 <p>
     Le matricule interne est généré automatiquement à la création de l'élève, selon un format propre à
-    l'établissement. Il sert d'identifiant dans toute l'application : connexion à l'espace élève, recherche
-    d'un ancien élève à la réinscription, et prise de photo via l'application mobile.
+    l'établissement. Il sert d'identifiant dans toute l'application : recherche d'un ancien élève à la
+    réinscription, rapprochement lors des imports, et prise de photo via l'application mobile.
 </p>
 <p>
-    Le <strong>matricule national</strong>, lorsqu'il existe, est saisi séparément. Il permet notamment à un
-    parent de retrouver son enfant lors de l'auto-inscription en ligne.
+    Le <strong>matricule national</strong>, lorsqu'il existe, est saisi séparément. Il sert d'identifiant de
+    connexion à l'espace élève (avec la date de naissance) et permet à un parent de retrouver son enfant lors de
+    l'auto-inscription en ligne.
 </p>
+
+<p>
+    Le <strong>matricule national</strong> est <strong>unique</strong> : l'application refuse de l'attribuer à un
+    second élève, ce qui évite les doublons lors des réinscriptions et des imports.
+</p>
+<p>
+    La <strong>date de naissance</strong> est facultative, dans la fiche élève comme dans la préinscription. Elle reste
+    toutefois nécessaire pour qu'un élève se connecte à l'application mobile élève.
+</p>
+
+<h2 id="recherche">Recherche</h2>
+<p>
+    Les listes paginées (base de données, inscrits, paiements, recouvrement) disposent d'une
+    <strong>recherche en direct</strong> : les résultats se mettent à jour à la frappe et portent sur toute la base,
+    pas seulement sur la page affichée. L'adresse de la page reprend la recherche (lien partageable), et les boutons
+    d'export Excel/PDF exportent exactement la liste filtrée.
+</p>
+{% include 'documentation/_figure.html.twig' with {src: 'eleves-inscrits', caption: 'Élèves → Inscrits : recherche en direct sur nom, matricule ou classe.'} %}
 
 <h2 id="import">Import en masse</h2>
 <p>
-    La base élèves accepte un import depuis un fichier Excel, utile lors de la reprise de données d'un ancien
-    système. Téléchargez le modèle depuis l'écran d'import, remplissez-le, puis déposez-le : l'application
-    contrôle les doublons de matricule et affiche un rapport ligne par ligne avant validation.
+    <em>Élèves → Base de données → Importer</em>. L'import fonctionne en mode <strong>« ajout ou mise à jour »</strong>,
+    ce qui permet aussi bien la reprise d'un ancien système que la correction en masse de fiches existantes.
 </p>
+<ol class="doc-steps">
+    <li>Téléchargez le modèle (ou exportez la liste actuelle, qui a le même format).</li>
+    <li>Remplissez ou corrigez le fichier (XLSX, XLS ou CSV). Les en-têtes sont reconnus quel que soit leur ordre.</li>
+    <li>Déposez-le : un <strong>aperçu</strong> indique pour chaque ligne s'il s'agit d'une création, d'une mise à jour
+        (avec l'ancienne et la nouvelle valeur de chaque champ modifié), d'une ligne inchangée ou d'une erreur.
+        Rien n'est encore enregistré.</li>
+    <li>Confirmez : les lignes valides sont enregistrées en une seule fois ; les lignes en erreur sont ignorées sans
+        bloquer les autres.</li>
+</ol>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Dans le fichier</th><th>Effet</th></tr></thead>
+        <tbody>
+            <tr><td>Matricule interne connu</td><td>Mise à jour des seuls champs dont la valeur change.</td></tr>
+            <tr><td>Matricule interne vide</td><td>Création d'un élève, matricule généré automatiquement.</td></tr>
+            <tr><td>Matricule interne inconnu</td><td>Création d'un élève avec ce matricule.</td></tr>
+            <tr><td>Cellule vide</td><td>La valeur actuelle est conservée : rien n'est effacé.</td></tr>
+        </tbody>
+    </table>
+</div>
+<p>Un aperçu non confirmé est abandonné au bout de 24 heures.</p>
 <div class="doc-note warning">
     <div class="doc-note__title"><i class="fas fa-triangle-exclamation me-1"></i> Attention</div>
     Un élève importé au référentiel n'est pas pour autant inscrit : il n'apparaîtra pas dans les effectifs de
     l'année tant qu'une inscription n'aura pas été créée pour lui.
+</div>
+
+<h3 id="import-preinscriptions">Import et export des préinscriptions</h3>
+<p>
+    L'écran <em>Préinscriptions</em> propose un <strong>export Excel</strong> de la liste et, pour le
+    super-administrateur, un <strong>import</strong> depuis un modèle téléchargeable. Champs obligatoires par ligne :
+    niveau demandé, nom, prénom, genre et contact d'urgence. Les préinscriptions importées sont créées
+    « En attente » dans l'établissement et l'année scolaire sélectionnés.
+</p>
+
+<h2 id="changement-de-niveau">Changement de niveau</h2>
+<p>
+    <em>Élèves → Changement de niveau</em>. À utiliser lorsqu'un élève inscrit pour l'année doit passer dans une classe
+    d'un <strong>autre niveau</strong> (erreur d'orientation, passage anticipé…). Pour changer de classe au sein du
+    même niveau, utilisez plutôt les <em>Transferts</em>.
+</p>
+{% include 'documentation/_figure.html.twig' with {src: 'eleves-changement-niveau', caption: 'Élèves → Changement de niveau : choix de l\'élève, puis de la classe de destination, avec l\'historique en dessous.'} %}
+<ol class="doc-steps">
+    <li>Choisissez l'élève inscrit et la classe de destination (elle doit avoir des places disponibles).</li>
+    <li>Indiquez le motif, obligatoire, et joignez si besoin un document.</li>
+    <li>Validez : l'inscription est déplacée, les frais de l'ancien niveau sont remplacés par ceux du nouveau, et les
+        paiements déjà effectués y sont reportés.</li>
+</ol>
+<p>
+    L'opération est historisée comme un transfert. Si le nouveau niveau n'a aucun frais paramétré, les frais déjà
+    payés de l'ancien niveau sont conservés et un avertissement s'affiche.
+</p>
+
+<h2 id="suppression-cascade">Suppression définitive</h2>
+<p>
+    Le super-administrateur peut cocher plusieurs lignes dans les listes d'élèves, de préinscriptions, d'inscriptions
+    et de paiements, puis les supprimer définitivement. Chaque suppression emporte ses données liées, en tout ou rien :
+</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>On supprime</th><th>Est supprimé avec</th></tr></thead>
+        <tbody>
+            <tr><td>Un élève</td><td>Préinscriptions, inscriptions, frais, paiements, notes, absences, lignes de bulletin, exclusions, transferts, paiements en ligne.</td></tr>
+            <tr><td>Une inscription</td><td>Les frais de l'année et leurs paiements.</td></tr>
+            <tr><td>Une préinscription</td><td>Son inscription (et ce qui en dépend) et ses documents. La fiche élève créée depuis la préinscription est conservée.</td></tr>
+            <tr><td>Un paiement</td><td>Toutes les lignes du reçu et leur écriture comptable ; le montant payé du frais est recalculé.</td></tr>
+        </tbody>
+    </table>
+</div>
+<div class="doc-note danger">
+    <div class="doc-note__title"><i class="fas fa-trash-can me-1"></i> Irréversible</div>
+    Contrairement à l'archivage ou à l'annulation d'un paiement, la suppression définitive ne laisse aucune trace.
+    Réservez-la aux doublons, erreurs de saisie et données de test.
 </div>

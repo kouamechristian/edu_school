@@ -1,0 +1,96 @@
+<p>
+    Cette page récapitule les évolutions apportées à EDU-SCHOOL, de la plus récente à la plus ancienne.
+    Chaque entrée renvoie vers la rubrique qui détaille la fonctionnalité.
+</p>
+
+<h2 id="octobre-2026">Octobre 2026</h2>
+
+<h3 id="scolarite-octobre-2026">Élèves et scolarité</h3>
+<ul>
+    <li><strong>Emploi du temps éditable dans la grille</strong> — un clic sur une case ajoute, modifie ou retire
+        un cours ; la classe, le jour et la plage horaire sont déduits de la case
+        (<a href="{{ path('app_documentation_section', {slug: 'academique'}) }}#emploi-du-temps">Académique</a>).</li>
+    <li><strong>Import des élèves avec aperçu</strong> — ajout ou mise à jour en masse depuis Excel/CSV, rapprochement
+        par matricule interne, aperçu ligne par ligne avant enregistrement
+        (<a href="{{ path('app_documentation_section', {slug: 'eleves'}) }}#import">Gestion des élèves</a>).</li>
+    <li><strong>Changement de niveau</strong> — nouvel écran pour faire passer un élève inscrit dans une classe d'un
+        autre niveau, avec report des paiements sur les frais du nouveau niveau
+        (<a href="{{ path('app_documentation_section', {slug: 'eleves'}) }}#changement-de-niveau">Gestion des élèves</a>).</li>
+    <li><strong>Suppression définitive en cascade</strong> (super-administrateur) — sélection multiple et suppression
+        d'élèves, préinscriptions, inscriptions et paiements avec toutes leurs données liées
+        (<a href="{{ path('app_documentation_section', {slug: 'eleves'}) }}#suppression-cascade">Gestion des élèves</a>).</li>
+    <li><strong>Recherche en direct</strong> sur les listes paginées (élèves, inscrits, paiements, recouvrement) :
+        la recherche porte sur toute la base, pas seulement la page affichée, et les exports reprennent les filtres.</li>
+    <li><strong>Matricule national unique</strong> — un même matricule national ne peut plus être attribué à deux élèves.</li>
+    <li><strong>Date de naissance facultative</strong> dans la fiche élève et dans la préinscription.</li>
+    <li><strong>Import et export des préinscriptions</strong> (Excel/CSV) — l'import est réservé au super-administrateur
+        (<a href="{{ path('app_documentation_section', {slug: 'eleves'}) }}#import-preinscriptions">Gestion des élèves</a>).</li>
+    <li><strong>Matières</strong> : import des matières d'un autre niveau, réglage de l'ordre d'affichage sur le bulletin,
+        niveau masqué dans le formulaire quand il est déjà imposé
+        (<a href="{{ path('app_documentation_section', {slug: 'academique'}) }}#matieres">Académique</a>).</li>
+</ul>
+
+<h3 id="finances-octobre-2026">Finances</h3>
+<ul>
+    <li><strong>Import des paiements</strong> (Excel/CSV) avec aperçu avant enregistrement, rattachés à la caisse
+        ouverte (<a href="{{ path('app_documentation_section', {slug: 'finances'}) }}#import-paiements">Gestion financière</a>).</li>
+    <li><strong>Nouvelles méthodes de paiement</strong> : <em>ECOBANK</em> et <em>Banque</em>.</li>
+    <li><strong>Champ Référence</strong> sur le paiement (n° de transaction, de bordereau…), consultable dans la recherche.</li>
+    <li>L'encaissement ne bloque plus sur une fiche élève incomplète (ex. contact d'urgence manquant).</li>
+</ul>
+
+<h3 id="mobile-octobre-2026">Applications mobiles</h3>
+<ul>
+    <li><strong>API parent, enseignant et élève</strong> — trois nouvelles API REST pour les applications mobiles
+        (notes, absences, emploi du temps, finances et paiement en ligne, saisie des notes, appel…)
+        (<a href="{{ path('app_documentation_section', {slug: 'mobile'}) }}">Applications mobiles</a>).</li>
+    <li>Mot de passe : <strong>6 caractères minimum</strong> partout, y compris sur le site web.</li>
+</ul>
+
+<h3 id="administration-octobre-2026">Administration et sécurité</h3>
+<ul>
+    <li><strong>Réinitialisation du mot de passe</strong> — le mot de passe est remis à la valeur par défaut et
+        l'utilisateur doit le changer à sa prochaine connexion
+        (<a href="{{ path('app_documentation_section', {slug: 'administration'}) }}#mots-de-passe">Administration</a>).</li>
+    <li><strong>Mode maintenance</strong> piloté par le super-administrateur ; un <strong>compte désactivé</strong> est
+        immédiatement déconnecté
+        (<a href="{{ path('app_documentation_section', {slug: 'administration'}) }}#maintenance">Administration</a>).</li>
+    <li><strong>Thème graphique par établissement</strong> — couleurs, polices, barre latérale, arrondis, logo
+        (<a href="{{ path('app_documentation_section', {slug: 'administration'}) }}#theme">Administration</a>).</li>
+    <li><strong>Périmètre des administrateurs</strong> limité à leur groupe d'établissements ; un compte du personnel
+        sans établissement n'a plus accès à rien
+        (<a href="{{ path('app_documentation_section', {slug: 'roles'}) }}#isolation">Rôles et permissions</a>).</li>
+    <li><strong>Plus d'élévation de rôle</strong> : un administrateur ne peut attribuer que les rôles qu'il possède
+        (<a href="{{ path('app_documentation_section', {slug: 'roles'}) }}#attribution">Rôles et permissions</a>).</li>
+    <li>Cloisonnement renforcé des absences, rapports académiques, comptes parents et élèves par établissement ;
+        téléversements durcis (liste blanche, 10 Mo maximum).</li>
+    <li>Lien <em>Changer mon mot de passe</em> dans le menu utilisateur de tous les espaces.</li>
+    <li>La liste PDF des enseignants affiche leur nom d'utilisateur.</li>
+</ul>
+
+<h2 id="septembre-2026">Septembre 2026</h2>
+<ul>
+    <li><strong>Encaissement en deux étapes avec imputation multi-frais</strong> — on saisit le montant remis, puis on
+        le répartit sur un ou plusieurs frais ; un seul reçu couvre l'ensemble
+        (<a href="{{ path('app_documentation_section', {slug: 'finances'}) }}#paiements">Gestion financière</a>).</li>
+    <li>Le reçu affiche le <strong>montant versé</strong> et « Reste à payer » (au lieu de « Solde à ce jour ») ;
+        il s'affiche directement dans la page, sans fenêtre pop-up.</li>
+    <li>Liste des paiements : une ligne par reçu, <strong>pagination réelle</strong> (25 par page),
+        <strong>export PDF</strong>, cloisonnement strict par établissement.</li>
+    <li>Caisse : nouvelles statistiques <strong>Montant encaissé ce jour</strong> et <strong>encaissements jour par jour</strong>.</li>
+    <li><strong>Espace Fondateur → Rapports</strong> : inscriptions et paiements par jour sur une période, export PDF
+        (<a href="{{ path('app_documentation_section', {slug: 'espaces'}) }}#fondateur">Espaces dédiés</a>).</li>
+    <li>Liste des inscrits : les statistiques sont réservées au fondateur, la ligne de totaux est retirée.</li>
+</ul>
+
+<h2 id="juillet-2026">Juillet 2026</h2>
+<ul>
+    <li><strong>Paiement de la scolarité en ligne via GeniusPay</strong> depuis l'espace parent
+        (<a href="{{ path('app_documentation_section', {slug: 'paiement-en-ligne'}) }}">Paiement en ligne</a>).</li>
+    <li><strong>Centre d'aide</strong> public sur <a href="{{ path('app_support') }}">/support</a> : guides pas à pas,
+        module par module, avec captures d'écran.</li>
+    <li>Boutons <em>Documentation</em> et <em>Support</em> sur toutes les pages de connexion ; en-tête allégé.</li>
+    <li>Journal Mobile Money réparé : opérateur, téléphone du payeur et référence sont reconstitués depuis la
+        transaction en ligne.</li>
+    <li>Mise en ligne de cette documentation.</li>
+</ul>

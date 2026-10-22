@@ -22,15 +22,33 @@
 
 <h2 id="matieres">Matières</h2>
 <p>
-    Chaque matière appartient à un <strong>type de matière</strong>, qui porte le coefficient et le mode de prise
-    en compte dans la moyenne. Créez donc les types avant les matières.
+    Chaque matière est rattachée à un niveau et porte son propre <strong>coefficient</strong>, son volume horaire
+    hebdomadaire et sa position sur le bulletin. Elle appartient à un <strong>type de matière</strong>, qui sert à la
+    catégoriser.
 </p>
 <ul>
-    <li><em>Académique → Types de Matière</em> : définit coefficient et catégorie.</li>
-    <li><em>Académique → Matières</em> : la matière elle-même, rattachée à un niveau.</li>
+    <li><em>Académique → Types de Matière</em> : catégories de matières.</li>
+    <li><em>Académique → Matières</em> : la matière elle-même, rattachée à un niveau. Depuis la liste d'un niveau, le
+        niveau est déjà imposé et n'est plus demandé dans le formulaire.</li>
     <li><em>Configuration → Matières équivalentes</em> : déclare que deux matières de niveaux ou filières
         différents doivent être considérées comme une seule (utile pour les bulletins et les transferts).</li>
 </ul>
+
+{% include 'documentation/_figure.html.twig' with {src: 'academique-matieres-niveau', caption: 'Matières d\'un niveau : ordre sur le bulletin (flèches), coefficient, heures, bouton « Importer d\'un autre niveau ».'} %}
+
+<h3 id="import-matieres">Importer les matières d'un autre niveau</h3>
+<p>
+    Depuis la liste des matières d'un niveau, bouton <em>Importer</em> : choisissez un niveau source de
+    l'établissement, cochez les matières à copier (type, coefficient, heures et ordre sur le bulletin sont repris).
+    Les matières portant déjà le même nom dans le niveau cible sont signalées et ignorées.
+</p>
+
+<h3 id="ordre-bulletin">Ordre sur le bulletin</h3>
+<p>
+    Dans la liste des matières d'un niveau, les flèches <i class="fas fa-arrow-up"></i> / <i class="fas fa-arrow-down"></i>
+    font monter ou descendre une matière : c'est l'ordre dans lequel elles apparaissent sur le bulletin. Les matières
+    sans position sont placées en dernier, par ordre alphabétique.
+</p>
 
 <h2 id="emploi-du-temps">Emplois du temps</h2>
 <p>
@@ -40,9 +58,17 @@
 <ol class="doc-steps">
     <li>Vérifiez que salles et plages horaires sont créées.</li>
     <li>Allez dans <em>Académique → Emplois du Temps</em> et choisissez la classe.</li>
-    <li>Ajoutez les cours créneau par créneau.</li>
-    <li>L'application signale les conflits : même enseignant, même salle ou même classe sur un créneau déjà pris.</li>
+    <li>Cliquez directement sur une case de la grille : une fenêtre permet d'ajouter le cours (matière du niveau,
+        enseignant, salle). La classe, le jour et la plage horaire sont déduits de la case.</li>
+    <li>Cliquez sur un cours existant pour le modifier ou le retirer de l'emploi du temps.</li>
+    <li>L'application signale les conflits : même enseignant, même salle ou même classe sur un créneau déjà pris.
+        En cas de conflit, rien n'est enregistré.</li>
 </ol>
+<p>
+    La liste des enseignants proposés se limite à ceux qui enseignent la matière choisie ; l'enseignant déjà
+    enregistré sur un cours est conservé même s'il n'enseigne plus cette matière.
+</p>
+{% include 'documentation/_figure.html.twig' with {src: 'academique-emploi-du-temps', caption: 'Académique → Emplois du Temps : grille de la classe, un clic sur une case pour ajouter ou modifier un cours.'} %}
 <p>
     L'emploi du temps est ensuite visible par l'enseignant (<em>Espace Enseignant → Mes Cours</em>), par l'élève
     et par ses parents. Il est imprimable en PDF.

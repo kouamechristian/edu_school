@@ -1,0 +1,106 @@
+<p>
+    Le menu <em>Administration</em> regroupe le paramétrage des établissements et la gestion des comptes.
+    La plupart de ces écrans sont réservés à <code>ROLE_ADMIN</code> et au-dessus ; le mode maintenance est
+    réservé au super-administrateur.
+</p>
+
+<h2 id="etablissements">Établissements et groupes</h2>
+<p>
+    Un <strong>groupe d'établissements</strong> réunit les écoles d'un même promoteur. Le groupe rattaché au compte
+    d'un administrateur ou d'un fondateur définit son périmètre :
+</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Action</th><th>Administrateur / fondateur</th><th>Super-administrateur</th></tr></thead>
+        <tbody>
+            <tr><td>Voir, modifier, activer un établissement</td><td>Uniquement ceux de son groupe</td><td>Tous</td></tr>
+            <tr><td>Créer un établissement</td><td>Oui, rattaché d'office à son groupe</td><td>Oui, dans n'importe quel groupe</td></tr>
+            <tr><td>Voir et modifier un groupe</td><td>Son groupe uniquement</td><td>Tous</td></tr>
+            <tr><td>Créer, supprimer, (dés)activer un groupe</td><td>Non</td><td>Oui</td></tr>
+        </tbody>
+    </table>
+</div>
+<p>
+    Tout accès hors périmètre (fiche, modification, suppression, paramétrage GeniusPay) renvoie une erreur 403.
+</p>
+
+<h2 id="theme">Thème graphique de l'établissement</h2>
+<p>
+    À la création ou à la modification d'un établissement, la section <strong>Personnalisation du design</strong>,
+    avec aperçu en direct, permet de régler :
+</p>
+<ul>
+    <li>la couleur principale et la couleur d'accent ;</li>
+    <li>la couleur et le style de la barre latérale ;</li>
+    <li>le fond des pages ;</li>
+    <li>les polices des titres et du texte ;</li>
+    <li>l'arrondi des coins.</li>
+</ul>
+{% include 'documentation/_figure.html.twig' with {src: 'administration-etablissement-theme', caption: 'Modification d\'un établissement → Personnalisation du design, avec aperçu en direct à droite.'} %}
+<p>
+    Le thème s'applique à l'interface d'administration et aux portails élève, parent et enseignant. Le
+    <strong>logo</strong> de l'établissement sert d'icône d'onglet et de logo des portails. Seules les valeurs
+    différentes du thème par défaut sont enregistrées : sans personnalisation, l'apparence standard est conservée.
+</p>
+<div class="doc-note">
+    Sur les portails, l'établissement est déduit des fiches élèves. Un parent dont les enfants sont scolarisés dans
+    plusieurs établissements voit le thème par défaut.
+</div>
+
+<h2 id="comptes">Comptes utilisateurs</h2>
+<p>
+    <em>Administration → Utilisateurs et Rôle</em>. Un administrateur ne voit et ne gère que les comptes de ses
+    établissements, et jamais un compte plus puissant que le sien. Les écrans <em>Comptes parents</em> et
+    <em>Comptes élèves</em> sont limités à l'établissement sélectionné.
+</p>
+{% include 'documentation/_figure.html.twig' with {src: 'administration-utilisateurs', caption: 'Administration → Utilisateurs et Rôle : type, établissement(s), dernière connexion et statut de chaque compte.'} %}
+<ul>
+    <li><strong>Désactiver un compte</strong> bloque la connexion et ferme immédiatement les sessions déjà ouvertes.</li>
+    <li>Un compte du personnel <strong>sans établissement</strong> (ni groupe) est redirigé vers la page
+        « Aucun établissement attribué » : il peut seulement se déconnecter, changer son mot de passe et consulter
+        l'aide. Seul le super-administrateur peut se passer de rattachement.</li>
+</ul>
+
+<h2 id="mots-de-passe">Mots de passe</h2>
+<ul>
+    <li><strong>Longueur minimale</strong> : 6 caractères, sur le site comme dans les applications mobiles.</li>
+    <li><strong>Changer son mot de passe</strong> : lien <em>Changer mon mot de passe</em> dans le menu utilisateur,
+        disponible dans tous les espaces.</li>
+    <li><strong>Réinitialisation par un administrateur</strong> : depuis la fiche du compte. Le mot de passe est
+        remis à la valeur par défaut <code>123456</code>, l'utilisateur doit le changer à sa prochaine connexion, et
+        le jeton de l'application mobile en cours est révoqué.</li>
+    <li>Un mot de passe saisi par un administrateur à la création ou à la modification d'un compte doit lui aussi
+        être changé à la première connexion (sauf sur son propre compte).</li>
+</ul>
+<div class="doc-note warning">
+    <div class="doc-note__title"><i class="fas fa-triangle-exclamation me-1"></i> Applications mobiles</div>
+    Tant que le mot de passe n'a pas été changé, l'API répond <code>403 password_change_required</code>. Les
+    applications parent et enseignant proposent un écran de « premier login » pour le faire sans passer par le site.
+</div>
+
+<h2 id="maintenance">Mode maintenance</h2>
+<p>
+    <em>Administration → Mode maintenance</em> (super-administrateur). On peut saisir un message et une heure de fin
+    prévue, tous deux facultatifs.
+</p>
+{% include 'documentation/_figure.html.twig' with {src: 'administration-maintenance', caption: 'Administration → Mode maintenance : état actuel et activation.'} %}
+<ul>
+    <li>Pendant la maintenance, seuls les super-administrateurs peuvent se connecter.</li>
+    <li>Les autres utilisateurs, y compris ceux déjà connectés, voient une page de maintenance (code 503).</li>
+    <li>Les API mobiles répondent une erreur <code>maintenance</code>.</li>
+    <li>Le webhook de paiement GeniusPay reste accessible : aucun paiement en ligne n'est perdu.</li>
+    <li>Les pages de connexion affichent un bandeau d'information.</li>
+</ul>
+<p>L'état est stocké dans <code>var/maintenance.json</code> ; il survit donc à un vidage du cache.</p>
+
+<h2 id="aide">Documentation et centre d'aide</h2>
+<p>
+    Deux ressources publiques, accessibles sans connexion depuis les pages de connexion et le pied de page :
+</p>
+<ul>
+    <li><a href="{{ path('app_documentation') }}">/documentation</a> — la présente documentation fonctionnelle et technique.</li>
+    <li><a href="{{ path('app_support') }}">/support</a> — le centre d'aide « comment faire » : guides pas à pas par
+        module, avec captures d'écran. Les captures se déposent dans <code>public/images/support/&lt;module&gt;-&lt;n&gt;.png</code> ;
+        tant qu'un fichier manque, un emplacement réservé indique le nom attendu.</li>
+</ul>
+{% include 'documentation/_figure.html.twig' with {src: 'centre-aide', caption: 'Le centre d\'aide /support : guides par module et recherche instantanée.'} %}

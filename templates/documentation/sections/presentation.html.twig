@@ -11,6 +11,8 @@
     statistiques sont filtrées en conséquence.
 </p>
 
+{% include 'documentation/_figure.html.twig' with {src: 'tableau-de-bord', caption: 'Le tableau de bord : établissement et année sélectionnés en haut, menu des modules à gauche.'} %}
+
 <h2 id="modules">Les modules</h2>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
@@ -18,16 +20,17 @@
             <tr><th>Module</th><th>Contenu</th></tr>
         </thead>
         <tbody>
-            <tr><td><strong>Gestion des élèves</strong></td><td>Base de données élèves, préinscriptions, inscriptions, affectation en classe, transferts, exclusions, archives, rapports.</td></tr>
+            <tr><td><strong>Gestion des élèves</strong></td><td>Base de données élèves (import/export Excel), préinscriptions, inscriptions, affectation en classe, transferts, changements de niveau, exclusions, archives, rapports.</td></tr>
             <tr><td><strong>Académique</strong></td><td>Cycles, niveaux, filières, séries, classes, matières, emplois du temps, enseignants, salles, plages horaires.</td></tr>
             <tr><td><strong>Notes &amp; évaluations</strong></td><td>Périodes, évaluations, saisie des notes, moyennes pondérées, bulletins scolaires en PDF.</td></tr>
             <tr><td><strong>Absences</strong></td><td>Saisie et justification des absences, types d'absence, rapport d'assiduité, détection des élèves à risque.</td></tr>
-            <tr><td><strong>Gestion financière</strong></td><td>Frais de scolarité par niveau, bourses, caisse (ouverture/clôture), paiements et reçus, dépenses, versements bancaires.</td></tr>
+            <tr><td><strong>Gestion financière</strong></td><td>Frais de scolarité par niveau, bourses, caisse (ouverture/clôture), paiements multi-frais et reçus, import de paiements, paiement en ligne GeniusPay, dépenses, versements bancaires.</td></tr>
             <tr><td><strong>Comptabilité</strong></td><td>Journal alimenté automatiquement, plan comptable, grand livre, rapports financiers, rapprochement bancaire, clôtures.</td></tr>
             <tr><td><strong>Recouvrement</strong></td><td>Suivi des soldes impayés, relances, gestion des arriérés d'années antérieures.</td></tr>
             <tr><td><strong>Ressources humaines</strong></td><td>Employés, contrats de travail, rubriques de paie, bulletins de salaire, livre de paie.</td></tr>
-            <tr><td><strong>Espaces dédiés</strong></td><td>Portails parent, élève, enseignant et fondateur, chacun avec sa propre connexion et ses propres droits.</td></tr>
+            <tr><td><strong>Espaces dédiés</strong></td><td>Portails parent, élève, enseignant et fondateur, chacun avec sa propre connexion et ses propres droits, et leurs applications mobiles.</td></tr>
             <tr><td><strong>Communication</strong></td><td>Notifications internes (cloche), suivi d'activité (mouchard), journaux Mobile Money.</td></tr>
+            <tr><td><strong>Administration</strong></td><td>Établissements et groupes, thème graphique par établissement, comptes et mots de passe, mode maintenance, centre d'aide public.</td></tr>
         </tbody>
     </table>
 </div>

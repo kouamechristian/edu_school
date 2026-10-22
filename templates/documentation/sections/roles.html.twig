@@ -99,6 +99,17 @@
            ├── ROLE_RECOUVREMENT
            └── ROLE_CORRESPONDANT_FICHIER ── ROLE_INSCRIPTION</code></pre>
 
+<h2 id="attribution">Qui peut attribuer quel rôle</h2>
+<p>Pour empêcher toute élévation de privilèges :</p>
+<ul>
+    <li>Un administrateur ne peut attribuer que les rôles <strong>qu'il possède lui-même</strong>, plus les rôles
+        Parent et Élève.</li>
+    <li><code>ROLE_SUPER_ADMIN</code> ne peut être attribué que par un super-administrateur.</li>
+    <li>On ne peut consulter, modifier, activer ou supprimer que les comptes de ses établissements, et jamais un
+        compte plus puissant que le sien.</li>
+    <li>À la modification d'un compte, les établissements que l'on ne voit pas sont conservés tels quels.</li>
+</ul>
+
 <h2 id="suppression">Règle de suppression</h2>
 <div class="doc-note danger">
     <div class="doc-note__title"><i class="fas fa-trash-can me-1"></i> Suppression réservée</div>
@@ -107,17 +118,42 @@
     enregistrement référencé ailleurs (un niveau utilisé par des classes, par exemple) ne peut pas être supprimé :
     l'application affiche un message explicatif plutôt que de casser les données liées.
 </div>
+<p>
+    Exception : le super-administrateur dispose d'une <strong>suppression définitive en cascade</strong> (sélection
+    multiple) pour les élèves, préinscriptions, inscriptions et paiements, qui emporte toutes les données liées.
+    Voir <a href="{{ path('app_documentation_section', {slug: 'eleves'}) }}#suppression-cascade">Gestion des élèves</a>.
+</p>
 
 <h2 id="isolation">Cloisonnement des établissements</h2>
 <p>
     Un utilisateur est rattaché à un ou plusieurs établissements. Les listes ne montrent que les données de
-    l'établissement sélectionné dans la barre supérieure. Le fondateur voit l'ensemble de ses établissements,
-    le super-administrateur les voit tous.
+    l'établissement sélectionné dans la barre supérieure. Les établissements proposés dans ce sélecteur dépendent
+    du compte :
+</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Compte</th><th>Établissements accessibles</th></tr></thead>
+        <tbody>
+            <tr><td>Super-administrateur</td><td>Tous.</td></tr>
+            <tr><td>Administrateur ou fondateur lié à un groupe</td><td>Les établissements actifs de son groupe.</td></tr>
+            <tr><td>Autres comptes du personnel</td><td>Les établissements cochés sur le compte (le groupe ne donne aucun accès supplémentaire).</td></tr>
+            <tr><td>Compte du personnel sans établissement ni groupe</td><td>Aucun : page « Aucun établissement attribué ».</td></tr>
+        </tbody>
+    </table>
+</div>
+<p>
+    Le cloisonnement s'applique aussi aux accès directs par adresse : une évaluation, une note, un cours, un versement,
+    un document de préinscription, un échéancier, une ligne de bulletin ou de paie, un enseignant d'un autre
+    établissement renvoie une page introuvable (404). Les écrans d'absences et de rapports académiques refusent
+    de même une classe, une période ou un niveau d'un autre établissement. Les mêmes règles valent pour les API mobiles.
 </p>
 
 <h2 id="pratique">En pratique</h2>
 <ul>
-    <li><strong>Créer un compte</strong> : <em>Administration → Utilisateurs et Rôle → Nouveau</em>.</li>
+    <li><strong>Créer un compte</strong> : <em>Administration → Utilisateurs et Rôle → Nouveau</em>. L'utilisateur devra
+        changer son mot de passe à la première connexion (voir
+        <a href="{{ path('app_documentation_section', {slug: 'administration'}) }}#mots-de-passe">Administration</a>).</li>
+    <li><strong>Désactiver un compte</strong> bloque immédiatement la connexion, y compris les sessions ouvertes.</li>
     <li><strong>Comptes parents</strong> et <strong>comptes élèves</strong> ont leurs propres écrans dédiés dans le menu Administration.</li>
     <li><strong>Tracer les actions</strong> : <em>Administration → Mouchard</em> journalise les opérations sensibles (qui, quoi, quand).</li>
 </ul>

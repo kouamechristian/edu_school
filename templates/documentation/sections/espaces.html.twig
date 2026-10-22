@@ -5,14 +5,23 @@
 
 <h2 id="parent">Espace parent</h2>
 <p><strong>Connexion :</strong> <code>/parent/connexion</code>, avec le numéro de téléphone et le mot de passe.</p>
+{% include 'documentation/_figure.html.twig' with {src: 'espace-parent-connexion', caption: 'Page de connexion de l\'espace parent, avec le lien de création de compte.'} %}
 <p>Le parent y trouve, pour chacun de ses enfants :</p>
 <ul>
     <li>La fiche scolaire : classe, niveau, enseignants.</li>
     <li>Les notes et bulletins <em>publiés</em>, l'emploi du temps, les devoirs.</li>
     <li>Les absences et retards, avec leur justification.</li>
     <li>La situation financière : frais dus, paiements effectués, solde, reçus téléchargeables.</li>
+    <li>Le <strong>paiement en ligne</strong> de la scolarité (Wave, Orange Money, MTN MoMo, carte) si l'établissement
+        l'a activé — voir <a href="{{ path('app_documentation_section', {slug: 'paiement-en-ligne'}) }}">Paiement en ligne</a>.</li>
     <li>Les notifications de l'établissement (cloche en haut de page).</li>
 </ul>
+<div class="doc-note">
+    Les espaces parent, élève et enseignant reprennent le <strong>thème graphique et le logo</strong> de
+    l'établissement. Dans chacun, le menu utilisateur propose <em>Changer mon mot de passe</em>. Les mêmes
+    fonctionnalités sont disponibles dans les applications mobiles (voir
+    <a href="{{ path('app_documentation_section', {slug: 'mobile'}) }}">Applications mobiles</a>).
+</div>
 
 <h3 id="auto-inscription-d-un-parent">Auto-inscription d'un parent</h3>
 <p>
@@ -30,7 +39,8 @@
 </ol>
 
 <h2 id="eleve">Espace élève</h2>
-<p><strong>Connexion :</strong> <code>/eleve/connexion</code>, avec le matricule.</p>
+<p><strong>Connexion :</strong> <code>/eleve/connexion</code>, avec le <strong>matricule national</strong> et la date de naissance.</p>
+{% include 'documentation/_figure.html.twig' with {src: 'espace-eleve-connexion', caption: 'Page de connexion de l\'espace élève.'} %}
 <p>
     Espace en <strong>lecture seule</strong> : notes publiées, emploi du temps, absences, et devoirs déposés par
     les enseignants. L'élève ne peut rien modifier.
@@ -61,7 +71,13 @@
     <li><strong>Valider les caisses</strong> — contrôle des caisses clôturées et de leurs écarts.</li>
     <li><strong>Dépenses à approuver</strong> — autorisation préalable des sorties d'argent.</li>
     <li><strong>Approuver les versements</strong> — confirmation des versements en banque déclarés par les encaisseurs.</li>
+    <li><strong>Rapports</strong> — élèves inscrits et paiements encaissés, regroupés par jour, avec la liste détaillée,
+        sur une période au choix. Un encaissement réparti sur plusieurs frais compte pour un seul paiement.
+        Exportable en PDF.</li>
 </ul>
+<p>
+    Les statistiques de la liste des inscrits (<em>Élèves → Inscrits</em>) ne sont visibles que du fondateur.
+</p>
 <div class="doc-note">
     Ces trois validations constituent le contrôle interne de l'établissement : tant qu'elles ne sont pas faites,
     les opérations correspondantes restent en attente et le solde de caisse n'est pas définitif.

@@ -53,7 +53,7 @@
 <p>Vérifiez, dans l'ordre :</p>
 <ul>
     <li>Les évaluations restées en brouillon ne comptent pas.</li>
-    <li>Le coefficient se règle sur le <strong>type de matière</strong>, pas sur la matière.</li>
+    <li>Le coefficient se règle sur chaque <strong>matière</strong> (<em>Académique → Matières</em>).</li>
     <li>La note maximale de l'évaluation : les notes sont ramenées sur la base de notation du bulletin.</li>
     <li>Une matière sans aucune note est exclue du calcul, elle ne compte pas zéro.</li>
 </ul>
@@ -70,6 +70,28 @@
 <p>
     On n'efface pas un paiement : on l'<strong>annule</strong>, avec un motif. L'écriture comptable est
     contre-passée et la trace est conservée. L'opération est réservée aux administrateurs.
+</p>
+
+<h3 id="la-validation-de-l-imputation-est-impossible">La validation de l'imputation est impossible</h3>
+<p>
+    La somme des montants imputés doit être <strong>exactement égale</strong> au montant versé saisi à la première
+    étape, et aucune imputation ne peut dépasser le reste dû du frais. Ajustez la répartition, ou revenez à
+    l'étape 1 pour corriger le montant versé.
+</p>
+
+<h3 id="un-import-de-paiements-ignore-des-lignes">Un import de paiements ignore des lignes</h3>
+<p>
+    Les doublons (même référence, ou même élève, date, montant et méthode) sont volontairement ignorés, tout comme
+    les montants supérieurs au reste dû. L'aperçu indique le motif de chaque ligne écartée. Pensez aussi à ouvrir
+    votre caisse avant l'import.
+</p>
+
+<h3 id="un-paiement-en-ligne-reste-en-attente">Un paiement en ligne reste « En attente »</h3>
+<p>
+    La confirmation de GeniusPay n'est pas arrivée. Vérifiez dans le tableau de bord GeniusPay que l'URL du webhook est
+    correcte et joignable depuis Internet, et que le secret de webhook enregistré est le bon (un test renvoyant
+    <code>401</code> indique un secret erroné). Voir
+    <a href="{{ path('app_documentation_section', {slug: 'paiement-en-ligne'}) }}#configuration">Paiement en ligne</a>.
 </p>
 
 <h3 id="le-solde-de-caisse-ne-correspond-pas-a">Le solde de caisse ne correspond pas à mes calculs</h3>
@@ -89,6 +111,24 @@
 <h3 id="compte-bloque-apres-plusieurs-tentatives">Compte bloqué après plusieurs tentatives</h3>
 <p>La limitation autorise 3 essais par tranche de 2 minutes. Attendez, ou faites réinitialiser le mot de passe par un administrateur.</p>
 
+<h3 id="aucun-etablissement-attribue">« Aucun établissement attribué » à la connexion</h3>
+<p>
+    Le compte du personnel n'est rattaché à aucun établissement ni groupe. Un administrateur doit cocher au moins un
+    établissement sur le compte (<em>Administration → Utilisateurs et Rôle</em>).
+</p>
+
+<h3 id="obligation-de-changer-le-mot-de-passe">On me demande de changer mon mot de passe</h3>
+<p>
+    C'est normal après une création de compte ou une réinitialisation par un administrateur (mot de passe par défaut
+    <code>123456</code>). Choisissez un nouveau mot de passe d'au moins 6 caractères.
+</p>
+
+<h3 id="le-site-affiche-une-page-de-maintenance">Le site affiche une page de maintenance</h3>
+<p>
+    Le super-administrateur a activé le mode maintenance. Seuls les super-administrateurs peuvent se connecter
+    jusqu'à sa levée (<em>Administration → Mode maintenance</em>).
+</p>
+
 <h3 id="un-parent-n-arrive-pas-a-se-connecter">Un parent n'arrive pas à se connecter</h3>
 <ul>
     <li>Il doit passer par <code>/parent/connexion</code>, pas par la page du personnel.</li>
@@ -97,12 +137,16 @@
 </ul>
 
 <h3 id="un-eleve-n-arrive-pas-a-se-connecter">Un élève n'arrive pas à se connecter</h3>
-<p>L'accès se fait sur <code>/eleve/connexion</code> avec le <strong>matricule</strong>. Vérifiez que le compte élève a bien été créé depuis <em>Administration → Comptes Élèves</em>.</p>
+<p>L'accès se fait sur <code>/eleve/connexion</code> avec le <strong>matricule national</strong> et la date de naissance : les deux doivent être renseignés sur la fiche élève. Vérifiez que le compte élève a bien été créé depuis <em>Administration → Comptes Élèves</em>.</p>
 
 <h2 id="suppression">Suppressions</h2>
 
 <h3 id="le-bouton-supprimer-n-apparait-pas">Le bouton Supprimer n'apparaît pas</h3>
-<p>La suppression est réservée aux rôles administrateur, fondateur et super-administrateur.</p>
+<p>
+    La suppression est réservée aux rôles administrateur, fondateur et super-administrateur. La sélection multiple
+    avec suppression définitive en cascade (élèves, préinscriptions, inscriptions, paiements) est réservée au seul
+    super-administrateur.
+</p>
 
 <h3 id="cet-element-est-utilise-et-ne-peut-pas">« Cet élément est utilisé et ne peut pas être supprimé »</h3>
 <p>
@@ -113,7 +157,7 @@
 
 <h2 id="aide">Besoin d'aide ?</h2>
 <p>
-    Des notes techniques plus détaillées, module par module, sont disponibles dans le dossier
-    <code>docs/</code> du projet. Pour toute question non couverte ici, contactez l'administrateur de votre
+    Le <a href="{{ path('app_support') }}">centre d'aide</a> propose des guides pas à pas illustrés, module par
+    module. Des notes techniques plus détaillées sont disponibles dans le dossier <code>docs/</code> du projet. Pour toute question non couverte ici, contactez l'administrateur de votre
     établissement.
 </p>

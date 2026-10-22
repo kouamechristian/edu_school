@@ -1,12 +1,30 @@
+<p>
+    EDU-SCHOOL expose quatre API REST destinées aux applications mobiles : une pour le personnel (application
+    <strong>ed_photo</strong>) et une pour chacun des espaces parent, enseignant et élève. Toutes fonctionnent sans
+    session, avec un <strong>jeton porteur</strong> transmis dans l'en-tête <code>Authorization: Bearer &lt;token&gt;</code>.
+</p>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>API</th><th>Public</th><th>Connexion</th></tr></thead>
+        <tbody>
+            <tr><td><code>/api/mobile</code></td><td>Personnel (ed_photo)</td><td>Identifiant + mot de passe</td></tr>
+            <tr><td><code>/api/parent</code></td><td>Parents (<code>ROLE_PARENT</code>)</td><td>Téléphone + mot de passe</td></tr>
+            <tr><td><code>/api/enseignant</code></td><td>Enseignants (<code>ROLE_ENSEIGNANT</code>, directeurs compris)</td><td>Identifiant + mot de passe</td></tr>
+            <tr><td><code>/api/eleve</code></td><td>Élèves (<code>ROLE_ELEVE</code>)</td><td>Matricule national + date de naissance</td></tr>
+        </tbody>
+    </table>
+</div>
+
 <h2 id="objet">ed_photo</h2>
 <p>
     <strong>ed_photo</strong> est une application mobile Flutter compagnon d'EDU-SCHOOL. Elle sert à photographier
     les élèves sur le terrain : l'opérateur saisit ou scanne un matricule, prend la photo, et celle-ci est
     immédiatement rattachée à la fiche de l'élève dans EDU-SCHOOL.
 </p>
-<p>L'APK se télécharge depuis le bouton dédié situé dans l'en-tête de l'application web.</p>
+<p>L'APK se télécharge depuis l'icône de téléchargement située dans l'en-tête de l'application web.</p>
 
-<h2 id="usage">Utilisation</h2>
+<h3 id="usage">Utilisation</h3>
 <ol class="doc-steps">
     <li>Se connecter dans l'application avec ses identifiants EDU-SCHOOL habituels.</li>
     <li>Rechercher l'élève par matricule ou par nom.</li>
@@ -14,19 +32,14 @@
     <li>Prendre la photo et l'envoyer : elle remplace la photo courante de l'élève.</li>
 </ol>
 
-<h2 id="acces">Qui peut s'y connecter</h2>
+<h3 id="acces">Qui peut s'y connecter</h3>
 <div class="doc-note">
-    Tout le <strong>personnel</strong> peut obtenir un jeton et utiliser l'application. Les comptes
-    <code>ROLE_PARENT</code> et <code>ROLE_ELEVE</code> en sont exclus : le tri est fait au moment de la
-    connexion, qui n'émet un jeton qu'aux ayants droit.
+    Tout le <strong>personnel</strong> rattaché à un établissement peut obtenir un jeton. Les comptes
+    <code>ROLE_PARENT</code> et <code>ROLE_ELEVE</code> en sont exclus, et ce contrôle est refait à chaque requête.
+    L'opérateur ne voit que les élèves des établissements auxquels il a accès, selon les mêmes règles que le site web.
 </div>
 
-<h2 id="api">L'API mobile</h2>
-<p>
-    L'application dialogue avec EDU-SCHOOL via une API REST sans session, authentifiée par un
-    <strong>jeton porteur</strong> transmis dans l'en-tête <code>Authorization</code>.
-</p>
-
+<h3 id="api">Routes</h3>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead><tr><th>Méthode</th><th>Route</th><th>Objet</th></tr></thead>
@@ -56,11 +69,89 @@ POST /api/mobile/students/42/photo
 Authorization: Bearer &lt;token&gt;
 Content-Type: multipart/form-data</code></pre>
 
+<h2 id="api-parent">API parent</h2>
+<p>
+    Pendant mobile de l'espace parent : suivi des enfants, finances et paiement en ligne, notifications.
+    L'identifiant est le numéro de téléphone du parent.
+</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Méthode</th><th>Route</th><th>Objet</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/login</code></td><td>Connexion (publique).</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/register</code></td><td>Auto-inscription avec le matricule national d'un enfant (publique).</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/password/first-login</code></td><td>Remplacement du mot de passe provisoire (publique).</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/password</code></td><td>Changement de mot de passe.</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/logout</code></td><td>Déconnexion (révoque le jeton).</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/me</code></td><td>Profil et liste des enfants.</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/children/link</code></td><td>Rattacher un enfant supplémentaire.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/children/{id}</code></td><td>Fiche scolaire de l'enfant.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/children/{id}/grades</code></td><td>Notes publiées.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/children/{id}/absences</code></td><td>Absences et retards.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/children/{id}/schedule</code></td><td>Emploi du temps de la classe.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/children/{id}/finance</code></td><td>Frais, paiements et reste à payer.</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/children/{id}/pay</code></td><td>Initie un paiement GeniusPay ; renvoie l'URL de paiement.</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/payments/{reference}/verify</code></td><td>Revérifie l'état d'un paiement en ligne.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/paiement/retour</code></td><td>Page de retour après paiement (publique).</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/payments</code></td><td>Historique des paiements.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/parent/notifications</code></td><td>Notifications.</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/parent/notifications/{id}/read</code> · <code>/read-all</code></td><td>Marquer comme lue(s).</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="api-enseignant">API enseignant</h2>
+<p>Pendant mobile de l'espace enseignant : emploi du temps, notes, devoirs et appel.</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Méthode</th><th>Route</th><th>Objet</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/enseignant/login</code></td><td>Connexion (publique).</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/enseignant/password/first-login</code></td><td>Remplacement du mot de passe provisoire (publique).</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/enseignant/password</code> · <code>/logout</code></td><td>Changement de mot de passe, déconnexion.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/enseignant/me</code> · <code>/schedule</code></td><td>Profil, emploi du temps.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/enseignant/classrooms</code> · <code>/classrooms/{id}/students</code></td><td>Ses classes et leurs élèves.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/enseignant/evaluations</code> · <code>/evaluations/options</code> · <code>/evaluations/{id}</code></td><td>Ses évaluations, choix possibles (classes, matières, périodes), détail.</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/enseignant/evaluations</code></td><td>Créer une évaluation.</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/enseignant/evaluations/{id}/grades</code></td><td>Saisir les notes.</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/enseignant/evaluations/{id}/unvalidate</code> · <code>/publish</code></td><td>Repasser en saisie, publier aux familles.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span> <span class="badge badge-soft warning">POST</span></td><td><code>/api/enseignant/homeworks</code></td><td>Lister, déposer des exercices de maison.</td></tr>
+            <tr><td><span class="badge badge-soft danger">DELETE</span></td><td><code>/api/enseignant/homeworks/{id}</code></td><td>Supprimer un exercice.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span> <span class="badge badge-soft warning">POST</span></td><td><code>/api/enseignant/attendance</code></td><td>Faire l'appel : absences et retards.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="api-eleve">API élève</h2>
+<p>Lecture seule, comme l'espace élève web.</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Méthode</th><th>Route</th><th>Objet</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/eleve/login</code></td><td>Connexion par <code>matricule</code> (matricule national) et <code>dateOfBirth</code> (AAAA-MM-JJ) (publique).</td></tr>
+            <tr><td><span class="badge badge-soft warning">POST</span></td><td><code>/api/eleve/logout</code></td><td>Déconnexion.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/eleve/me</code> · <code>/grades</code> · <code>/absences</code> · <code>/schedule</code></td><td>Profil, notes publiées, absences, emploi du temps.</td></tr>
+            <tr><td><span class="badge badge-soft info">GET</span></td><td><code>/api/eleve/homeworks</code> · <code>/homeworks/{id}/attachment</code></td><td>Devoirs et leurs pièces jointes.</td></tr>
+        </tbody>
+    </table>
+</div>
+<div class="doc-note warning">
+    L'élève doit avoir un compte élève actif et une <strong>date de naissance renseignée</strong> sur sa fiche ;
+    sinon la connexion est refusée.
+</div>
+
 <h2 id="securite">Sécurité</h2>
 <ul>
-    <li>Le pare-feu <code>/api/</code> est <strong>sans état</strong> : aucune session, chaque requête porte son jeton.</li>
-    <li>Seule la route de connexion est publique ; toutes les autres exigent un jeton valide.</li>
-    <li>Un jeton compromis se révoque en désactivant le compte utilisateur correspondant.</li>
+    <li>Le pare-feu <code>/api/</code> est <strong>sans état</strong> : aucune session, chaque requête porte son jeton.
+        Une nouvelle connexion remplace le jeton précédent.</li>
+    <li>Seules les routes de connexion, d'auto-inscription, de premier login et de retour de paiement sont publiques.</li>
+    <li><strong>Limitation des tentatives</strong> (applications parent, enseignant et élève) : 5 essais par tranche
+        de 2 minutes (par adresse IP et identifiant) ;
+        pour les élèves, en plus, 10 essais par heure et par matricule ; auto-inscription limitée à 10 par heure et par IP.</li>
+    <li>Compte avec mot de passe provisoire : la connexion répond <code>403 password_change_required</code> ;
+        l'application enchaîne sur <code>/password/first-login</code>.</li>
+    <li>En mode maintenance, les API répondent une erreur <code>maintenance</code> (503).</li>
+    <li>Un jeton compromis se révoque en désactivant le compte ou en réinitialisant son mot de passe.</li>
 </ul>
 
 <h2 id="depannage">Dépannage</h2>
@@ -68,8 +159,12 @@ Content-Type: multipart/form-data</code></pre>
     <table class="table table-hover align-middle">
         <thead><tr><th>Symptôme</th><th>Cause probable</th></tr></thead>
         <tbody>
-            <tr><td>Connexion refusée dans l'application</td><td>Compte parent ou élève, ou compte désactivé.</td></tr>
-            <tr><td>Élève introuvable</td><td>Matricule inexact, ou élève d'un autre établissement que celui de l'opérateur.</td></tr>
+            <tr><td><code>401 invalid_credentials</code></td><td>Identifiant ou mot de passe erroné, ou compte désactivé.</td></tr>
+            <tr><td><code>403 forbidden</code></td><td>Le compte n'a pas le rôle de l'application utilisée (ex. un parent sur ed_photo).</td></tr>
+            <tr><td><code>403 password_change_required</code></td><td>Mot de passe provisoire à remplacer.</td></tr>
+            <tr><td><code>429 too_many_attempts</code></td><td>Trop de tentatives : patienter quelques minutes.</td></tr>
+            <tr><td><code>503 maintenance</code></td><td>Mode maintenance activé.</td></tr>
+            <tr><td>Élève introuvable (ed_photo)</td><td>Matricule inexact, ou élève d'un autre établissement que ceux de l'opérateur.</td></tr>
             <tr><td>Envoi de photo en échec</td><td>Jeton expiré (se reconnecter) ou fichier trop volumineux.</td></tr>
         </tbody>
     </table>

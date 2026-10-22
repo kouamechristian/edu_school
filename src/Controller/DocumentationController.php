@@ -33,7 +33,9 @@ class DocumentationController extends AbstractController
         'Prise en main' => [
             ['slug' => 'presentation', 'title' => 'Présentation générale', 'icon' => 'fa-circle-info', 'abstract' => "Ce qu'est EDU-SCHOOL, à qui il s'adresse et de quoi il se compose."],
             ['slug' => 'demarrage', 'title' => 'Démarrage rapide', 'icon' => 'fa-rocket', 'abstract' => "Paramétrer un établissement de zéro, dans le bon ordre."],
+            ['slug' => 'nouveautes', 'title' => 'Nouveautés', 'icon' => 'fa-wand-magic-sparkles', 'abstract' => "Journal des mises à jour de l'application, de la plus récente à la plus ancienne."],
             ['slug' => 'roles', 'title' => 'Rôles et permissions', 'icon' => 'fa-user-shield', 'abstract' => "Qui a accès à quoi, et comment les rôles s'héritent."],
+            ['slug' => 'administration', 'title' => 'Administration', 'icon' => 'fa-gears', 'abstract' => "Établissements, groupes, thème graphique, comptes, mots de passe et mode maintenance."],
         ],
         'Scolarité' => [
             ['slug' => 'eleves', 'title' => 'Gestion des élèves', 'icon' => 'fa-user-graduate', 'abstract' => "Préinscription, inscription, affectation, transfert, exclusion, archives."],
@@ -43,13 +45,14 @@ class DocumentationController extends AbstractController
         ],
         'Finances' => [
             ['slug' => 'finances', 'title' => 'Gestion financière', 'icon' => 'fa-money-bill-wave', 'abstract' => "Frais, caisse, paiements, dépenses et versements bancaires."],
+            ['slug' => 'paiement-en-ligne', 'title' => 'Paiement en ligne', 'icon' => 'fa-credit-card', 'abstract' => "Règlement de la scolarité par les parents via GeniusPay (Wave, Orange Money, MTN, carte)."],
             ['slug' => 'comptabilite', 'title' => 'Comptabilité', 'icon' => 'fa-book-open-reader', 'abstract' => "Journal, grand livre, plan comptable, rapports et clôtures."],
             ['slug' => 'recouvrement', 'title' => 'Recouvrement', 'icon' => 'fa-hand-holding-dollar', 'abstract' => "Suivi des impayés, relances et arriérés d'années antérieures."],
             ['slug' => 'rh-paie', 'title' => 'RH et paie', 'icon' => 'fa-id-badge', 'abstract' => "Employés, contrats, rubriques de paie, bulletins de salaire."],
         ],
         'Espaces et accès' => [
             ['slug' => 'espaces', 'title' => 'Espaces dédiés', 'icon' => 'fa-users-rectangle', 'abstract' => "Portails parent, élève, enseignant et fondateur."],
-            ['slug' => 'mobile', 'title' => 'Application mobile', 'icon' => 'fa-mobile-screen-button', 'abstract' => "ed_photo : photos des élèves par matricule, via l'API REST."],
+            ['slug' => 'mobile', 'title' => 'Applications mobiles', 'icon' => 'fa-mobile-screen-button', 'abstract' => "API REST : ed_photo (personnel), applications parent, enseignant et élève."],
         ],
         'Référence technique' => [
             ['slug' => 'architecture', 'title' => 'Architecture technique', 'icon' => 'fa-diagram-project', 'abstract' => "Stack, organisation du code, modèle de données, services métier."],

@@ -18,6 +18,7 @@
     La saisie des notes se fait ensuite en une seule grille, élève par élève. Les enseignants créent et
     saisissent leurs propres évaluations depuis leur espace.
 </p>
+{% include 'documentation/_figure.html.twig' with {src: 'notes-evaluations', caption: 'Notes & Évaluations → Évaluations : filtres par classe et période, note maximale, coefficient et statut.'} %}
 
 <h2 id="validation">3. Validation et publication</h2>
 <p>Une évaluation traverse trois états, et cette distinction est importante :</p>
@@ -45,7 +46,7 @@
     <li><strong>Moyenne d'une matière</strong> — moyenne des notes de la période, pondérée par le coefficient
         de chaque évaluation, puis ramenée sur la base de notation (20 le plus souvent).</li>
     <li><strong>Moyenne générale</strong> — moyenne des moyennes de matières, pondérée par le coefficient
-        porté par le type de matière.</li>
+        de chaque matière.</li>
     <li><strong>Rang</strong> — calculé au sein de la classe à partir de la moyenne générale.</li>
 </ol>
 <p>Un élève sans note dans une matière n'est pas pénalisé : la matière est exclue du calcul plutôt que comptée zéro.</p>
@@ -61,11 +62,14 @@
     <li>Complétez les appréciations si nécessaire.</li>
     <li>Générez les PDF, individuellement ou pour toute la classe en une fois.</li>
 </ol>
+{% include 'documentation/_figure.html.twig' with {src: 'notes-bulletins', caption: 'Notes & Évaluations → Bulletins : un modèle par niveau et par période.'} %}
 <p>Le bulletin imprimé reprend l'en-tête de l'établissement, le détail par matière, la moyenne générale, le rang et les appréciations.</p>
 
 <h2 id="conseils">Points de vigilance</h2>
 <ul>
-    <li>Les coefficients se règlent sur le <strong>type de matière</strong>, pas sur la matière.</li>
+    <li>Les coefficients se règlent sur chaque <strong>matière</strong> (<em>Académique → Matières</em>).</li>
+    <li>L'ordre des matières sur le bulletin se règle depuis la liste des matières du niveau
+        (voir <a href="{{ path('app_documentation_section', {slug: 'academique'}) }}#ordre-bulletin">Académique</a>).</li>
     <li>Une évaluation restée en brouillon n'entre dans aucun calcul.</li>
     <li>Changer un coefficient recalcule les moyennes de toutes les périodes concernées : à faire avant l'édition des bulletins.</li>
     <li>Vérifiez que chaque élève est bien affecté à une classe : les non-affectés n'apparaissent pas dans les bulletins de classe.</li>

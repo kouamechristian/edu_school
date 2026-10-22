@@ -1,0 +1,12 @@
+{#
+    Capture d'écran d'une rubrique de documentation.
+    Usage : {% include 'documentation/_figure.html.twig' with {src: 'eleves-base', caption: '…'} %}
+    Le fichier attendu est public/images/documentation/<src>.png ; un clic l'ouvre en taille réelle.
+#}
+{% set url = asset('images/documentation/' ~ src ~ '.png') %}
+<figure class="doc-figure">
+    <a href="{{ url }}" target="_blank" rel="noopener" title="Agrandir">
+        <img src="{{ url }}" alt="{{ caption }}" loading="lazy" width="1440" height="860">
+    </a>
+    <figcaption><i class="fas fa-image me-1"></i>{{ caption }}</figcaption>
+</figure>

@@ -1,0 +1,84 @@
+<p>
+    Les parents peuvent régler la scolarité depuis leur espace (web ou application mobile) par
+    <strong>Wave, Orange Money, MTN MoMo ou carte bancaire</strong>, via l'agrégateur de paiement
+    <strong>GeniusPay</strong>. Le service se configure et s'active établissement par établissement.
+</p>
+
+<h2 id="parcours">Le parcours du parent</h2>
+<ol class="doc-steps">
+    <li>Dans la situation financière de son enfant, le parent choisit un frais et le montant à régler
+        (au plus le reste dû sur ce frais).</li>
+    <li>Il est redirigé vers la page de paiement hébergée par GeniusPay, où il choisit lui-même son moyen de paiement.</li>
+    <li>Après le paiement, il revient sur EDU-SCHOOL : l'application revérifie l'état de la transaction auprès de
+        GeniusPay et affiche le résultat.</li>
+    <li>L'encaissement est enregistré, le reçu devient disponible et le solde du frais est mis à jour.</li>
+</ol>
+<div class="doc-note success">
+    <div class="doc-note__title"><i class="fas fa-shield-halved me-1"></i> Rien n'est crédité avant confirmation</div>
+    Le paiement n'est enregistré qu'à la réception de la confirmation signée de GeniusPay (webhook) ou après
+    vérification directe auprès de la passerelle. Le montant crédité est toujours celui fixé au départ, jamais celui
+    annoncé par l'appel entrant. Un webhook rejoué ne peut pas créer deux encaissements.
+</div>
+
+<h2 id="statuts">Statuts d'une transaction</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Statut</th><th>Signification</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-soft warning">En attente</span></td><td>Le parent a été redirigé vers GeniusPay ; aucune confirmation reçue.</td></tr>
+            <tr><td><span class="badge badge-soft success">Payé</span></td><td>Paiement confirmé et encaissement enregistré.</td></tr>
+            <tr><td><span class="badge badge-soft danger">Échoué</span></td><td>Le paiement a été refusé par l'opérateur.</td></tr>
+            <tr><td><span class="badge badge-soft secondary">Annulé</span></td><td>Le parent a abandonné le paiement sur la page GeniusPay.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 id="caisse-en-ligne">Caisse en ligne et comptabilité</h2>
+<p>
+    Les paiements en ligne sont rattachés à une <strong>caisse « en ligne »</strong> propre à l'établissement, créée
+    automatiquement. Cet argent est chez GeniusPay : il ne gonfle pas le solde d'une caisse physique et ne peut pas
+    en être versé en banque. L'écriture comptable est générée automatiquement, comme pour un paiement au guichet.
+</p>
+<p>
+    Le détail des transactions (opérateur, téléphone réel du payeur, référence, badge « sandbox » pour les tests) est
+    consultable dans <em>Administration → Logs Mobile Money</em>.
+</p>
+
+<h2 id="configuration">Configuration</h2>
+<p>
+    <em>Administration → Établissements → Paiement en ligne</em> (les mêmes champs sont proposés à la création et à
+    la modification d'un établissement) :
+</p>
+{% include 'documentation/_figure.html.twig' with {src: 'paiement-en-ligne-configuration', caption: 'Paiement en ligne (GeniusPay) : clés marchandes, état, URL du webhook à déclarer. L\'alerte rouge signale une URL en localhost.'} %}
+<ol class="doc-steps">
+    <li>Saisir la <strong>clé publique</strong>, la <strong>clé secrète</strong> et le <strong>secret de webhook</strong>
+        fournis par GeniusPay. Utiliser les clés <code>pk_live_…</code> / <code>sk_live_…</code> pour encaisser réellement.</li>
+    <li>Déclarer dans le tableau de bord GeniusPay l'URL complète du webhook :
+        <code>https://&lt;votre-domaine&gt;/webhook/geniuspay</code>, avec les événements
+        <code>payment.success</code>, <code>payment.failed</code>, <code>payment.cancelled</code>, <code>payment.expired</code>.</li>
+    <li>Activer le paiement en ligne.</li>
+    <li>Tester depuis GeniusPay : la réponse attendue est
+        <code>{"received":true,"test":true,"school":"…"}</code>. Un <code>401</code> signifie que le secret enregistré
+        ne correspond pas.</li>
+</ol>
+<div class="doc-note warning">
+    <div class="doc-note__title"><i class="fas fa-key me-1"></i> Clés chiffrées</div>
+    Les clés sont chiffrées en base avec <code>APP_SECRET</code>. Elles ne sont pas transposables d'un environnement à
+    l'autre : après une copie de base, <strong>ressaisissez-les en production</strong>, sinon le paiement en ligne se
+    désactive de lui-même. Le secret de webhook n'est affiché qu'une fois par GeniusPay : notez-le à la création.
+</div>
+<div class="doc-note">
+    Une URL de webhook en <code>localhost</code> ou <code>127.0.0.1</code> ne fonctionnera jamais : GeniusPay doit
+    pouvoir joindre le serveur depuis Internet. L'écran d'administration le signale.
+</div>
+
+<h2 id="variables">Variables d'environnement</h2>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Variable</th><th>Rôle</th></tr></thead>
+        <tbody>
+            <tr><td><code>GENIUSPAY_BASE_URL</code></td><td>URL de l'API marchande (par défaut <code>https://pay.genius.ci/api/v1/merchant</code>).</td></tr>
+            <tr><td><code>APP_BASE_URL</code></td><td>URL publique de l'application, pour les liens générés hors requête HTTP (CLI, e-mails).</td></tr>
+        </tbody>
+    </table>
+</div>
