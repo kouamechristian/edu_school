@@ -140,13 +140,15 @@ class StudentImporter
         }
 
         $columns = $this->mapColumns($rows[0]);
-        if (!isset($columns['matriculeInterne']) && !isset($columns['lastName'], $columns['firstName'])) {
-            return ['error' => 'En-têtes non reconnus : la première ligne doit contenir la colonne « Matricule interne » '
-                . '(mise à jour) ou les colonnes « Nom » et « Prénom » (création). Téléchargez le modèle pour le bon format.'] + $result;
+        if (!isset($columns['matriculeInterne']) && !isset($columns['matriculeNational']) && !isset($columns['lastName'], $columns['firstName'])) {
+            return ['error' => 'En-têtes non reconnus : la première ligne doit contenir la colonne « Matricule interne » ou '
+                . '« Matricule national » (mise à jour) ou les colonnes « Nom » et « Prénom » (création). Téléchargez le modèle pour le bon format.'] + $result;
         }
 
-        // Élèves de l'établissement (actifs et archivés), indexés par matricule interne normalisé.
+        // Élèves de l'établissement (actifs et archivés), indexés par matricule interne
+        // et par matricule national normalisés.
         $existing = [];
+        $existingByNational = [];
         $students = $this->studentRepository->createQueryBuilder('s')
             ->andWhere('s.school = :school')
             ->setParameter('school', $school)
@@ -154,6 +156,9 @@ class StudentImporter
         foreach ($students as $student) {
             if ($student->getMatriculeInterne()) {
                 $existing[$this->key($student->getMatriculeInterne())] = $student;
+            }
+            if ($student->getMatriculeNational()) {
+                $existingByNational[$this->key($student->getMatriculeNational())] = $student;
             }
         }
 
@@ -198,6 +203,25 @@ class StudentImporter
                 if (!$student && $this->matriculeUsedElsewhere($matricule)) {
                     $skip(sprintf('le matricule interne %s appartient à un élève d\'un autre établissement', $matricule));
                     continue;
+                }
+            }
+
+            // ── À défaut de matricule interne : rapprochement par matricule national ──
+            $national = $text('matriculeNational');
+            if ($matricule === null && $national !== null) {
+                $nKey = $this->key($national);
+                if (isset($seenNationals[$nKey])) {
+                    $skip(sprintf('matricule national %s déjà présent ligne %d du fichier', $national, $seenNationals[$nKey]));
+                    continue;
+                }
+
+                $student = $existingByNational[$nKey] ?? null;
+                if (!$student && $this->studentRepository->nationalMatriculeExists($national)) {
+                    $skip(sprintf('le matricule national %s appartient à un élève d\'un autre établissement', $national));
+                    continue;
+                }
+                if ($student) {
+                    $matricule = $student->getMatriculeInterne();
                 }
             }
             $isNew = $student === null;
