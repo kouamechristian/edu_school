@@ -30,6 +30,8 @@ class StudentImporter
         'Lieu de naissance', 'Nationalité', 'Numéro extrait de naissance', 'Numéro CMU',
         'Téléphone', 'Email', 'Adresse', 'Dernière école fréquentée', 'Statut (Affecté/Non affecté)',
         'Nom parent', 'Téléphone parent', 'Email parent', 'Fonction parent', 'Domicile parent', 'Photo',
+        'Nom du père', 'Prénom du père', 'Nom de la mère', 'Prénom de la mère',
+        'Téléphone du père', 'Téléphone de la mère', 'Autorité parentale (Père/Mère/Les deux)',
     ];
 
     /** Alias d'en-têtes acceptés par champ (forme normalisée, correspondance exacte). */
@@ -54,6 +56,13 @@ class StudentImporter
         'parentEmail' => ['email parent', 'email du parent', 'mail parent'],
         'parentFunction' => ['fonction parent', 'fonction du parent'],
         'parentAddress' => ['domicile parent', 'adresse parent', 'domicile du parent'],
+        'fatherLastName' => ['nom du pere', 'nom pere'],
+        'fatherFirstName' => ['prenom du pere', 'prenoms du pere', 'prenom pere', 'prenoms pere'],
+        'motherLastName' => ['nom de la mere', 'nom mere'],
+        'motherFirstName' => ['prenom de la mere', 'prenoms de la mere', 'prenom mere', 'prenoms mere'],
+        'fatherPhone' => ['telephone du pere', 'telephone pere', 'tel pere', 'tel du pere'],
+        'motherPhone' => ['telephone de la mere', 'telephone mere', 'tel mere', 'tel de la mere'],
+        'parentalAuthority' => ['autorite parentale (pere/mere/les deux)', 'autorite parentale'],
     ];
 
     /**
@@ -80,13 +89,24 @@ class StudentImporter
         'parentEmail' => ['Email parent', 'getParentEmail', 'setParentEmail', 'email'],
         'parentFunction' => ['Fonction parent', 'getParentFunction', 'setParentFunction', 'text'],
         'parentAddress' => ['Domicile parent', 'getParentAddress', 'setParentAddress', 'text'],
+        'fatherLastName' => ['Nom du père', 'getFatherLastName', 'setFatherLastName', 'text'],
+        'fatherFirstName' => ['Prénom du père', 'getFatherFirstName', 'setFatherFirstName', 'text'],
+        'motherLastName' => ['Nom de la mère', 'getMotherLastName', 'setMotherLastName', 'text'],
+        'motherFirstName' => ['Prénom de la mère', 'getMotherFirstName', 'setMotherFirstName', 'text'],
+        'fatherPhone' => ['Téléphone du père', 'getFatherPhone', 'setFatherPhone', 'phone'],
+        'motherPhone' => ['Téléphone de la mère', 'getMotherPhone', 'setMotherPhone', 'phone'],
+        'parentalAuthority' => ['Autorité parentale', 'getParentalAuthority', 'setParentalAuthority', 'authority'],
     ];
+
+    /** Libellés de l'autorité parentale, tels qu'exportés et affichés dans l'aperçu. */
+    public const AUTHORITY_LABELS = ['father' => 'Père', 'mother' => 'Mère', 'both' => 'Les deux'];
 
     /** Longueurs maximales des colonnes (cf. entité Student). */
     private const MAX_LENGTH = [
         'matriculeNational' => 50, 'lastName' => 100, 'firstName' => 100, 'placeOfBirth' => 255,
         'nationality' => 100, 'birthCertificateNumber' => 100, 'cmuNumber' => 50, 'email' => 255,
         'lastSchoolAttended' => 255, 'parentName' => 255, 'parentEmail' => 255, 'parentFunction' => 255,
+        'fatherLastName' => 100, 'fatherFirstName' => 100, 'motherLastName' => 100, 'motherFirstName' => 100,
     ];
 
     public function __construct(
@@ -322,6 +342,19 @@ class StudentImporter
 
                 return $status;
 
+            case 'authority':
+                $authority = match ($this->normalize($value)) {
+                    'pere', 'p', 'father' => 'father',
+                    'mere', 'm', 'mother' => 'mother',
+                    'les deux', 'les deux parents', 'deux', 'both', 'pere et mere', 'pere/mere' => 'both',
+                    default => null,
+                };
+                if ($authority === null) {
+                    $errors[] = sprintf('autorité parentale « %s » invalide (Père, Mère ou Les deux)', $value);
+                }
+
+                return $authority;
+
             case 'date':
                 $date = $this->parseDate($raw);
                 if ($date === null) {
@@ -378,6 +411,9 @@ class StudentImporter
         }
         if ($type === 'status' && $value !== null) {
             return $value === 'affecte' ? 'Affecté' : 'Non affecté';
+        }
+        if ($type === 'authority' && $value !== null) {
+            return self::AUTHORITY_LABELS[$value] ?? (string) $value;
         }
 
         return (string) ($value ?? '');

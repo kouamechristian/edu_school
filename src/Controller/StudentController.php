@@ -611,12 +611,7 @@ class StudentController extends AbstractController
      * Le niveau, la classe, le redoublant et le boursier relèvent de l'inscription
      * (Registration) et se gèrent via le module d'inscription, pas par l'import.
      */
-    private const EXCEL_HEADERS = [
-        'Matricule interne', 'Matricule national', 'Nom', 'Prénom', 'Genre (M/F)', 'Date de naissance (JJ/MM/AAAA)',
-        'Lieu de naissance', 'Nationalité', 'Numéro extrait de naissance', 'Numéro CMU',
-        'Téléphone', 'Email', 'Adresse', 'Dernière école fréquentée', 'Statut (Affecté/Non affecté)',
-        'Nom parent', 'Téléphone parent', 'Email parent', 'Fonction parent', 'Domicile parent', 'Photo',
-    ];
+    private const EXCEL_HEADERS = StudentImporter::HEADERS;
 
     #[Route('/export', name: 'export', methods: ['GET'])]
     public function export(Request $request, StudentRepository $studentRepository): Response
@@ -664,7 +659,6 @@ class StudentController extends AbstractController
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Élèves');
         $sheet->fromArray(self::EXCEL_HEADERS, null, 'A1');
-        $sheet->getStyle('A1:U1')->getFont()->setBold(true);
 
         $rowNum = 2;
         foreach ($students as $s) {
@@ -690,13 +684,18 @@ class StudentController extends AbstractController
                 $s->getParentFunction(),
                 $s->getParentAddress(),
                 $s->getPhoto(),
+                $s->getFatherLastName(),
+                $s->getFatherFirstName(),
+                $s->getMotherLastName(),
+                $s->getMotherFirstName(),
+                $s->getFatherPhone(),
+                $s->getMotherPhone(),
+                StudentImporter::AUTHORITY_LABELS[$s->getParentalAuthority() ?? ''] ?? null,
             ], null, 'A' . $rowNum);
             $rowNum++;
         }
 
-        foreach (range('A', 'U') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        $this->formatExcelColumns($sheet);
 
         $filename = 'eleves_' . ($school->getCode() ?: 'export') . '_' . date('Ymd_His') . '.xlsx';
 
@@ -710,7 +709,6 @@ class StudentController extends AbstractController
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Modèle élèves');
         $sheet->fromArray(self::EXCEL_HEADERS, null, 'A1');
-        $sheet->getStyle('A1:U1')->getFont()->setBold(true);
 
         // Ligne d'exemple (laisser le matricule interne vide pour génération automatique)
         $sheet->fromArray([
@@ -718,13 +716,23 @@ class StudentController extends AbstractController
             'Abidjan', 'Ivoirienne', 'EN-2012-001', 'CMU123456',
             '0612345678', 'jean.dupont@example.com', '15 rue de la Paix', 'École Les Oranges', 'Non affecté',
             'DUPONT Pierre', '0698765432', 'pierre.dupont@example.com', 'Commerçant', 'Cocody, Abidjan', '',
+            'DUPONT', 'Pierre', 'KOUASSI', 'Marie',
+            '0698765432', '0701020304', 'Les deux',
         ], null, 'A2');
 
-        foreach (range('A', 'U') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        $this->formatExcelColumns($sheet);
 
         return $this->streamSpreadsheet($spreadsheet, 'modele_import_eleves.xlsx');
+    }
+
+    /** En-têtes en gras et largeur automatique sur toutes les colonnes du modèle. */
+    private function formatExcelColumns(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet): void
+    {
+        $last = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count(self::EXCEL_HEADERS));
+        $sheet->getStyle('A1:' . $last . '1')->getFont()->setBold(true);
+        for ($i = 1; $i <= count(self::EXCEL_HEADERS); $i++) {
+            $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i))->setAutoSize(true);
+        }
     }
 
     /** Imports d'élèves en attente de confirmation, par jeton. */
