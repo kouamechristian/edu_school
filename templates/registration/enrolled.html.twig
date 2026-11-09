@@ -13,6 +13,7 @@
         breadcrumb: [ { label: 'Élèves' }, { label: 'Inscrits' } ]
     } %}
         {% block actions %}
+            <a href="{{ path('admin_registration_enrolled_print') }}" target="_blank" rel="noopener" class="btn btn-outline-secondary"><i class="fas fa-print me-1"></i> Imprimer la liste par classe</a>
             <a href="{{ path('admin_registration_enrolled_export') }}" class="btn btn-outline-success"><i class="fas fa-file-excel me-1"></i> Exporter Excel</a>
             <a href="{{ path('admin_registration_index') }}" class="btn btn-success"><i class="fas fa-graduation-cap me-1"></i> Affectation en classe</a>
         {% endblock %}

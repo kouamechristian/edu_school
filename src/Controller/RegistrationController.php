@@ -16,6 +16,8 @@ use App\Repository\RegistrationRepository;
 use App\Service\EnrollmentService;
 use App\Service\SchoolContextService;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Knp\Component\Pager\PaginatorInterface;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -246,6 +248,93 @@ class RegistrationController extends AbstractController
         $response->headers->set('Cache-Control', 'max-age=0');
 
         return $response;
+    }
+
+    /**
+     * Liste imprimable (PDF) de tous les inscrits de l'année scolaire courante,
+     * regroupés par classe (classes triées par niveau puis par nom), avec l'âge de
+     * chaque élève devant son nom.
+     */
+    #[Route('/inscrits/imprimer', name: 'enrolled_print', methods: ['GET'])]
+    public function enrolledPrint(RegistrationRepository $registrationRepository): Response
+    {
+        $school = $this->schoolContextService->getCurrentSchool();
+        $schoolYear = $this->schoolContextService->getCurrentSchoolYear();
+
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement pour imprimer les inscrits.');
+            return $this->redirectToRoute('admin_student_index');
+        }
+
+        $registrations = $registrationRepository->findBySchoolAndYear($school->getId(), $schoolYear?->getId());
+        $today = new \DateTimeImmutable('today');
+
+        // Regroupement par classe ; les élèves restent triés par nom (ordre du repository).
+        $groups = [];
+        foreach ($registrations as $reg) {
+            $classroom = $reg->getClassroom();
+            $key = $classroom ? (string) $classroom->getId() : 'none';
+            if (!isset($groups[$key])) {
+                $groups[$key] = [
+                    'name' => $classroom?->getName() ?? 'Sans classe',
+                    'levelOrder' => $classroom?->getLevel()?->getOrderNumber() ?? PHP_INT_MAX,
+                    'students' => [],
+                ];
+            }
+            $student = $reg->getStudent();
+            $birth = $student?->getDateOfBirth() ?? $reg->getPreRegistration()?->getDateOfBirth();
+            $groups[$key]['students'][] = [
+                'lastName' => $student?->getLastName() ?? $reg->getPreRegistration()?->getLastName(),
+                'firstName' => $student?->getFirstName() ?? $reg->getPreRegistration()?->getFirstName(),
+                'matricule' => $student?->getMatriculeInterne() ?: $student?->getMatriculeNational(),
+                'gender' => $student?->getGender(),
+                'dateOfBirth' => $birth,
+                'age' => $birth ? $birth->diff($today)->y : null,
+            ];
+        }
+
+        uasort($groups, function (array $a, array $b) {
+            if ($a['name'] === 'Sans classe' || $b['name'] === 'Sans classe') {
+                return ($a['name'] === 'Sans classe') <=> ($b['name'] === 'Sans classe');
+            }
+            return [$a['levelOrder'], $a['name']] <=> [$b['levelOrder'], $b['name']];
+        });
+
+        $logoData = null;
+        if ($school->getLogo()) {
+            $logoPath = $this->getParameter('kernel.project_dir') . '/public/' . ltrim($school->getLogo(), '/');
+            if (is_file($logoPath)) {
+                $mime = mime_content_type($logoPath) ?: 'image/png';
+                $logoData = 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($logoPath));
+            }
+        }
+
+        $html = $this->renderView('registration/enrolled_print_pdf.html.twig', [
+            'groups' => array_values($groups),
+            'total' => count($registrations),
+            'school' => $school,
+            'school_year' => $schoolYear,
+            'logo_data' => $logoData,
+            'generated_at' => new \DateTime(),
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'LISTE_INSCRITS_PAR_CLASSE'
+            . ($schoolYear ? '_' . str_replace(['/', ' '], '-', $schoolYear->getName()) : '') . '.pdf';
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
+        ]);
     }
 
     /**

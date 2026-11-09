@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 28px 32px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 70px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title-row { width: 100%; margin-bottom: 10px; }
+        .title-row td { font-size: 13px; }
+        .title-row .right { text-align: right; }
+        .class-block { margin-bottom: 18px; page-break-inside: auto; }
+        .class-title { font-size: 13px; font-weight: bold; background: #e6e6e6; border: 1px solid #000; padding: 5px 6px; }
+        .class-title .count { float: right; font-weight: normal; }
+        table.students { width: 100%; border-collapse: collapse; }
+        table.students th, table.students td { border: 1px solid #000; padding: 4px 6px; }
+        table.students th { text-align: center; font-weight: bold; background: #f2f2f2; }
+        table.students td.num { text-align: center; width: 30px; }
+        table.students td.age { text-align: center; width: 55px; font-weight: bold; }
+        table.students td.center { text-align: center; }
+        .empty { text-align: center; padding: 20px; }
+        .footer { width: 100%; margin-top: 24px; font-size: 12px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">
+                {% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}
+            </td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <table class="title-row">
+        <tr>
+            <td><b>LISTE DES ÉLÈVES INSCRITS PAR CLASSE</b> — Total : {{ total }}</td>
+            <td class="right"><b>Année scolaire :</b> {{ school_year ? school_year.name : '—' }}</td>
+        </tr>
+    </table>
+
+    {% for group in groups %}
+    <div class="class-block">
+        <div class="class-title">
+            Classe : {{ group.name }}
+            <span class="count">{{ group.students|length }} élève(s)</span>
+        </div>
+        <table class="students">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Âge</th>
+                    <th>Noms et Prénoms</th>
+                    <th>Sexe</th>
+                    <th>Date de naissance</th>
+                    <th>Matricule</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in group.students %}
+                <tr>
+                    <td class="num">{{ loop.index }}</td>
+                    <td class="age">{{ s.age is not null ? s.age ~ ' ans' : '—' }}</td>
+                    <td>{{ s.lastName }} {{ s.firstName }}</td>
+                    <td class="center">{{ s.gender ?: '—' }}</td>
+                    <td class="center">{{ s.dateOfBirth ? s.dateOfBirth|date('d/m/Y') : '—' }}</td>
+                    <td>{{ s.matricule ?: '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="empty">Aucun élève inscrit pour l'année scolaire courante.</div>
+    {% endfor %}
+
+    <table class="footer">
+        <tr>
+            <td>Édité le {{ generated_at|date('d/m/Y H:i') }}</td>
+            <td class="sign">Signature</td>
+        </tr>
+    </table>
+</body>
+</html>
