@@ -26,11 +26,12 @@ class SchoolTest extends TestCase
     public function testTypeLabel(): void
     {
         $cases = [
-            'maternelle' => 'Maternelle',
-            'primaire' => 'Primaire',
-            'college' => 'Collège',
-            'lycee' => 'Lycée',
-            'universite' => 'Université',
+            'PRESCOLAIRE-PRIMAIRE' => 'Préscolaire-Primaire',
+            'SECONDAIRE GENERAL' => 'Secondaire Général',
+            'TECHNIQUE ET PROFESSIONNEL' => 'Technique et Professionnel',
+            'UNIVERSITE' => 'Université',
+            // Type inconnu : renvoyé tel quel.
+            'autre' => 'autre',
         ];
 
         foreach ($cases as $type => $expected) {

@@ -4,7 +4,6 @@ namespace App\Tests\Entity;
 
 use App\Entity\Fee;
 use App\Entity\FeeSchedule;
-use App\Entity\Invoice;
 use App\Entity\Level;
 use App\Entity\Payment;
 use App\Entity\School;
@@ -77,18 +76,6 @@ class FeeTest extends TestCase
 
         $this->fee->removePayment($payment);
         $this->assertCount(0, $this->fee->getPayments());
-    }
-
-    public function testInvoicesCollection(): void
-    {
-        $invoice = new Invoice();
-
-        $this->fee->addInvoice($invoice);
-        $this->assertCount(1, $this->fee->getInvoices());
-        $this->assertSame($this->fee, $invoice->getFee());
-
-        $this->fee->removeInvoice($invoice);
-        $this->assertCount(0, $this->fee->getInvoices());
     }
 
     public function testSchedulesCollection(): void

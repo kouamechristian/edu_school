@@ -5,6 +5,7 @@ namespace App\Tests\Entity;
 use App\Entity\Classroom;
 use App\Entity\Grade;
 use App\Entity\Level;
+use App\Entity\PreRegistration;
 use App\Entity\Registration;
 use App\Entity\School;
 use App\Entity\SchoolGroup;
@@ -35,7 +36,11 @@ class StudentTest extends TestCase
             $registration->setClassroom($classroom);
         }
 
-        $this->student->addRegistration($registration);
+        // L'inscription est atteinte via la préinscription d'origine de l'élève.
+        $preRegistration = new PreRegistration();
+        $preRegistration->setStudent($this->student);
+        $preRegistration->setRegistration($registration);
+        $this->student->setPreRegistration($preRegistration);
 
         return $registration;
     }
