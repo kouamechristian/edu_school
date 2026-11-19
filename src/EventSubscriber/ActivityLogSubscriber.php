@@ -7,7 +7,7 @@ use App\Entity\ActivityLog;
 use App\Entity\Notification;
 use App\Entity\School;
 use App\Service\ActivityLogger;
-use Doctrine\Bundle\DoctrineBundle\EventSubscriber\EventSubscriberInterface;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
@@ -26,7 +26,9 @@ use Doctrine\ORM\Events;
  * Un drapeau de ré-entrance ($processing) empêche la journalisation de se
  * journaliser elle-même.
  */
-class ActivityLogSubscriber implements EventSubscriberInterface
+#[AsDoctrineListener(event: Events::onFlush)]
+#[AsDoctrineListener(event: Events::postFlush)]
+class ActivityLogSubscriber
 {
     /**
      * Entités techniques / auto-générées exclues du journal (évite le bruit et la récursion).
@@ -49,14 +51,6 @@ class ActivityLogSubscriber implements EventSubscriberInterface
 
     public function __construct(private ActivityLogger $activityLogger)
     {
-    }
-
-    public function getSubscribedEvents(): array
-    {
-        return [
-            Events::onFlush,
-            Events::postFlush,
-        ];
     }
 
     public function onFlush(OnFlushEventArgs $args): void

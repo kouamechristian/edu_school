@@ -3,7 +3,7 @@
 namespace App\EventSubscriber;
 
 use App\Service\CodeGenerator;
-use Doctrine\Bundle\DoctrineBundle\EventSubscriber\EventSubscriberInterface;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Events;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 
@@ -13,18 +13,12 @@ use Doctrine\Persistence\Event\LifecycleEventArgs;
  *
  * Si un code est déjà fourni (saisie manuelle), il est conservé tel quel.
  */
-class CodeGeneratorSubscriber implements EventSubscriberInterface
+#[AsDoctrineListener(event: Events::prePersist)]
+class CodeGeneratorSubscriber
 {
     public function __construct(
         private CodeGenerator $codeGenerator
     ) {
-    }
-
-    public function getSubscribedEvents(): array
-    {
-        return [
-            Events::prePersist,
-        ];
     }
 
     public function prePersist(LifecycleEventArgs $args): void

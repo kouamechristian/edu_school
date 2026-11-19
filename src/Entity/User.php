@@ -14,6 +14,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
+// Nom fixé par la migration Version20260719090000 (évite un faux écart de schéma).
+#[ORM\UniqueConstraint(name: 'UNIQ_USER_API_TOKEN', columns: ['api_token'])]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['username'], message: 'Ce nom d\'utilisateur est déjà utilisé')]
 #[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé')]
@@ -72,7 +74,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * mobile, transmis en en-tête « Authorization: Bearer <token> ». Nul tant que
      * l'utilisateur ne s'est jamais connecté depuis l'application mobile.
      */
-    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    #[ORM\Column(length: 64, nullable: true)]
     private ?string $apiToken = null;
 
     #[ORM\Column(length: 255, nullable: true)]

@@ -23,6 +23,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(columns: ['created_at'], name: 'idx_activity_created_at')]
 #[ORM\Index(columns: ['action'], name: 'idx_activity_action')]
 #[ORM\Index(columns: ['entity_type'], name: 'idx_activity_entity_type')]
+// Noms fixés par la migration de création de la table (évite un faux écart de schéma).
+#[ORM\Index(columns: ['user_id'], name: 'idx_activity_user')]
+#[ORM\Index(columns: ['school_id'], name: 'idx_activity_school')]
 class ActivityLog implements SchoolOwnedInterface
 {
     public const ACTION_CREATE = 'create';

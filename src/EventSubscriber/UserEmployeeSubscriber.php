@@ -4,23 +4,17 @@ namespace App\EventSubscriber;
 
 use App\Entity\User;
 use App\Service\UserEmployeeService;
-use Doctrine\Bundle\DoctrineBundle\EventSubscriber\EventSubscriberInterface;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Events;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 
-class UserEmployeeSubscriber implements EventSubscriberInterface
+#[AsDoctrineListener(event: Events::postPersist)]
+#[AsDoctrineListener(event: Events::postUpdate)]
+class UserEmployeeSubscriber
 {
     public function __construct(
         private UserEmployeeService $userEmployeeService
     ) {
-    }
-
-    public function getSubscribedEvents(): array
-    {
-        return [
-            Events::postPersist,
-            Events::postUpdate,
-        ];
     }
 
     public function postPersist(LifecycleEventArgs $args): void

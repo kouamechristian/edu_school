@@ -6,7 +6,7 @@ use App\Entity\CashDeposit;
 use App\Entity\Depense;
 use App\Entity\Payment;
 use App\Service\AccountingService;
-use Doctrine\Bundle\DoctrineBundle\EventSubscriber\EventSubscriberInterface;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
@@ -19,7 +19,10 @@ use Doctrine\Persistence\Event\LifecycleEventArgs;
  * en postFlush (les écritures ont alors un identifiant source stable). Un drapeau
  * de ré-entrance évite toute récursion lors du flush des écritures générées.
  */
-class AccountingSubscriber implements EventSubscriberInterface
+#[AsDoctrineListener(event: Events::postPersist)]
+#[AsDoctrineListener(event: Events::postUpdate)]
+#[AsDoctrineListener(event: Events::postFlush)]
+class AccountingSubscriber
 {
     /** @var array<int, object> */
     private array $queue = [];
@@ -28,15 +31,6 @@ class AccountingSubscriber implements EventSubscriberInterface
 
     public function __construct(private AccountingService $accountingService)
     {
-    }
-
-    public function getSubscribedEvents(): array
-    {
-        return [
-            Events::postPersist,
-            Events::postUpdate,
-            Events::postFlush,
-        ];
     }
 
     public function postPersist(LifecycleEventArgs $args): void

@@ -316,7 +316,8 @@ class CourseController extends AbstractController
         if (($timeSlot && $timeSlot->getSchool()?->getId() !== $schoolId)
             || ($subject && $subject->getSchool()?->getId() !== $schoolId)
             || ($room && $room->getSchool()?->getId() !== $schoolId)
-            || ($teacher && $teacher->getUserType() !== 'enseignant')) {
+            || ($teacher && ($teacher->getUserType() !== 'enseignant'
+                || !$teacher->getSchools()->exists(fn ($k, $s) => $s->getId() === $schoolId)))) {
             $this->addFlash('danger', 'Données invalides pour cet établissement.');
             return $redirect;
         }
