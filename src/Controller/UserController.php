@@ -8,6 +8,7 @@ use App\Form\UserType;
 use App\Repository\UserRepository;
 use App\Security\RoleGrantPolicy;
 use App\Security\Voter\UserManagementVoter;
+use App\Service\ParentAccountGenerator;
 use App\Service\SchoolContextService;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -126,17 +127,66 @@ class UserController extends AbstractController
      * Comptes Parents : liste des utilisateurs disposant du rôle ROLE_PARENT.
      */
     #[Route('/parents', name: 'parents', methods: ['GET'])]
-    public function parents(Request $request, UserRepository $userRepository, SchoolContextService $contextService, \Knp\Component\Pager\PaginatorInterface $paginator): Response
+    public function parents(Request $request, UserRepository $userRepository, SchoolContextService $contextService, \Knp\Component\Pager\PaginatorInterface $paginator, ParentAccountGenerator $generator): Response
     {
         $search = $request->query->get('search');
         $accounts = $this->findPortalAccounts('ROLE_PARENT', $search, $userRepository, $contextService);
         $accounts = $paginator->paginate($accounts, $request->query->getInt('page', 1), 50);
 
+        $currentSchool = $contextService->getCurrentSchool();
+
         return $this->render('user/accounts.html.twig', [
             'accounts' => $accounts,
             'kind' => 'parent',
             'search_term' => $search,
+            'eligible_count' => $currentSchool ? count($generator->findEligibleStudents($currentSchool)) : 0,
         ]);
+    }
+
+    /**
+     * Génère les comptes parents des élèves de l'établissement courant dont le
+     * champ « Autorité parentale » est renseigné, et les rattache à leurs enfants.
+     *
+     * Les mots de passe générés ne sont affichés qu'une seule fois, sur la page
+     * de résultat (ils sont hachés en base).
+     */
+    #[Route('/parents/generate', name: 'parents_generate', methods: ['POST'])]
+    public function generateParents(Request $request, SchoolContextService $contextService, ParentAccountGenerator $generator): Response
+    {
+        if (!$this->isCsrfTokenValid('generate_parent_accounts', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+
+            return $this->redirectToRoute('admin_user_parents');
+        }
+
+        $school = $contextService->getCurrentSchool();
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement avant de générer les comptes parents.');
+
+            return $this->redirectToRoute('admin_user_parents');
+        }
+
+        // Hachage des mots de passe coûteux : on laisse le temps au lot de se terminer.
+        set_time_limit(300);
+
+        try {
+            $result = $generator->generate($school);
+        } catch (\Throwable) {
+            $this->addFlash('error', 'Une erreur est survenue pendant la génération des comptes parents. Aucun compte n\'a été créé.');
+
+            return $this->redirectToRoute('admin_user_parents');
+        }
+
+        // Rendu direct (pas de redirection) : les mots de passe en clair ne sont
+        // jamais stockés, ni en base ni en session.
+        $response = $this->render('user/parents_generated.html.twig', [
+            'result' => $result,
+            'school' => $school,
+            'generated_at' => new \DateTimeImmutable(),
+        ]);
+        $response->headers->set('Cache-Control', 'no-store, private');
+
+        return $response;
     }
 
     /**

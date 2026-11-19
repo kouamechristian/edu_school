@@ -15,7 +15,21 @@
         icon: page_icon,
         color: 'primary',
         breadcrumb: [ { label: 'Administration' }, { label: page_title } ]
-    } %}{% endembed %}
+    } %}
+        {% block actions %}
+            {% if is_parent %}
+                <form method="post" action="{{ path('admin_user_parents_generate') }}" class="d-inline"
+                      onsubmit="return confirm('Générer les comptes parents pour {{ eligible_count|default(0) }} élève(s) sans compte ?\n\nLe parent retenu est celui indiqué dans « Autorité parentale ». Les identifiants et mots de passe ne seront affichés qu\'UNE SEULE FOIS : pensez à imprimer la liste.');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('generate_parent_accounts') }}">
+                    <button type="submit" class="btn btn-primary" {{ eligible_count|default(0) == 0 ? 'disabled' }}
+                            title="Crée un compte pour le parent détenant l'autorité parentale et y rattache ses enfants">
+                        <i class="fas fa-user-plus me-1"></i>Générer les comptes parents
+                        <span class="badge bg-light text-primary ms-1">{{ eligible_count|default(0) }}</span>
+                    </button>
+                </form>
+            {% endif %}
+        {% endblock %}
+    {% endembed %}
 
     {% include '_flash.html.twig' %}
 
