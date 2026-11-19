@@ -112,12 +112,14 @@ Un `401` signifie que le secret enregistré ne correspond pas à celui du webhoo
 L'espace parent affiche automatiquement une invitation « Téléchargez l'application »
 (bouton Android, QR code sur ordinateur) **dès que l'APK est présent** sur le serveur.
 
-1. Compiler l'APK depuis le projet `edu_school_parent` :
-   `npx eas-cli@latest build --platform android --profile preview`
-2. Déposer le fichier obtenu ici, sous ce nom exact :
-   `public/downloads/edu-school-parent.apk` (fichier ignoré par Git, trop lourd).
-3. C'est tout : l'invitation apparaît sur le tableau de bord parent et le lien
-   « Application mobile » dans le menu du parent.
+1. Compiler l'APK signé depuis le projet `edu_school_parent` (voir son README,
+   section « Compiler en local sous Windows »).
+2. Le copier ici, sous ce nom exact : `public/downloads/edu-school-parent.apk`.
+   Il est versionné (comme `ed_photo.apk`) : un `git pull` le déploie sur le serveur.
+3. C'est tout : l'invitation (avec mode d'emploi d'installation) apparaît sur le
+   tableau de bord parent, sur la page de connexion parent et dans le menu du parent.
+   Pour une nouvelle version, remplacer le fichier : la date de mise à jour et le lien
+   (anti-cache `?v=`) suivent automatiquement.
 
 Pour pointer vers un autre emplacement (Play Store, stockage externe), définir dans
 `.env.local` : `PARENT_APP_ANDROID_URL=https://…` (l'invitation est alors toujours affichée).

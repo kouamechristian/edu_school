@@ -21,14 +21,32 @@
             <p>Notes, absences, emploi du temps, paiement de la scolarité et notifications : tout l'espace parent dans une application rapide. Connectez-vous avec les <strong>mêmes identifiants</strong>.</p>
 
             <div class="pp-app-actions">
-                <a href="{{ parent_app_info.url }}" class="pp-app-btn" download data-pp-app-android>
+                <a href="{{ parent_app_info.url }}" class="pp-app-btn" download="edu-school-parent.apk" data-pp-app-android>
                     <i class="fab fa-android"></i>
                     <span><small>Télécharger pour</small>Android</span>
                 </a>
                 <span class="pp-app-ios" data-pp-app-ios hidden>
                     <i class="fab fa-apple"></i> Version iPhone bientôt disponible. Utilisez cet espace web en attendant.
                 </span>
+                {% if parent_app_info.size %}
+                    <span class="pp-app-meta" data-pp-app-meta>
+                        {{ parent_app_info.updatedAt ? 'Mise à jour le ' ~ parent_app_info.updatedAt|date('d/m/Y') ~ ' · ' : '' }}{{ (parent_app_info.size / 1048576)|number_format(0, ',', ' ') }} Mo
+                    </span>
+                {% endif %}
             </div>
+
+            {# Android bloque par défaut les applications hors Play Store : mode d'emploi. #}
+            <details class="pp-app-help" data-pp-app-help>
+                <summary><i class="fas fa-circle-question"></i> Comment installer l'application ?</summary>
+                <ol>
+                    <li>Touchez <strong>Télécharger pour Android</strong> et attendez la fin du téléchargement.</li>
+                    <li>Ouvrez le fichier <strong>edu-school-parent.apk</strong> (notification de téléchargement ou application « Fichiers »).</li>
+                    <li>Si Android affiche « Pour votre sécurité… », touchez <strong>Paramètres</strong> puis activez <strong>Autoriser cette source</strong>, et revenez en arrière.</li>
+                    <li>Touchez <strong>Installer</strong>, puis <strong>Ouvrir</strong>.</li>
+                    <li>Connectez-vous avec <strong>le même identifiant et le même mot de passe</strong> que sur ce site.</li>
+                </ol>
+                <p>Mise à jour : téléchargez simplement la nouvelle version et installez-la par-dessus, vos données sont conservées.</p>
+            </details>
         </div>
     </div>
 
@@ -71,6 +89,14 @@
     .pp-app-btn span { display: flex; flex-direction: column; line-height: 1.1; font-size: 1.05rem; }
     .pp-app-btn small { font-size: .68rem; font-weight: 700; opacity: .75; }
     .pp-app-ios { color: #c7d0e6; font-size: .85rem; }
+    .pp-app-meta { color: #8a96b4; font-size: .78rem; font-weight: 600; }
+    .pp-app-help { margin-top: .9rem; font-size: .85rem; color: #c7d0e6; }
+    .pp-app-help summary { cursor: pointer; color: #22d3ee; font-weight: 700; list-style: none; display: inline-flex; gap: .4rem; align-items: center; }
+    .pp-app-help summary::-webkit-details-marker { display: none; }
+    .pp-app-help ol { margin: .6rem 0 .4rem; padding-left: 1.2rem; line-height: 1.55; }
+    .pp-app-help li { margin-bottom: .2rem; }
+    .pp-app-help strong { color: #fff; }
+    .pp-app-help p { margin: 0; font-size: .78rem; color: #8a96b4; }
     .pp-app-qr { display: flex; flex-direction: column; align-items: center; gap: .45rem; padding: .7rem; border-radius: 16px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12); }
     .pp-app-qr img { border-radius: 10px; background: #fff; }
     .pp-app-qr span { font-size: .72rem; color: #c7d0e6; font-weight: 600; }
@@ -100,6 +126,7 @@
         if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             promo.querySelector('[data-pp-app-android]').hidden = true;
             promo.querySelector('[data-pp-app-ios]').hidden = false;
+            promo.querySelectorAll('[data-pp-app-help], [data-pp-app-meta]').forEach(function (el) { el.hidden = true; });
         }
 
         promo.querySelector('[data-pp-app-dismiss]').addEventListener('click', function () {

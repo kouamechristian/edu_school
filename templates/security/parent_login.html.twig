@@ -216,7 +216,7 @@
             {# Application mobile : proposée seulement si l'APK est disponible (cf. ParentAppExtension). #}
             {% set parent_app_info = parent_app() %}
             {% if parent_app_info %}
-                <a href="{{ parent_app_info.url }}" download class="pp-login-app">
+                <a href="{{ parent_app_info.url }}" download="edu-school-parent.apk" class="pp-login-app">
                     <img src="{{ asset('images/app-parent-icon.png') }}" alt="" width="40" height="40">
                     <span>
                         <small>Application mobile · Android</small>

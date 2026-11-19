@@ -103,7 +103,7 @@
                         <a href="{{ path('app_change_password') }}"><i class="fas fa-key"></i> Changer le mot de passe</a>
                         {% set pp_app = parent_app() %}
                         {% if pp_app %}
-                            <a href="{{ pp_app.url }}" download><i class="fas fa-mobile-screen-button"></i> Application mobile</a>
+                            <a href="{{ pp_app.url }}" download="edu-school-parent.apk"><i class="fas fa-mobile-screen-button"></i> Application mobile</a>
                         {% endif %}
                         <div class="pp-dd-divider"></div>
                         <a href="{{ path('app_logout') }}"><i class="fas fa-arrow-right-from-bracket"></i> Déconnexion</a>

@@ -59,7 +59,7 @@ class ParentAppPromoTest extends WebTestCase
             $crawler = $client->request('GET', '/parent');
             $this->assertResponseIsSuccessful();
             $this->assertCount(1, $crawler->filter('#pp-app-promo'));
-            $this->assertStringEndsWith('/downloads/edu-school-parent.apk', $crawler->filter('[data-pp-app-android]')->attr('href'));
+            $this->assertStringContainsString('/downloads/edu-school-parent.apk?v=', $crawler->filter('[data-pp-app-android]')->attr('href'));
             $this->assertStringStartsWith('data:image/png;base64,', $crawler->filter('.pp-app-qr img')->attr('src'));
             // Lien permanent dans le menu utilisateur.
             $this->assertCount(1, $crawler->filter('.pp-dropdown-menu a:contains("Application mobile")'));
@@ -105,7 +105,7 @@ class ParentAppPromoTest extends WebTestCase
         try {
             $crawler = $client->request('GET', '/parent/connexion');
             $this->assertResponseIsSuccessful();
-            $this->assertStringEndsWith('/downloads/edu-school-parent.apk', $crawler->filter('a.pp-login-app')->attr('href'));
+            $this->assertStringContainsString('/downloads/edu-school-parent.apk?v=', $crawler->filter('a.pp-login-app')->attr('href'));
         } finally {
             if ($created) {
                 unlink($this->apkPath());

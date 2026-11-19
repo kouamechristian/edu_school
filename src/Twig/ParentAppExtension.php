@@ -39,7 +39,9 @@ class ParentAppExtension extends AbstractExtension
     }
 
     /**
-     * @return array{url: string, qr: string}|null
+     * size / updatedAt : renseignés seulement pour un APK servi par le site.
+     *
+     * @return array{url: string, qr: string, size: ?int, updatedAt: ?\DateTimeImmutable}|null
      */
     private function resolve(): ?array
     {
@@ -52,18 +54,26 @@ class ParentAppExtension extends AbstractExtension
             return $this->cache = null;
         }
 
+        $size = null;
+        $updatedAt = null;
         if (!preg_match('#^https?://#i', $url)) {
             // Fichier servi par le site : proposé seulement s'il a bien été déposé.
             $path = '/' . ltrim($url, '/');
-            if (!is_file($this->projectDir . '/public' . $path)) {
+            $file = $this->projectDir . '/public' . $path;
+            if (!is_file($file)) {
                 return $this->cache = null;
             }
+            $size = filesize($file) ?: null;
+            $updatedAt = ($mtime = filemtime($file)) ? (new \DateTimeImmutable())->setTimestamp($mtime) : null;
+
             $request = $this->requestStack->getCurrentRequest();
-            $url = $request ? $request->getSchemeAndHttpHost() . $request->getBasePath() . $path : $path;
+            $base = $request ? $request->getSchemeAndHttpHost() . $request->getBasePath() : '';
+            // ?v= : un nouvel APK n'est jamais servi depuis un cache (navigateur, proxy).
+            $url = $base . $path . ($updatedAt ? '?v=' . $updatedAt->getTimestamp() : '');
         }
 
         $qr = (new PngWriter())->write(QrCode::create($url)->setSize(220)->setMargin(8))->getDataUri();
 
-        return $this->cache = ['url' => $url, 'qr' => $qr];
+        return $this->cache = ['url' => $url, 'qr' => $qr, 'size' => $size, 'updatedAt' => $updatedAt];
     }
 }
