@@ -213,6 +213,28 @@
                 </a>
             </div>
 
+            {# Application mobile : proposée seulement si l'APK est disponible (cf. ParentAppExtension). #}
+            {% set parent_app_info = parent_app() %}
+            {% if parent_app_info %}
+                <a href="{{ parent_app_info.url }}" download class="pp-login-app">
+                    <img src="{{ asset('images/app-parent-icon.png') }}" alt="" width="40" height="40">
+                    <span>
+                        <small>Application mobile · Android</small>
+                        Télécharger EDU-SCHOOL Parent
+                    </span>
+                    <i class="fas fa-download"></i>
+                </a>
+                <style>
+                    .pp-login-app { display: flex; align-items: center; gap: .75rem; margin-top: 1rem; padding: .7rem .9rem; border-radius: 14px; text-decoration: none;
+                        color: #f1f5ff; background: linear-gradient(135deg, #0b1230, #060914); box-shadow: 0 10px 24px -12px rgba(11, 18, 48, .8); transition: transform .2s ease; }
+                    .pp-login-app:hover { transform: translateY(-2px); color: #fff; }
+                    .pp-login-app img { border-radius: 10px; flex-shrink: 0; }
+                    .pp-login-app span { display: flex; flex-direction: column; flex: 1; font-weight: 700; font-size: .95rem; line-height: 1.2; }
+                    .pp-login-app small { font-size: .7rem; font-weight: 700; color: #22d3ee; text-transform: uppercase; letter-spacing: .06em; }
+                    .pp-login-app i { color: #22d3ee; }
+                </style>
+            {% endif %}
+
             <div class="staff-link">
                 <a href="{{ path('app_login') }}"><i class="fas fa-briefcase me-1"></i> Vous êtes membre du personnel ? Connexion ici</a>
             </div>

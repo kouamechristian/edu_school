@@ -89,4 +89,27 @@ class ParentAppPromoTest extends WebTestCase
             $em->getConnection()->rollBack();
         }
     }
+
+    public function testParentLoginPageOffersAppOnlyWhenAvailable(): void
+    {
+        $client = static::createClient();
+        $created = !is_file($this->apkPath());
+
+        if ($created) {
+            $client->request('GET', '/parent/connexion');
+            $this->assertResponseIsSuccessful();
+            $this->assertSelectorNotExists('.pp-login-app');
+            file_put_contents($this->apkPath(), 'apk de test');
+        }
+
+        try {
+            $crawler = $client->request('GET', '/parent/connexion');
+            $this->assertResponseIsSuccessful();
+            $this->assertStringEndsWith('/downloads/edu-school-parent.apk', $crawler->filter('a.pp-login-app')->attr('href'));
+        } finally {
+            if ($created) {
+                unlink($this->apkPath());
+            }
+        }
+    }
 }
