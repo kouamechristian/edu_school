@@ -27,6 +27,13 @@
                         <span class="badge bg-light text-primary ms-1">{{ eligible_count|default(0) }}</span>
                     </button>
                 </form>
+                <form method="post" action="{{ path('admin_user_parents_access_sheet') }}" class="d-inline" target="_blank"
+                      onsubmit="return confirm('Imprimer la fiche d\'accès des parents (matricule, élève, identifiant, mot de passe) ?\n\nLes comptes jamais activés recevront un NOUVEAU mot de passe provisoire, imprimé sur la fiche : l\'ancien ne fonctionnera plus. Les parents ayant déjà choisi leur mot de passe ne sont pas modifiés.');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('parent_access_sheet') }}">
+                    <button type="submit" class="btn btn-outline-primary" title="PDF : matricule et nom de l'élève, accès de son parent">
+                        <i class="fas fa-print me-1"></i>Imprimer les accès
+                    </button>
+                </form>
             {% endif %}
         {% endblock %}
     {% endembed %}

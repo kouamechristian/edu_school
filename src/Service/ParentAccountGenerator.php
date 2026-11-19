@@ -270,6 +270,56 @@ class ParentAccountGenerator
         return $username;
     }
 
+    /**
+     * Fiche d'accès imprimable : une ligne par élève actif de l'établissement
+     * rattaché à un compte parent actif, triée par classe puis par nom.
+     *
+     * Les comptes jamais activés (mot de passe provisoire encore en vigueur,
+     * mustChangePassword) reçoivent un NOUVEAU mot de passe provisoire, imprimé sur
+     * la fiche : l'ancien, haché, ne peut pas être relu. Les comptes déjà activés
+     * gardent le mot de passe choisi par le parent (password = null sur la ligne).
+     * Un parent de plusieurs enfants n'a qu'un seul nouveau mot de passe.
+     *
+     * @return list<array{student: Student, classroom: string, parent: User, password: ?string}>
+     */
+    public function buildAccessSheet(School $school): array
+    {
+        /** @var Student[] $students */
+        $students = $this->studentRepository->createQueryBuilder('s')
+            ->innerJoin('s.parentUser', 'p')
+            ->addSelect('p')
+            ->andWhere('s.school = :school')
+            ->andWhere('s.isActive = true')
+            ->andWhere('p.isActive = true')
+            ->setParameter('school', $school)
+            ->getQuery()
+            ->getResult();
+
+        $rows = [];
+        $passwords = []; // id parent => nouveau mot de passe (partagé entre frères et sœurs)
+        foreach ($students as $student) {
+            $parent = $student->getParentUser();
+            if ($parent->isMustChangePassword() && !array_key_exists($parent->getId(), $passwords)) {
+                $passwords[$parent->getId()] = $this->generatePassword();
+                $parent->setPassword($this->passwordHasher->hashPassword($parent, $passwords[$parent->getId()]));
+            }
+
+            $rows[] = [
+                'student' => $student,
+                'classroom' => $student->getClassroom()?->getName() ?? 'Classe non affectée',
+                'parent' => $parent,
+                'password' => $passwords[$parent->getId()] ?? null,
+            ];
+        }
+
+        $this->em->flush();
+
+        usort($rows, static fn (array $a, array $b) => [$a['classroom'] === 'Classe non affectée', $a['classroom'], $a['student']->getLastName(), $a['student']->getFirstName()]
+            <=> [$b['classroom'] === 'Classe non affectée', $b['classroom'], $b['student']->getLastName(), $b['student']->getFirstName()]);
+
+        return $rows;
+    }
+
     private function generatePassword(): string
     {
         $max = strlen(self::PASSWORD_ALPHABET) - 1;

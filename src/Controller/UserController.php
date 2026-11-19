@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Controller\Concern\HandlesEntityDeletion;
+use App\Controller\Concern\RendersDocuments;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
@@ -24,6 +25,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class UserController extends AbstractController
 {
     use HandlesEntityDeletion;
+    use RendersDocuments;
 
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(Request $request, UserRepository $userRepository, SchoolContextService $contextService, \Knp\Component\Pager\PaginatorInterface $paginator): Response
@@ -184,6 +186,57 @@ class UserController extends AbstractController
             'school' => $school,
             'generated_at' => new \DateTimeImmutable(),
         ]);
+        $response->headers->set('Cache-Control', 'no-store, private');
+
+        return $response;
+    }
+
+    /**
+     * Fiche d'accès des parents (PDF) : matricule et nom de chaque élève, avec
+     * l'identifiant de connexion de son parent et, pour les comptes jamais
+     * activés, un nouveau mot de passe provisoire (cf. ParentAccountGenerator::buildAccessSheet).
+     *
+     * POST + jeton CSRF : l'action régénère des mots de passe.
+     */
+    #[Route('/parents/fiche-acces', name: 'parents_access_sheet', methods: ['POST'])]
+    public function parentsAccessSheet(Request $request, SchoolContextService $contextService, ParentAccountGenerator $generator): Response
+    {
+        if (!$this->isCsrfTokenValid('parent_access_sheet', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide. Veuillez réessayer.');
+
+            return $this->redirectToRoute('admin_user_parents');
+        }
+
+        $school = $contextService->getCurrentSchool();
+        if (!$school) {
+            $this->addFlash('warning', 'Veuillez sélectionner un établissement avant d\'imprimer la fiche d\'accès.');
+
+            return $this->redirectToRoute('admin_user_parents');
+        }
+
+        // Hachage des nouveaux mots de passe provisoires (~0,4 s chacun).
+        set_time_limit(300);
+        $rows = $generator->buildAccessSheet($school);
+
+        if ($rows === []) {
+            $this->addFlash('info', 'Aucun élève de cet établissement n\'est rattaché à un compte parent actif.');
+
+            return $this->redirectToRoute('admin_user_parents');
+        }
+
+        $response = $this->renderPdf('user/parents_access_sheet_pdf.html.twig', [
+            'rows' => $rows,
+            'school' => $school,
+            'school_year' => $contextService->getCurrentSchoolYear(),
+            'logo_data' => $this->logoData($school),
+            'generated_at' => new \DateTimeImmutable(),
+            // Nombre de parents ayant reçu un nouveau mot de passe provisoire.
+            'reset_count' => count(array_unique(array_map(
+                static fn (array $r) => $r['parent']->getId(),
+                array_filter($rows, static fn (array $r) => $r['password'] !== null),
+            ))),
+        ], sprintf('acces-parents-%s.pdf', (new \DateTimeImmutable())->format('Y-m-d')), 'landscape');
+        // Contient des mots de passe en clair : jamais en cache.
         $response->headers->set('Cache-Control', 'no-store, private');
 
         return $response;

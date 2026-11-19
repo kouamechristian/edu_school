@@ -60,6 +60,16 @@ class ParentAccountsGenerationTest extends WebTestCase
             $child = static::getContainer()->get(EntityManagerInterface::class)->find(Student::class, $childId);
             $this->assertNotNull($child->getParentUser());
             $this->assertSame('TOURE', $child->getParentUser()->getLastName());
+
+            // Bouton « Imprimer les accès » : PDF non mis en cache.
+            $crawler = $client->request('GET', '/admin/users/parents');
+            $print = $crawler->filter('form[action$="/admin/users/parents/fiche-acces"] button');
+            $this->assertCount(1, $print);
+            $client->submit($print->form());
+            $this->assertResponseIsSuccessful();
+            $this->assertResponseHeaderSame('Content-Type', 'application/pdf');
+            $this->assertStringContainsString('no-store', (string) $client->getResponse()->headers->get('Cache-Control'));
+            $this->assertStringStartsWith('%PDF', (string) $client->getResponse()->getContent());
         } finally {
             $em->getConnection()->rollBack();
         }

@@ -152,4 +152,52 @@ class ParentAccountGeneratorTest extends KernelTestCase
         $this->assertCount(0, $again['created']);
         $this->assertCount(0, $again['linked']);
     }
+
+    public function testAccessSheetResetsOnlyNotActivatedAccounts(): void
+    {
+        $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+
+        // Parent jamais activé, deux enfants.
+        $a = $this->student('DIALLO', 'Aminata', 'father')->setFatherLastName('DIALLO')->setFatherFirstName('Moussa');
+        $b = $this->student('DIALLO', 'Oumar', 'father')->setFatherLastName('DIALLO')->setFatherFirstName('Moussa');
+        $this->em->flush();
+        $created = $this->generator->generate($this->school)['created'][0];
+        $oldPassword = $created['password'];
+
+        // Parent ayant déjà choisi son mot de passe.
+        $active = (new User())
+            ->setUsername('paul.yao.test')
+            ->setEmail('paul.yao.test@example.test')
+            ->setFirstName('Paul')->setLastName('YAO')
+            ->setUserType('parent')->setRoles(['ROLE_PARENT'])
+            ->setMustChangePassword(false);
+        $active->setPassword($hasher->hashPassword($active, 'monMotDePasse'));
+        $active->addSchool($this->school);
+        $this->em->persist($active);
+        $c = $this->student('YAO', 'Esther', null);
+        $active->addChild($c);
+        // Élève sans parent : absent de la fiche.
+        $this->student('SORO', 'Lacina', null);
+        $this->em->flush();
+
+        $rows = $this->generator->buildAccessSheet($this->school);
+
+        $this->assertCount(3, $rows);
+        $byStudent = [];
+        foreach ($rows as $row) {
+            $byStudent[$row['student']->getFirstName()] = $row;
+        }
+
+        // Frères et sœurs : même nouveau mot de passe, valide, différent de l'ancien.
+        $this->assertNotNull($byStudent['Aminata']['password']);
+        $this->assertSame($byStudent['Aminata']['password'], $byStudent['Oumar']['password']);
+        $this->assertNotSame($oldPassword, $byStudent['Aminata']['password']);
+        $this->assertTrue($hasher->isPasswordValid($created['parent'], $byStudent['Aminata']['password']));
+        $this->assertFalse($hasher->isPasswordValid($created['parent'], $oldPassword));
+        $this->assertTrue($created['parent']->isMustChangePassword());
+
+        // Compte activé : rien d'imprimé, mot de passe inchangé.
+        $this->assertNull($byStudent['Esther']['password']);
+        $this->assertTrue($hasher->isPasswordValid($active, 'monMotDePasse'));
+    }
 }
