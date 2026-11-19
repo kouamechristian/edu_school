@@ -1,0 +1,114 @@
+{#
+    Invitation à installer l'application mobile EDU-SCHOOL Parent.
+    Affichée seulement si l'APK est disponible (cf. App\Twig\ParentAppExtension).
+    - téléphone Android : bouton de téléchargement direct ;
+    - ordinateur : QR code à scanner avec le téléphone ;
+    - iPhone : message indiquant que l'app est pour l'instant réservée à Android.
+    Le parent peut masquer l'invitation (mémorisé 30 jours dans le navigateur).
+#}
+{% set parent_app_info = parent_app() %}
+{% if parent_app_info %}
+<section class="pp-app-promo pp-reveal" id="pp-app-promo" hidden>
+    <button type="button" class="pp-app-close" data-pp-app-dismiss aria-label="Masquer">
+        <i class="fas fa-xmark"></i>
+    </button>
+
+    <div class="pp-app-main">
+        <img src="{{ asset('images/app-parent-icon.png') }}" alt="" class="pp-app-icon" width="72" height="72">
+        <div class="pp-app-text">
+            <span class="pp-app-eyebrow"><i class="fas fa-mobile-screen-button"></i> Nouveau · Application mobile</span>
+            <h3>Suivez vos enfants depuis votre téléphone</h3>
+            <p>Notes, absences, emploi du temps, paiement de la scolarité et notifications : tout l'espace parent dans une application rapide. Connectez-vous avec les <strong>mêmes identifiants</strong>.</p>
+
+            <div class="pp-app-actions">
+                <a href="{{ parent_app_info.url }}" class="pp-app-btn" download data-pp-app-android>
+                    <i class="fab fa-android"></i>
+                    <span><small>Télécharger pour</small>Android</span>
+                </a>
+                <span class="pp-app-ios" data-pp-app-ios hidden>
+                    <i class="fab fa-apple"></i> Version iPhone bientôt disponible. Utilisez cet espace web en attendant.
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="pp-app-qr">
+        <img src="{{ parent_app_info.qr }}" alt="QR code de téléchargement de l'application" width="132" height="132">
+        <span>Scannez avec votre téléphone</span>
+    </div>
+</section>
+
+<style>
+    /* « hidden » doit l'emporter sur les display: flex ci-dessous. */
+    .pp-app-promo[hidden], .pp-app-promo [hidden] { display: none !important; }
+    .pp-app-promo {
+        position: relative; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+        margin-bottom: 1.25rem; padding: 1.4rem 3.4rem 1.4rem 1.6rem; border-radius: var(--pp-radius); color: #fff; overflow: hidden;
+        background: radial-gradient(120% 140% at 100% 0%, rgba(139, 92, 246, .55) 0%, transparent 55%),
+                    radial-gradient(90% 120% at 0% 100%, rgba(34, 211, 238, .35) 0%, transparent 60%),
+                    linear-gradient(135deg, #0b1230 0%, #060914 100%);
+        box-shadow: 0 20px 44px -18px rgba(11, 18, 48, .7);
+    }
+    .pp-app-close {
+        position: absolute; top: .7rem; right: .7rem; width: 32px; height: 32px; border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .08); color: #c7d0e6; cursor: pointer;
+    }
+    .pp-app-close:hover { background: rgba(255, 255, 255, .16); color: #fff; }
+    .pp-app-main { display: flex; gap: 1.1rem; align-items: flex-start; flex: 1 1 380px; }
+    .pp-app-icon { width: 72px; height: 72px; border-radius: 18px; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 12px 28px -8px rgba(34, 211, 238, .55); }
+    .pp-app-eyebrow { display: inline-flex; gap: .4rem; align-items: center; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #22d3ee; }
+    .pp-app-text h3 { margin: .3rem 0 .35rem; font-size: 1.25rem; font-weight: 800; color: #f1f5ff; }
+    .pp-app-text p { margin: 0; color: #c7d0e6; font-size: .92rem; line-height: 1.5; }
+    .pp-app-text strong { color: #fff; }
+    .pp-app-actions { display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; }
+    .pp-app-btn {
+        display: inline-flex; align-items: center; gap: .65rem; padding: .6rem 1.15rem; border-radius: 14px; text-decoration: none;
+        color: #060914; background: linear-gradient(90deg, #22d3ee, #8b5cf6); font-weight: 800;
+        box-shadow: 0 10px 24px -10px rgba(34, 211, 238, .8); transition: transform .2s var(--pp-ease), box-shadow .2s var(--pp-ease);
+    }
+    .pp-app-btn:hover { transform: translateY(-2px); color: #060914; box-shadow: 0 16px 30px -12px rgba(34, 211, 238, .9); }
+    .pp-app-btn i { font-size: 1.6rem; }
+    .pp-app-btn span { display: flex; flex-direction: column; line-height: 1.1; font-size: 1.05rem; }
+    .pp-app-btn small { font-size: .68rem; font-weight: 700; opacity: .75; }
+    .pp-app-ios { color: #c7d0e6; font-size: .85rem; }
+    .pp-app-qr { display: flex; flex-direction: column; align-items: center; gap: .45rem; padding: .7rem; border-radius: 16px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12); }
+    .pp-app-qr img { border-radius: 10px; background: #fff; }
+    .pp-app-qr span { font-size: .72rem; color: #c7d0e6; font-weight: 600; }
+    /* Sur téléphone, le QR code est inutile : on télécharge directement. */
+    @media (max-width: 768px), (pointer: coarse) {
+        .pp-app-qr { display: none; }
+        .pp-app-promo { padding: 1.2rem 1.2rem 1.3rem; }
+        .pp-app-main { gap: .85rem; }
+        .pp-app-icon { width: 52px; height: 52px; border-radius: 14px; }
+        .pp-app-eyebrow, .pp-app-text h3 { padding-right: 2.2rem; }
+    }
+</style>
+
+<script>
+    (function () {
+        var promo = document.getElementById('pp-app-promo');
+        if (!promo) return;
+        var KEY = 'pp_app_promo_dismissed_at';
+        var MONTH = 30 * 24 * 3600 * 1000;
+        try {
+            var at = Number(localStorage.getItem(KEY) || 0);
+            if (at && Date.now() - at < MONTH) return; // masquée récemment
+        } catch (e) { /* stockage indisponible : on affiche */ }
+        promo.hidden = false;
+
+        // iPhone / iPad : l'APK Android ne s'installe pas.
+        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            promo.querySelector('[data-pp-app-android]').hidden = true;
+            promo.querySelector('[data-pp-app-ios]').hidden = false;
+        }
+
+        promo.querySelector('[data-pp-app-dismiss]').addEventListener('click', function () {
+            try { localStorage.setItem(KEY, String(Date.now())); } catch (e) { /* ignoré */ }
+            promo.style.transition = 'opacity .3s ease, transform .3s ease';
+            promo.style.opacity = '0';
+            promo.style.transform = 'translateY(-6px)';
+            setTimeout(function () { promo.remove(); }, 300);
+        });
+    })();
+</script>
+{% endif %}

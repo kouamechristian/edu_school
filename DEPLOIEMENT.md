@@ -108,6 +108,21 @@ Cliquer sur « tester » depuis GeniusPay. Réponse attendue :
 ```
 Un `401` signifie que le secret enregistré ne correspond pas à celui du webhook.
 
+## 9 bis. Application mobile Parent (invitation au téléchargement)
+L'espace parent affiche automatiquement une invitation « Téléchargez l'application »
+(bouton Android, QR code sur ordinateur) **dès que l'APK est présent** sur le serveur.
+
+1. Compiler l'APK depuis le projet `edu_school_parent` :
+   `npx eas-cli@latest build --platform android --profile preview`
+2. Déposer le fichier obtenu ici, sous ce nom exact :
+   `public/downloads/edu-school-parent.apk` (fichier ignoré par Git, trop lourd).
+3. C'est tout : l'invitation apparaît sur le tableau de bord parent et le lien
+   « Application mobile » dans le menu du parent.
+
+Pour pointer vers un autre emplacement (Play Store, stockage externe), définir dans
+`.env.local` : `PARENT_APP_ANDROID_URL=https://…` (l'invitation est alors toujours affichée).
+Sans APK ni URL externe, rien n'est affiché.
+
 ## 10. Vérification
 - Accéder à l'URL du domaine → la page de connexion doit s'afficher.
 - `/documentation` doit s'ouvrir **sans connexion** (page publique).

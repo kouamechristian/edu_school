@@ -1,3 +1,9 @@
+# Applications mobiles : type MIME Android, sinon certains téléphones enregistrent
+# l'APK en .zip et refusent de l'installer.
+<IfModule mod_mime.c>
+    AddType application/vnd.android.package-archive .apk
+</IfModule>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 

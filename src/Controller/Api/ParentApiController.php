@@ -563,6 +563,8 @@ class ParentApiController extends AbstractController
         return [
             'totalTuition' => (float) $finance['total_tuition'],
             'totalDiscount' => (float) $finance['total_discount'],
+            // Motif de la remise (ex. « Fratrie »), affiché comme sur l'espace parent web.
+            'discountLabel' => ($finance['discount_label'] ?? '') !== '' ? $finance['discount_label'] : null,
             'totalPaid' => (float) $finance['total_paid'],
             'remaining' => (float) $finance['remaining'],
         ];

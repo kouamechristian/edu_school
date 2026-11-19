@@ -5,6 +5,8 @@
 {% block page_subtitle %}Suivez en un coup d'œil la scolarité de vos enfants.{% endblock %}
 
 {% block body %}
+{% include 'parent/_app_download.html.twig' %}
+
 {% if cards is empty %}
     <div class="pp-card pp-reveal">
         <div class="pp-empty">

@@ -23,6 +23,10 @@
 /assets/vendor/
 ###< symfony/asset-mapper ###
 
+###> application mobile parent (APK déposé sur le serveur, trop lourd pour Git) ###
+/public/downloads/edu-school-parent.apk
+###< application mobile parent ###
+
 ###> uploads (runtime generated) ###
 /public/uploads/*
 !/public/uploads/.htaccess

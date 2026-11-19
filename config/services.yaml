@@ -18,6 +18,12 @@ parameters:
     geniuspay.base_url: '%env(default:geniuspay.default_base_url:GENIUSPAY_BASE_URL)%'
     geniuspay.default_base_url: 'https://pay.genius.ci/api/v1/merchant'
 
+    # Application mobile EDU-SCHOOL Parent proposée dans l'espace parent (cf. ParentAppExtension).
+    # Par défaut : déposer l'APK compilé dans public/downloads/edu-school-parent.apk.
+    # Pour un lien externe (Play Store…), définir PARENT_APP_ANDROID_URL dans .env.local.
+    parent_app.android_url: '%env(default:parent_app.default_android_url:PARENT_APP_ANDROID_URL)%'
+    parent_app.default_android_url: '/downloads/edu-school-parent.apk'
+
 services:
     # default configuration for services in *this* file
     _defaults:
