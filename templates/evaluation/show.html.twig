@@ -72,6 +72,8 @@
                         </div>
                     {% endif %}
 
+                    {# Publication réservée aux enseignants / direction (pas à l'opérateur de saisie). #}
+                    {% if is_granted('ROLE_ENSEIGNANT') %}
                     <div class="mt-4">
                         <form method="post" action="{{ path('admin_evaluation_publish', {'id': evaluation.id}) }}" class="d-inline">
                             <input type="hidden" name="_token" value="{{ csrf_token('publish' ~ evaluation.id) }}">
@@ -81,6 +83,7 @@
                             </button>
                         </form>
                     </div>
+                    {% endif %}
                 </div>
             </div>
 

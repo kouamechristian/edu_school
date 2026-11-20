@@ -29,6 +29,7 @@ final class RoleGrantPolicy
         'Ressources Humaines (ROLE_RH)' => 'ROLE_RH',
         'Enseignant (ROLE_ENSEIGNANT)' => 'ROLE_ENSEIGNANT',
         'Éducateur (ROLE_EDUCATEUR)' => 'ROLE_EDUCATEUR',
+        'Opérateur de saisie des notes (ROLE_OPERATEUR_DE_SAISIR)' => 'ROLE_OPERATEUR_DE_SAISIR',
         'Correspondant fichier (ROLE_CORRESPONDANT_FICHIER)' => 'ROLE_CORRESPONDANT_FICHIER',
         'Parent (ROLE_PARENT)' => 'ROLE_PARENT',
         'Élève (ROLE_ELEVE)' => 'ROLE_ELEVE',

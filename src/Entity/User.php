@@ -511,6 +511,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         'ROLE_RH' => 'Ressources Humaines',
         'ROLE_ENSEIGNANT' => 'Enseignant',
         'ROLE_EDUCATEUR' => 'Éducateur',
+        'ROLE_OPERATEUR_DE_SAISIR' => 'Opérateur de saisie',
         'ROLE_CORRESPONDANT_FICHIER' => 'Correspondant fichier',
         'ROLE_PARENT' => 'Parent',
         'ROLE_USER' => 'Utilisateur',

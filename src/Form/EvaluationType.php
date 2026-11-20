@@ -42,7 +42,8 @@ class EvaluationType extends AbstractType
         $user = $this->security->getUser();
         $restrictToTeacher = $user instanceof User
             && $this->security->isGranted('ROLE_ENSEIGNANT')
-            && !$this->security->isGranted('ROLE_DIRECTEUR');
+            && !$this->security->isGranted('ROLE_DIRECTEUR')
+            && !$this->security->isGranted('ROLE_OPERATEUR_DE_SAISIR');
 
         $teacherClassroomIds = [];
         $teacherSubjectIds = [];

@@ -641,6 +641,19 @@
             </li>
             {% endif %}
 
+            {# ==============================================================
+               SAISIE DES NOTES — opérateur de saisie (sans rôle administrateur,
+               qui a déjà le menu « Notes & Évaluations »)
+               ============================================================== #}
+            {% if is_granted('ROLE_OPERATEUR_DE_SAISIR') and not is_granted('ROLE_ADMIN') %}
+            <div class="nav-section">Saisie des notes</div>
+            <li class="nav-item">
+                <a href="{{ path('admin_evaluation_index') }}" class="nav-link {{ current_route starts with 'admin_evaluation' ? 'active' : '' }}">
+                    <i class="fas fa-keyboard"></i><span>Évaluations &amp; notes</span>
+                </a>
+            </li>
+            {% endif %}
+
              {# ==============================================================
                ESPACE FONDATEUR — visible uniquement par les fondateurs
                ============================================================== #}

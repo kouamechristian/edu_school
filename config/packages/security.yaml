@@ -14,6 +14,9 @@ security:
         # ── Rôles opérationnels (personnel) ──
         ROLE_ENSEIGNANT: ROLE_USER
         ROLE_EDUCATEUR: ROLE_USER
+        # ROLE_OPERATEUR_DE_SAISIR : saisit les notes à la place des enseignants
+        # (évaluations de toutes les classes de l'établissement, sans suppression ni publication).
+        ROLE_OPERATEUR_DE_SAISIR: ROLE_USER
         # ROLE_INSCRIPTION : Gestion des élèves uniquement.
         ROLE_INSCRIPTION: ROLE_USER
         # ROLE_CORRESPONDANT_FICHIER : ses documents + la Gestion des élèves (via ROLE_INSCRIPTION).
@@ -42,7 +45,7 @@ security:
         ROLE_DIRECTEUR: [ROLE_ENSEIGNANT, ROLE_EDUCATEUR]
 
         # ── L'administrateur dispose de tout, y compris la caisse / gestion financière et les RH ──
-        ROLE_ADMIN: [ROLE_DIRECTEUR, ROLE_CAISSE, ROLE_INSCRIPTION, ROLE_CORRESPONDANT_FICHIER, ROLE_RH, ROLE_RECOUVREMENT]
+        ROLE_ADMIN: [ROLE_DIRECTEUR, ROLE_CAISSE, ROLE_INSCRIPTION, ROLE_CORRESPONDANT_FICHIER, ROLE_RH, ROLE_RECOUVREMENT, ROLE_OPERATEUR_DE_SAISIR]
 
         # ── Le fondateur supervise (accès complet, limité à ses établissements) ──
         ROLE_FONDATEUR: [ROLE_ADMIN]

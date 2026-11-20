@@ -22,13 +22,26 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/admin/evaluations')]
-#[IsGranted('ROLE_ENSEIGNANT')]
+// Enseignants (et hiérarchie) + opérateurs de saisie, qui saisissent les notes pour les enseignants.
+#[IsGranted(new Expression("is_granted('ROLE_ENSEIGNANT') or is_granted('ROLE_OPERATEUR_DE_SAISIR')"))]
 class EvaluationController extends AbstractController
 {
     use HandlesEntityDeletion;
+
+    /**
+     * Un enseignant « simple » ne voit et ne crée que SES évaluations. Le directeur
+     * (et au-dessus) comme l'opérateur de saisie travaillent sur tout l'établissement.
+     */
+    private function isRestrictedToOwnEvaluations(): bool
+    {
+        return $this->isGranted('ROLE_ENSEIGNANT')
+            && !$this->isGranted('ROLE_DIRECTEUR')
+            && !$this->isGranted('ROLE_OPERATEUR_DE_SAISIR');
+    }
 
     #[Route('/', name: 'admin_evaluation_index', methods: ['GET'])]
     public function index(
@@ -62,7 +75,7 @@ class EvaluationController extends AbstractController
 
         // Un enseignant « simple » (sans rôle directeur) ne voit que SES évaluations.
         $user = $this->getUser();
-        $restrictToTeacher = $this->isGranted('ROLE_ENSEIGNANT') && !$this->isGranted('ROLE_DIRECTEUR');
+        $restrictToTeacher = $this->isRestrictedToOwnEvaluations();
         $teacherId = ($restrictToTeacher && $user instanceof User) ? $user->getId() : null;
 
         // Par défaut (sans filtre), on affiche toutes les évaluations de l'établissement / année.
@@ -101,7 +114,7 @@ class EvaluationController extends AbstractController
 
         $evaluation = new Evaluation();
         // Un enseignant « simple » : pré-sélectionner lui-même comme enseignant.
-        if ($this->isGranted('ROLE_ENSEIGNANT') && !$this->isGranted('ROLE_DIRECTEUR')) {
+        if ($this->isRestrictedToOwnEvaluations()) {
             $evaluation->setTeacher($this->getUser());
         }
         $form = $this->createForm(EvaluationType::class, $evaluation);
@@ -140,7 +153,7 @@ class EvaluationController extends AbstractController
 
         // Enseignant « simple » : restreindre à ses propres matières.
         $allowed = null;
-        if ($this->isGranted('ROLE_ENSEIGNANT') && !$this->isGranted('ROLE_DIRECTEUR')) {
+        if ($this->isRestrictedToOwnEvaluations()) {
             $allowed = [];
             $user = $this->getUser();
             if ($user instanceof User) {
@@ -322,6 +335,8 @@ class EvaluationController extends AbstractController
     }
 
     #[Route('/{id}/publish', name: 'admin_evaluation_publish', methods: ['POST'])]
+    // Publier les notes aux parents reste une décision pédagogique : pas l'opérateur de saisie.
+    #[IsGranted('ROLE_ENSEIGNANT')]
     public function publish(
         Request $request,
         Evaluation $evaluation,
