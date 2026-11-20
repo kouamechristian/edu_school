@@ -123,27 +123,8 @@ class CourseRepository extends ServiceEntityRepository
     ): array {
         $conflicts = [];
 
-        // Vérifier conflit enseignant
-        if ($teacherId) {
-            $qb = $this->createQueryBuilder('c')
-                ->where('c.dayOfWeek = :day')
-                ->andWhere('c.timeSlot = :timeSlot')
-                ->andWhere('c.teacher = :teacher')
-                ->andWhere('c.isActive = :active')
-                ->setParameter('day', $dayOfWeek)
-                ->setParameter('timeSlot', $timeSlotId)
-                ->setParameter('teacher', $teacherId)
-                ->setParameter('active', true);
-
-            if ($courseId) {
-                $qb->andWhere('c.id != :courseId')
-                   ->setParameter('courseId', $courseId);
-            }
-
-            if ($qb->getQuery()->getOneOrNullResult()) {
-                $conflicts[] = 'teacher';
-            }
-        }
+        // Pas de contrôle de l'enseignant : il peut enseigner dans plusieurs classes
+        // au même créneau. $teacherId est conservé pour compatibilité.
 
         // Vérifier conflit classe
         if ($classroomId) {

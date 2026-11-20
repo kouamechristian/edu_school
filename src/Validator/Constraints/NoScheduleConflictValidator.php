@@ -33,31 +33,13 @@ class NoScheduleConflictValidator extends ConstraintValidator
         $courseId = $value->getId();
         $dayOfWeek = $value->getDayOfWeek();
         $timeSlot = $value->getTimeSlot();
-        $teacher = $value->getTeacher();
         $classroom = $value->getClassroom();
         $room = $value->getRoom();
 
-        // 1. Vérifier les conflits d'enseignant
-        if ($teacher) {
-            $conflictingCourse = $this->findConflictingCourse(
-                $courseId,
-                $dayOfWeek,
-                $timeSlot->getId(),
-                'teacher',
-                $teacher->getId()
-            );
+        // L'enseignant n'est volontairement PAS contrôlé : il peut avoir cours dans
+        // plusieurs classes au même créneau (classes jumelées, cours en commun).
 
-            if ($conflictingCourse) {
-                $this->context->buildViolation($constraint->teacherConflict)
-                    ->setParameter('{{ teacher }}', $teacher->getFullName())
-                    ->setParameter('{{ day }}', $this->getDayLabel($dayOfWeek))
-                    ->setParameter('{{ time }}', $timeSlot->getTimeRange())
-                    ->atPath('teacher')
-                    ->addViolation();
-            }
-        }
-
-        // 2. Vérifier les conflits de classe
+        // 1. Vérifier les conflits de classe
         if ($classroom) {
             $conflictingCourse = $this->findConflictingCourse(
                 $courseId,
@@ -77,7 +59,7 @@ class NoScheduleConflictValidator extends ConstraintValidator
             }
         }
 
-        // 3. Vérifier les conflits de salle
+        // 2. Vérifier les conflits de salle
         if ($room) {
             $conflictingCourse = $this->findConflictingCourse(
                 $courseId,
@@ -124,9 +106,6 @@ class NoScheduleConflictValidator extends ConstraintValidator
 
         // Ajouter le filtre selon le type d'entité
         switch ($entityType) {
-            case 'teacher':
-                $qb->andWhere('c.teacher = :entityId');
-                break;
             case 'classroom':
                 $qb->andWhere('c.classroom = :entityId');
                 break;
