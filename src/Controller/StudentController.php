@@ -533,6 +533,43 @@ class StudentController extends AbstractController
     }
 
     /**
+     * Fiche de notes vierge d'une classe : liste des élèves avec des cases Note 1, Note 2…
+     * Le nombre de colonnes est réglable via ?notes=N (1 à 12, 5 par défaut).
+     */
+    #[Route('/dashboard/classe/{id}/fiche-notes', name: 'classroom_grade_sheet_pdf', methods: ['GET'])]
+    public function classroomGradeSheetPdf(Classroom $classroom, Request $request, StudentRepository $studentRepository): Response
+    {
+        $notesCount = max(1, min(12, $request->query->getInt('notes', 5)));
+        $school = $classroom->getSchool();
+
+        $html = $this->renderView('student/classroom_grade_sheet_pdf.html.twig', [
+            'classroom' => $classroom,
+            'students' => $studentRepository->findActiveByClassroom($classroom->getId()),
+            'school' => $school,
+            'logo_data' => $this->imageDataUri($school?->getLogo()),
+            'notes_count' => $notesCount,
+            'generated_at' => new \DateTime(),
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isHtml5ParserEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        // Paysage au-delà de 6 notes pour garder des cases lisibles.
+        $dompdf->setPaper('A4', $notesCount > 6 ? 'landscape' : 'portrait');
+        $dompdf->render();
+
+        $filename = sprintf('FICHE_NOTES_CLASSE_%d.pdf', $classroom->getId());
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('inline; filename="%s"', $filename),
+        ]);
+    }
+
+    /**
      * Génère la carte d'accès d'un élève (PDF avec QR code), consultable et téléchargeable.
      */
     #[Route('/{id}/carte', name: 'card', methods: ['GET'])]

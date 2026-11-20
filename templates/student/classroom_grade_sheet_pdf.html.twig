@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 24px 28px; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #000; }
+        .header { width: 100%; border-bottom: 1px solid #999; padding-bottom: 6px; margin-bottom: 14px; }
+        .header td { vertical-align: middle; }
+        .header .logo { width: 80px; }
+        .header .logo img { max-height: 65px; max-width: 75px; }
+        .header .school { text-align: center; }
+        .header .school .name { font-weight: bold; font-size: 14px; }
+        .header .school .ministry { font-size: 11px; }
+        .header .school .tel { font-size: 10px; }
+        .title { text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+        .meta { width: 100%; margin-bottom: 10px; font-size: 12px; }
+        .meta td { padding: 3px 0; }
+        .meta .line { border-bottom: 1px dotted #000; display: inline-block; width: 170px; }
+        table.sheet { width: 100%; border-collapse: collapse; }
+        table.sheet th, table.sheet td { border: 1px solid #000; padding: 5px 4px; }
+        table.sheet th { text-align: center; font-weight: bold; background: #f2f2f2; font-size: 10px; }
+        table.sheet td.num { text-align: center; width: 26px; }
+        table.sheet td.name { white-space: nowrap; }
+        table.sheet td.note { width: 48px; }
+        table.sheet td.avg { width: 55px; background: #fafafa; }
+        table.sheet tr { page-break-inside: avoid; }
+        table.sheet .empty { text-align: center; }
+        .footer { width: 100%; margin-top: 22px; font-size: 12px; }
+        .footer td { vertical-align: top; }
+        .footer .sign { text-align: right; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td class="logo">
+                {% if logo_data %}<img src="{{ logo_data }}" alt="Logo">{% endif %}
+            </td>
+            <td class="school">
+                <div class="name">{{ school ? school.name|upper : '' }}</div>
+                <div class="ministry">{{ school ? school.sousTutelle : '' }}</div>
+                <div class="tel">Tel: {{ school ? school.phone : '' }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    <div class="title">FICHE DE NOTES</div>
+
+    <table class="meta">
+        <tr>
+            <td><b>Classe :</b> {{ classroom.name }}</td>
+            <td><b>Année scolaire :</b> {{ classroom.schoolYear ? classroom.schoolYear.name : '—' }}</td>
+            <td><b>Effectif :</b> {{ students|length }}</td>
+        </tr>
+        <tr>
+            <td><b>Matière :</b> <span class="line">&nbsp;</span></td>
+            <td><b>Enseignant :</b> <span class="line">&nbsp;</span></td>
+            <td><b>Période :</b> <span class="line">&nbsp;</span></td>
+        </tr>
+    </table>
+
+    <table class="sheet">
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Matricule</th>
+                <th>Noms et Prénoms</th>
+                {% for i in 1..notes_count %}
+                    <th>Note {{ i }}</th>
+                {% endfor %}
+                <th>Moyenne</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if students is empty %}
+                <tr><td class="empty" colspan="{{ notes_count + 4 }}">Aucun élève inscrit dans cette classe</td></tr>
+            {% else %}
+                {% for student in students %}
+                <tr>
+                    <td class="num">{{ loop.index }}</td>
+                    <td>{{ student.matriculeInterne ?: '' }}</td>
+                    <td class="name">{{ student.lastName }} {{ student.firstName }}</td>
+                    {% for i in 1..notes_count %}
+                        <td class="note">&nbsp;</td>
+                    {% endfor %}
+                    <td class="avg">&nbsp;</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <table class="footer">
+        <tr>
+            <td>Imprimé le {{ generated_at|date('d/m/Y à H:i') }}</td>
+            <td class="sign">Signature de l'enseignant</td>
+        </tr>
+    </table>
+</body>
+</html>
